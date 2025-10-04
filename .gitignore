@@ -1,0 +1,19 @@
+# Node.js
+node_modules/
+.env
+
+# Flutter
+.dart_tool/
+.packages
+build/
+ios/
+android/
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
+
+# VS Code
+.vscode/
+
+# Logs
+*.log
