@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'create_community.dart'; // your community creation screen file
 
 class SelectCommunityScreen extends StatefulWidget {
   const SelectCommunityScreen({super.key});
@@ -8,126 +9,68 @@ class SelectCommunityScreen extends StatefulWidget {
 }
 
 class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
-  String? selectedCommunity;
-
-  final List<String> communities = [
-    "Food & Groceries",
-    "Clothing & Essentials",
-    "Books & Stationery",
-    "Home & Furniture",
-    "Electronics & Gadgets",
-    "Local Donation Groups",
-    "Volunteer Network",
-  ];
+  bool noCommunitiesNearby = true; // set true if no communities found
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white, // keep your existing theme
       appBar: AppBar(
-        title: const Text("Select Your Community"),
-        backgroundColor: Colors.teal,
-        centerTitle: true,
-        elevation: 0,
+        title: const Text("Select Community"),
+        backgroundColor: Colors.teal, // match your theme color
       ),
-      backgroundColor: Colors.white,
       body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Choose a community that best fits your interests or needs.",
-              style: TextStyle(fontSize: 16, color: Colors.black87),
-            ),
-            const SizedBox(height: 30),
-
-            // Community List
-            Expanded(
-              child: ListView.builder(
-                itemCount: communities.length,
-                itemBuilder: (context, index) {
-                  final community = communities[index];
-                  final isSelected = selectedCommunity == community;
-
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        selectedCommunity = community;
-                      });
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 18,
+        padding: const EdgeInsets.all(16.0),
+        child: Center(
+          child: noCommunitiesNearby
+              ? Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.location_off,
+                      size: 80,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      "No communities found near your location.",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
                       ),
-                      decoration: BoxDecoration(
-                        // Use withOpacity to set background transparency
-                        color: isSelected
-                            ? Colors.teal.withValues(alpha: 0.1)
-                            : Colors.grey[100],
-                        border: Border.all(
-                          color: isSelected
-                              ? Colors.teal
-                              : Colors.grey.shade300,
-                          width: isSelected ? 2 : 1,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            community,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.w500,
-                              color: isSelected ? Colors.teal : Colors.black87,
-                            ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 30),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CreateCommunityScreen(),
                           ),
-                          if (isSelected)
-                            const Icon(
-                              Icons.check_circle,
-                              color: Colors.teal,
-                              size: 24,
-                            ),
-                        ],
+                        );
+                      },
+                      icon: const Icon(Icons.add_location_alt_rounded),
+                      label: const Text("Create Your Own Community"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 14,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
-                  );
-                },
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            // Continue Button
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: selectedCommunity != null
-                      ? Colors.teal
-                      : Colors.grey,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                  ],
+                )
+              : ListView(
+                  children: [
+                    // Here you will show communities found in radius
+                  ],
                 ),
-                onPressed: selectedCommunity == null
-                    ? null
-                    : () {
-                        Navigator.pushReplacementNamed(context, '/home');
-                      },
-                child: const Text(
-                  "Continue",
-                  style: TextStyle(fontSize: 18, color: Colors.white),
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );
