@@ -46,7 +46,7 @@ class TradeAidApp extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const CreateAccountScreen(),
         '/create_profile': (context) => const CreateProfileScreen(),
-        '/location_permission': (context) => const LocationAccessScreen(),
+        '/location_permission': (context) => const LocationPermissionScreen(),
         '/select_community': (context) => const SelectCommunityScreen(),
         '/dashboard': (context) => const DashboardScreen(),
         '/products': (context) => const ProductListingScreen(),
@@ -88,9 +88,8 @@ class TradeAidApp extends StatelessWidget {
         }
 
         return MaterialPageRoute(
-          builder: (_) => const Scaffold(
-            body: Center(child: Text('Page not found')),
-          ),
+          builder: (_) =>
+              const Scaffold(body: Center(child: Text('Page not found'))),
         );
       },
     );
