@@ -16,7 +16,7 @@ class WelcomeScreen extends StatelessWidget {
               // App logo
               Image.asset('assets/logo.png', height: 130),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 50),
 
               // Main heading
               const Text(
