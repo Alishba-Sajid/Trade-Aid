@@ -28,6 +28,20 @@ flutter:
   assets:
     - assets/logo.png
     - assets/branding.png
+    - assets/candles.jpg
+    - assets/diffuser.jpg
+    - assets/soap.jpg
+    - assets/jacket.jpg
+    - assets/scarf.jpg
+    - assets/tote.jpg
+    - assets/vase.jpg
+    - assets/yoga.jpg
+    - assets/lawn.jpg
+    - assets/washing_machine.jpg
+    - assets/user_placeholder.jpg
+    - assets/fridge.jpg
+    - assets/cart_illustration.png
+    - assets/seller.jpg
 
 flutter_native_splash:
   color: "#FFFFFF"          # ✅ White background
