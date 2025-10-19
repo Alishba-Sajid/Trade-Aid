@@ -18,21 +18,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     switch (index) {
       case 0:
-        // Home — nothing special (stays on dashboard)
         break;
       case 1:
-        // Chat placeholder
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Chat feature coming soon!')),
         );
         break;
       case 2:
-        // Post — give user choice: Product or Resource
+        // Updated bottom sheet styling only
         showModalBottomSheet(
           context: context,
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
           ),
+          backgroundColor: const Color.fromARGB(255, 249, 249, 249), // lightest teal background
           builder: (context) {
             return SafeArea(
               child: Padding(
@@ -53,13 +52,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(height: 12),
                     const Text(
                       'Create a Post',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF004D40),
+                      ),
                     ),
                     const SizedBox(height: 12),
                     ListTile(
-                      leading: const Icon(Icons.shopping_bag_outlined),
-                      title: const Text('Post a Product'),
+                      leading: const Icon(Icons.shopping_bag_outlined,
+                          color: Color(0xFF004D40)),
+                      title: const Text('Post a Product',
+                          style: TextStyle(color: Color(0xFF004D40))),
                       subtitle: const Text('Sell items in your community'),
                       onTap: () {
                         Navigator.pop(context);
@@ -71,8 +75,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       },
                     ),
                     ListTile(
-                      leading: const Icon(Icons.groups_outlined),
-                      title: const Text('Share a Resource'),
+                      leading: const Icon(Icons.groups_outlined,
+                          color: Color(0xFF004D40)),
+                      title: const Text('Share a Resource',
+                          style: TextStyle(color: Color(0xFF004D40))),
                       subtitle:
                           const Text('Share items — time-limited'),
                       onTap: () {
@@ -87,7 +93,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(height: 8),
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel'),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: Color(0xFF004D40), // teal color
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 8),
                   ],
@@ -98,14 +110,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         );
         break;
       case 3:
-        // Cart
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const CartScreen()),
         );
         break;
       case 4:
-        // Profile placeholder
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profile feature coming soon!')),
         );
@@ -139,8 +149,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-
-      // Scrollable Body
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
@@ -155,7 +163,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF004D40), // dark teal
+                    color: Color(0xFF004D40),
                   ),
                 ),
               ),
@@ -169,8 +177,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-
-              // Products Card
               GestureDetector(
                 onTap: () {
                   Navigator.pushNamed(context, '/products');
@@ -182,19 +188,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-
-              // Resource Sharing Card
               GestureDetector(
                 onTap: () {
                   Navigator.pushNamed(context, '/resources');
                 },
                 child: const FeatureCard(
                   title: 'Resource Sharing',
-                  subtitle: 'Share / Access Resources\n(time-limited)',
+                  subtitle:
+                      'Share / Access Resources\n(time-limited)',
                   icon: Icons.groups_outlined,
                 ),
               ),
-
               const SizedBox(height: 20),
               const Text(
                 'Nearby Communities',
@@ -205,22 +209,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-
               SizedBox(
                 height: 120,
                 child: ListView(
                   scrollDirection: Axis.horizontal,
                   physics: const BouncingScrollPhysics(),
                   children: const [
-                    CommunityCard(icon: Icons.home_work_outlined, label: 'GG-12'),
+                    CommunityCard(
+                        icon: Icons.home_work_outlined, label: 'GG-12'),
                     SizedBox(width: 12),
-                    CommunityCard(icon: Icons.apartment_outlined, label: 'GG-13'),
+                    CommunityCard(
+                        icon: Icons.apartment_outlined, label: 'GG-13'),
                     SizedBox(width: 12),
-                    CommunityCard(icon: Icons.location_city_outlined, label: 'GG-14'),
+                    CommunityCard(
+                        icon: Icons.location_city_outlined, label: 'GG-14'),
                   ],
                 ),
               ),
-
               const SizedBox(height: 22),
               const Text(
                 'Wish Requests',
@@ -231,13 +236,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
               const SizedBox(height: 10),
-
               Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE0F2F1)), // light teal border
+                  border:
+                      Border.all(color: const Color(0xFFE0F2F1)),
                   boxShadow: const [
                     BoxShadow(
                       color: Colors.black12,
@@ -246,7 +251,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     )
                   ],
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -261,7 +267,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       decoration: BoxDecoration(
                         color: const Color(0xFFE0F2F1),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFB2DFDB)),
+                        border:
+                            Border.all(color: const Color(0xFFB2DFDB)),
                       ),
                       child: const Center(
                         child: Text(
@@ -282,7 +289,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
       ),
-
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onBottomNavTap,
@@ -290,11 +296,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
         selectedItemColor: const Color(0xFF004D40),
         unselectedItemColor: Colors.black45,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: 'Chat'),
-          BottomNavigationBarItem(icon: Icon(Icons.add_box_outlined), label: 'Post'),
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart_outlined), label: 'Cart'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.home_filled), label: 'Home'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.chat_bubble_outline), label: 'Chat'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.add_box_outlined), label: 'Post'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.shopping_cart_outlined), label: 'Cart'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline), label: 'Profile'),
         ],
       ),
     );
