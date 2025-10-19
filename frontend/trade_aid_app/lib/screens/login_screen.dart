@@ -108,9 +108,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     labelText: "Password",
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
-                      tooltip: _obscurePassword ? 'Show password' : 'Hide password',
+                      tooltip: _obscurePassword
+                          ? 'Show password'
+                          : 'Hide password',
                       icon: Icon(
-                        _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                        _obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
                       ),
                       onPressed: () {
                         setState(() {
@@ -139,7 +143,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         ? const SizedBox(
                             height: 18,
                             width: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
                         : const Text(
                             "Login",
@@ -154,10 +161,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const Text("Don’t have an account? "),
                     GestureDetector(
                       onTap: () {
-                        // route to register if you implement it
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Register not implemented')),
-                        );
+                        Navigator.pushNamed(context, '/register');
                       },
                       child: const Text(
                         "Register",
