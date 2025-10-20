@@ -134,6 +134,9 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Solid lighter teal for dropdown background (like BookingScreen)
+    const Color dropdownTeal = Color.fromARGB(255, 216, 255, 252); // solid light teal
+
     return Scaffold(
       appBar: AppBar(title: const Text('Post Product')),
       body: SafeArea(
@@ -195,6 +198,7 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
                         labelText: 'Used for',
                         border: OutlineInputBorder(),
                       ),
+                      dropdownColor: dropdownTeal,
                       items: _usedTimeOptions
                           .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                           .toList(),
@@ -210,6 +214,7 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
                         labelText: 'Condition',
                         border: OutlineInputBorder(),
                       ),
+                      dropdownColor: dropdownTeal,
                       items: _conditionOptions
                           .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                           .toList(),
@@ -225,6 +230,7 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
                     labelText: 'Category',
                     border: OutlineInputBorder(),
                   ),
+                  dropdownColor: dropdownTeal,
                   items: _productCategories
                       .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                       .toList(),
@@ -234,9 +240,18 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: _submit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal, // Teal button
+                  ),
                   child: const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    child: Text('Submit Product'),
+                    child: Text(
+                      'Submit Product',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 )
               ],
