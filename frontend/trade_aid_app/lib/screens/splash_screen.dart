@@ -12,7 +12,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Add delay before navigating
+    // Delay before navigating to welcome screen
     Timer(const Duration(seconds: 3), () {
       Navigator.pushReplacementNamed(context, '/welcome');
     });
@@ -36,10 +36,10 @@ class _SplashScreenState extends State<SplashScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 20),
             const CircularProgressIndicator(
-              color: Colors.white,
-              strokeWidth: 5,
+              color: Colors.teal, // visible on white background
+              strokeWidth: 4,
             ),
           ],
         ),

@@ -29,6 +29,9 @@ class _ResourcePostScreenState extends State<ResourcePostScreen> {
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
 
+  final Color _teal = const Color(0xFF008080);
+  final double _radius = 12;
+
   Future<void> _pickImage(int slot) async {
     final XFile? picked =
         await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
@@ -103,10 +106,50 @@ class _ResourcePostScreenState extends State<ResourcePostScreen> {
     );
   }
 
+  // ✅ Updated TimePicker theme using WidgetState and withValues()
   Future<void> _pickTime({required bool isStart}) async {
     final TimeOfDay now = TimeOfDay.now();
-    final TimeOfDay? picked =
-        await showTimePicker(context: context, initialTime: now);
+    final TimeOfDay initial = isStart ? (_startTime ?? now) : (_endTime ?? now);
+
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: initial,
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: ColorScheme.light(
+            primary: _teal,        // dial & buttons
+            onPrimary: Colors.white, // selected text
+            onSurface: Colors.black87, // default text
+          ),
+          timePickerTheme: TimePickerThemeData(
+            backgroundColor: Colors.white,
+            dialHandColor: _teal,
+            dialBackgroundColor: _teal.withValues(alpha: 0.08),
+            hourMinuteTextColor: WidgetStateColor.resolveWith(
+              (states) => states.contains(WidgetState.selected) ? Colors.white : _teal,
+            ),
+            dialTextColor: WidgetStateColor.resolveWith(
+              (states) => states.contains(WidgetState.selected) ? Colors.white : _teal,
+            ),
+            dayPeriodShape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+              side: BorderSide(color: _teal, width: 1.5),
+            ),
+            dayPeriodTextColor: WidgetStateColor.resolveWith(
+              (states) => states.contains(WidgetState.selected) ? Colors.white : _teal,
+            ),
+            dayPeriodColor: WidgetStateColor.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) return _teal;
+              if (states.contains(WidgetState.hovered)) return _teal.withValues(alpha: 0.12);
+              return Colors.white;
+            }),
+            helpTextStyle: TextStyle(fontWeight: FontWeight.bold, color: _teal),
+          ),
+        ),
+        child: child ?? const SizedBox.shrink(),
+      ),
+    );
+
     if (picked != null) {
       setState(() {
         if (isStart) {
@@ -202,6 +245,7 @@ class _ResourcePostScreenState extends State<ResourcePostScreen> {
                 onSaved: (v) => _description = v!.trim(),
               ),
               const SizedBox(height: 12),
+
               Align(
                 alignment: Alignment.centerLeft,
                 child: Column(
@@ -217,40 +261,37 @@ class _ResourcePostScreenState extends State<ResourcePostScreen> {
                           label: Text(d),
                           selected: sel,
                           onSelected: (v) => setState(() => _availableDays[d] = v),
+                          selectedColor: _teal,
+                          checkmarkColor: Colors.white,
+                          backgroundColor: Colors.white,
+                          labelStyle: TextStyle(
+                              color: sel ? Colors.white : _teal,
+                              fontWeight: FontWeight.w600),
                         );
                       }).toList(),
                     ),
                   ],
                 ),
               ),
+
               const SizedBox(height: 12),
+
               Row(children: [
                 Expanded(
-                  child: InkWell(
-                    onTap: () => _pickTime(isStart: true),
-                    child: InputDecorator(
-                      decoration: const InputDecoration(
-                        labelText: 'Start time',
-                        border: OutlineInputBorder(),
-                      ),
-                      child: Text(_startTime?.format(context) ?? 'Select start time'),
-                    ),
-                  ),
+                  child: _buildTimeCard(
+                      label: 'Start Time',
+                      time: _startTime,
+                      onTap: () => _pickTime(isStart: true)),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: InkWell(
-                    onTap: () => _pickTime(isStart: false),
-                    child: InputDecorator(
-                      decoration: const InputDecoration(
-                        labelText: 'End time',
-                        border: OutlineInputBorder(),
-                      ),
-                      child: Text(_endTime?.format(context) ?? 'Select end time'),
-                    ),
-                  ),
+                  child: _buildTimeCard(
+                      label: 'End Time',
+                      time: _endTime,
+                      onTap: () => _pickTime(isStart: false)),
                 ),
               ]),
+
               const SizedBox(height: 12),
               TextFormField(
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
@@ -268,12 +309,46 @@ class _ResourcePostScreenState extends State<ResourcePostScreen> {
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _submit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _teal,
+                ),
                 child: const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Text('Submit Resource'),
+                  child: Text(
+                    'Submit Resource',
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
                 ),
-              )
+              ),
             ]),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimeCard({
+    required String label,
+    required TimeOfDay? time,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+        decoration: BoxDecoration(
+          color: time != null ? _teal : Colors.white,
+          borderRadius: BorderRadius.circular(_radius),
+          border: Border.all(color: _teal),
+        ),
+        child: Center(
+          child: Text(
+            time != null ? time.format(context) : label,
+            style: TextStyle(
+              color: time != null ? Colors.white : _teal,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ),
