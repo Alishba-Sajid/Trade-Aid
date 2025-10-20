@@ -47,14 +47,13 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
     setState(() => _loading = true);
 
-    // Simulate auth
+    // Simulate authentication delay
     await Future.delayed(const Duration(milliseconds: 800));
 
     if (!mounted) return;
     setState(() => _loading = false);
 
     if (!mounted) return;
-    // navigate to dashboard
     Navigator.pushReplacementNamed(context, '/dashboard');
   }
 
@@ -62,8 +61,10 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true, // ✅ Prevent overflow on keyboard open
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
+          // ✅ Enables scrolling
           padding: const EdgeInsets.all(24.0),
           child: Form(
             key: _formKey,
@@ -71,8 +72,18 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 60),
-                Center(child: Image.asset('assets/logo.png', height: 100)),
+
+                // ✅ Increased logo size
+                Center(
+                  child: Image.asset(
+                    'assets/logo.png',
+                    height: 160,
+                    width: 160,
+                  ),
+                ),
+
                 const SizedBox(height: 40),
+
                 const Text(
                   "Welcome Back 👋",
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
@@ -83,6 +94,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: TextStyle(color: Colors.grey),
                 ),
                 const SizedBox(height: 30),
+
+                // Email Field
                 TextFormField(
                   controller: _emailController,
                   focusNode: _emailFocus,
@@ -98,6 +111,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                 ),
                 const SizedBox(height: 20),
+
+                // Password Field
                 TextFormField(
                   controller: _passwordController,
                   focusNode: _passwordFocus,
@@ -128,6 +143,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                 ),
                 const SizedBox(height: 30),
+
+                // ✅ Login Button (no overflow issue now)
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -155,6 +172,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
+
+                // Register link
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -173,6 +192,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 20), // Add bottom padding for safety
               ],
             ),
           ),
