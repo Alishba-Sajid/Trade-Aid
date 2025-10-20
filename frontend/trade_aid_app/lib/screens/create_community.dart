@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
+import 'package:flutter/services.dart'; // For clipboard copy
 
 class CreateCommunityScreen extends StatefulWidget {
   const CreateCommunityScreen({super.key});
@@ -22,13 +24,65 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
       return;
     }
 
-    // Later, connect with backend
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Community Created Successfully!")),
-    );
+    // ✅ Generate random community ID
+    final randomId = Random().nextInt(900000) + 100000; // 6-digit ID
+    final inviteLink = "https://tradeaid.app/community/$randomId";
 
-    // ✅ Navigate to dashboard instead of going back
-    Navigator.pushReplacementNamed(context, '/dashboard');
+    // ✅ Show success dialog with invite link
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Community Created!"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("Your community has been created successfully."),
+            const SizedBox(height: 10),
+            const Text(
+              "Here’s your invite link:",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            SelectableText(
+              inviteLink,
+              style: const TextStyle(
+                color: Colors.teal,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 15),
+            ElevatedButton.icon(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: inviteLink));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Link copied to clipboard")),
+                );
+              },
+              icon: const Icon(Icons.copy, color: Colors.white),
+              label: const Text(
+                "Copy Link",
+                style: TextStyle(color: Colors.white),
+              ),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              // ✅ Navigate to Dashboard and send community name
+              Navigator.pushReplacementNamed(
+                context,
+                '/dashboard',
+                arguments: {'communityName': _nameController.text.trim()},
+              );
+            },
+            child: const Text("Go to Dashboard"),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
