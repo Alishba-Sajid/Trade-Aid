@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'payment_option.dart'; // <-- added import
 import '../models/product.dart';
 
 class ProductListingScreen extends StatefulWidget {
@@ -217,12 +218,10 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                     ),
                     ElevatedButton(
                       onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Buy pressed', style: TextStyle(color: Colors.black)),
-                            backgroundColor: Colors.white,
-                            behavior: SnackBarBehavior.floating,
-                          ),
+                        // Navigate to payment selection screen
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => PaymentSelectionScreen()),
                         );
                       },
                       style: ElevatedButton.styleFrom(

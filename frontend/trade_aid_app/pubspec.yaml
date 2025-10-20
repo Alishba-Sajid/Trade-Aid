@@ -42,6 +42,9 @@ flutter:
     - assets/fridge.jpg
     - assets/cart_illustration.png
     - assets/seller.jpg
+    - assets/easypaisa.png
+    - assets/jazzcash.png
+    - assets/cashondelivery.png
 
 flutter_native_splash:
   color: "#FFFFFF"          # ✅ White background
