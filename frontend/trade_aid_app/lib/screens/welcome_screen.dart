@@ -13,8 +13,12 @@ class WelcomeScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // App logo
-              Image.asset('assets/logo.png', height: 130),
+              // App logo (✅ Increased size)
+              Image.asset(
+                'assets/logo.png',
+                height: 180, // was 130
+                width: 180, // added for proportional scaling
+              ),
 
               const SizedBox(height: 50),
 

@@ -13,6 +13,8 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
+
   String? _selectedGender;
   File? _profileImage;
 
@@ -76,27 +78,34 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Gender Dropdown (updated for Flutter 3.33+)
-              DropdownButtonFormField<String>(
-                initialValue: _selectedGender,
-                items: const [
-                  DropdownMenuItem(value: "Male", child: Text("Male")),
-                  DropdownMenuItem(value: "Female", child: Text("Female")),
-                  DropdownMenuItem(value: "Other", child: Text("Other")),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    _selectedGender = value;
-                  });
-                },
-                decoration: const InputDecoration(
-                  labelText: "Gender",
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.wc),
+              // 👇 UPDATED: Gender Dropdown width reduced to 70%
+              Center(
+                child: SizedBox(
+                  width: MediaQuery.of(context).size.width * 0.9,
+                  child: DropdownButtonFormField<String>(
+                    menuMaxHeight: 180,
+                    initialValue: _selectedGender,
+                    items: const [
+                      DropdownMenuItem(value: "Male", child: Text("Male")),
+                      DropdownMenuItem(value: "Female", child: Text("Female")),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedGender = value;
+                      });
+                    },
+                    decoration: const InputDecoration(
+                      labelText: "Gender",
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.wc),
+                    ),
+                    validator: (value) =>
+                        value == null ? "Please select your gender" : null,
+                    alignment: Alignment.centerLeft,
+                  ),
                 ),
-                validator: (value) =>
-                    value == null ? "Please select your gender" : null,
               ),
+
               const SizedBox(height: 20),
 
               // Phone Field
@@ -118,6 +127,19 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                   return null;
                 },
               ),
+              const SizedBox(height: 20),
+
+              // Address Field
+              TextFormField(
+                controller: _addressController,
+                decoration: const InputDecoration(
+                  labelText: "Address",
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.home),
+                ),
+                validator: (value) =>
+                    value!.isEmpty ? "Please enter your address" : null,
+              ),
               const SizedBox(height: 40),
 
               // Next Button
@@ -133,6 +155,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                   ),
                   onPressed: () {
                     if (_formKey.currentState!.validate()) {
+                      // Note: '/location_permission' must be defined in your MaterialApp routes.
                       Navigator.pushNamed(context, '/location_permission');
                     }
                   },
