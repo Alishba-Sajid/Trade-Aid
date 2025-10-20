@@ -31,7 +31,9 @@ class ResourceDetailsScreen extends StatelessWidget {
     final ownerAddressFull = safeString(() => resource.ownerAddress);
     final addressParts = ownerAddressFull.split(',');
     final houseNumber = addressParts.isNotEmpty ? addressParts[0].trim() : 'N/A';
-    final addressRest = addressParts.length > 1 ? addressParts.sublist(1).join(',').trim() : ownerAddressFull;
+    final addressRest = addressParts.length > 1
+        ? addressParts.sublist(1).join(',').trim()
+        : ownerAddressFull;
 
     // visible bar height (design height)
     const double bottomBarHeight = 84.0;
@@ -39,15 +41,15 @@ class ResourceDetailsScreen extends StatelessWidget {
     // device bottom inset (home indicator / gesture area)
     final double deviceBottomInset = MediaQuery.of(context).padding.bottom;
 
-    // Reserve exactly enough scroll space so content doesn't get hidden behind the bottom bar.
-    // We add a small 8 px margin so content isn't flush against the bar.
+    // Reserve scroll space so content isn't hidden behind the bottom bar
     final double scrollReserve = bottomBarHeight + deviceBottomInset + 8.0;
 
     return Scaffold(
-      extendBody: true, // allow translucent/backdrop effect if desired
+      extendBody: true,
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text('Resource Details', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600)),
+        title: const Text('Resource Details',
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600)),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
@@ -73,99 +75,130 @@ class ResourceDetailsScreen extends StatelessWidget {
                     color: Colors.grey[200],
                     alignment: Alignment.center,
                     margin: const EdgeInsets.only(top: 16, bottom: 2),
-                    child: const Icon(Icons.image_not_supported, size: 64, color: Colors.grey),
+                    child: const Icon(Icons.image_not_supported,
+                        size: 64, color: Colors.grey),
                   );
                 },
               ),
             ),
             const SizedBox(height: 14),
 
-            // 2) Name + price inline (price shown to the right of name)
+            // 2) Name + price inline
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Text(name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  child: Text(name,
+                      style: const TextStyle(
+                          fontSize: 20, fontWeight: FontWeight.bold)),
                 ),
                 const SizedBox(width: 8),
-                Text(priceText, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                Text(priceText,
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.w800)),
               ],
             ),
             const SizedBox(height: 13),
 
             // 3) Description
-            Text(description, style: const TextStyle(color: Colors.black87, height: 1.4)),
+            Text(description,
+                style: const TextStyle(color: Colors.black87, height: 1.4)),
             const SizedBox(height: 14),
 
-            // Divider
             const Divider(height: 1, thickness: 1),
             const SizedBox(height: 12),
 
             // Availability Card
             Card(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
               elevation: 2,
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('Availability', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                child:
+                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Availability',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 10),
                   Row(children: [
-                    const Icon(Icons.calendar_today_outlined, size: 18, color: Colors.grey),
+                    const Icon(Icons.calendar_today_outlined,
+                        size: 18, color: Colors.grey),
                     const SizedBox(width: 8),
-                    Expanded(child: Text(days, style: const TextStyle(color: Colors.black87))),
+                    Expanded(
+                        child: Text(days,
+                            style: const TextStyle(color: Colors.black87))),
                   ]),
                   const SizedBox(height: 8),
                   Row(children: [
-                    const Icon(Icons.access_time, size: 18, color: Colors.grey),
+                    const Icon(Icons.access_time,
+                        size: 18, color: Colors.grey),
                     const SizedBox(width: 8),
                     Text(time, style: const TextStyle(color: Colors.black87)),
                   ]),
                 ]),
               ),
             ),
-
             const SizedBox(height: 12),
 
-            // Provider Card (name, house number, address, chat icon)
+            // Provider Card
             Card(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
               elevation: 2,
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 12.0),
-                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const CircleAvatar(radius: 22, backgroundImage: AssetImage('assets/seller.jpg')),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(ownerName, style: const TextStyle(fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 8),
-                      Row(children: [
-                        const Text('House:', style: TextStyle(color: Colors.grey, fontSize: 13)),
-                        const SizedBox(width: 6),
-                        Text(houseNumber, style: const TextStyle(fontSize: 13)),
-                      ]),
-                      const SizedBox(height: 8),
-                      Text(addressRest, style: const TextStyle(color: Colors.black54, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 10.0, horizontal: 12.0),
+                child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const CircleAvatar(
+                          radius: 22,
+                          backgroundImage: AssetImage('assets/seller.jpg')),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(ownerName,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w700)),
+                              const SizedBox(height: 8),
+                              Row(children: [
+                                const Text('House:',
+                                    style: TextStyle(
+                                        color: Colors.grey, fontSize: 13)),
+                                const SizedBox(width: 6),
+                                Text(houseNumber,
+                                    style: const TextStyle(fontSize: 13)),
+                              ]),
+                              const SizedBox(height: 8),
+                              Text(addressRest,
+                                  style: const TextStyle(
+                                      color: Colors.black54, fontSize: 13),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis),
+                            ]),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.chat_bubble_outline,
+                            color: Colors.teal),
+                        tooltip: 'Chat with provider',
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content:
+                                  Text('Starting chat with $ownerName')));
+                        },
+                      ),
                     ]),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.chat_bubble_outline, color: Colors.teal),
-                    tooltip: 'Chat with provider',
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Starting chat with $ownerName')));
-                    },
-                  ),
-                ]),
               ),
             ),
-
             const SizedBox(height: 24),
           ],
         ),
       ),
 
-      // Put the Book Now bar into bottomNavigationBar wrapped with SafeArea
+      // Bottom bar
       bottomNavigationBar: SafeArea(
         top: false,
         child: Padding(
@@ -177,17 +210,21 @@ class ResourceDetailsScreen extends StatelessWidget {
               child: Container(
                 height: bottomBarHeight,
                 color: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 child: Row(
                   children: [
-                    // Price column on bottom left
+                    // Price column
                     Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Price', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                        const Text('Price',
+                            style: TextStyle(color: Colors.grey, fontSize: 12)),
                         const SizedBox(height: 6),
-                        Text(priceText, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                        Text(priceText,
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w800)),
                       ],
                     ),
                     const Spacer(),
@@ -204,10 +241,36 @@ class ResourceDetailsScreen extends StatelessWidget {
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.teal,
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 24),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
                         ),
-                        child: const Text('Book Now', style: TextStyle(fontSize: 16, color: Colors.white)),
+                        child: const Text('Book Now',
+                            style:
+                                TextStyle(fontSize: 16, color: Colors.white)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+
+                    // Add to Cart button
+                    SizedBox(
+                      height: 48,
+                      width: 52,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content:
+                                  Text('${resource.name} added to cart')));
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          padding: EdgeInsets.zero,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: const Icon(Icons.shopping_cart,
+                            color: Colors.white, size: 22),
                       ),
                     ),
                   ],
