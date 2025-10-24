@@ -193,6 +193,8 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
                 Row(children: [
                   Expanded(
                     child: DropdownButtonFormField<String>(
+                      isExpanded: true, // ensure dropdown width == field width
+                      alignment: AlignmentDirectional.centerStart,
                       initialValue: _usedTime,
                       decoration: const InputDecoration(
                         labelText: 'Used for',
@@ -209,6 +211,8 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: DropdownButtonFormField<String>(
+                      isExpanded: true, // ensure dropdown width == field width
+                      alignment: AlignmentDirectional.centerStart,
                       initialValue: _condition,
                       decoration: const InputDecoration(
                         labelText: 'Condition',
@@ -225,6 +229,8 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
                 ]),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
+                  isExpanded: true, // ensure dropdown width == field width
+                  alignment: AlignmentDirectional.centerStart,
                   initialValue: _productCategory,
                   decoration: const InputDecoration(
                     labelText: 'Category',

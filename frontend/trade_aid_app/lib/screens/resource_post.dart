@@ -2,7 +2,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-
+import '../widgets/time_picker.dart';
 class ResourcePostScreen extends StatefulWidget {
   const ResourcePostScreen({super.key});
 
@@ -111,44 +111,11 @@ class _ResourcePostScreenState extends State<ResourcePostScreen> {
     final TimeOfDay now = TimeOfDay.now();
     final TimeOfDay initial = isStart ? (_startTime ?? now) : (_endTime ?? now);
 
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: initial,
-      builder: (ctx, child) => Theme(
-        data: Theme.of(ctx).copyWith(
-          colorScheme: ColorScheme.light(
-            primary: _teal,        // dial & buttons
-            onPrimary: Colors.white, // selected text
-            onSurface: Colors.black87, // default text
-          ),
-          timePickerTheme: TimePickerThemeData(
-            backgroundColor: Colors.white,
-            dialHandColor: _teal,
-            dialBackgroundColor: _teal.withValues(alpha: 0.08),
-            hourMinuteTextColor: WidgetStateColor.resolveWith(
-              (states) => states.contains(WidgetState.selected) ? Colors.white : _teal,
-            ),
-            dialTextColor: WidgetStateColor.resolveWith(
-              (states) => states.contains(WidgetState.selected) ? Colors.white : _teal,
-            ),
-            dayPeriodShape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-              side: BorderSide(color: _teal, width: 1.5),
-            ),
-            dayPeriodTextColor: WidgetStateColor.resolveWith(
-              (states) => states.contains(WidgetState.selected) ? Colors.white : _teal,
-            ),
-            dayPeriodColor: WidgetStateColor.resolveWith((states) {
-              if (states.contains(WidgetState.selected)) return _teal;
-              if (states.contains(WidgetState.hovered)) return _teal.withValues(alpha: 0.12);
-              return Colors.white;
-            }),
-            helpTextStyle: TextStyle(fontWeight: FontWeight.bold, color: _teal),
-          ),
-        ),
-        child: child ?? const SizedBox.shrink(),
-      ),
-    );
+final picked = await showTealTimePicker(
+  context,
+  initialTime: initial,
+  primary: _teal,
+);
 
     if (picked != null) {
       setState(() {

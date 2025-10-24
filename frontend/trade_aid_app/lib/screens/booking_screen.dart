@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'payment_option.dart'; 
+import '../widgets/time_picker.dart';
 class Booking {
   final String resourceId;
   final DateTime date;
@@ -172,23 +173,14 @@ class _BookingScreenState extends State<BookingScreen> {
               child: _buildChoiceCard(
                 child: TextButton(
                   onPressed: () async {
-                    final picked = await showTimePicker(
-                      context: context,
-                      initialTime: TimeOfDay.now(),
-                      builder: (ctx, child) => Theme(
-                        data: Theme.of(ctx).copyWith(
-                          colorScheme: ColorScheme.light(
-                            primary: _teal,
-                            onPrimary: Colors.white,
-                            onSurface: Colors.black87,
-                          ),
-                          timePickerTheme: _customTimePickerTheme(),
-                        ),
-                        child: child ?? const SizedBox.shrink(),
-                      ),
-                    );
-                    if (picked != null) setState(() => startTime = picked);
-                  },
+                   final picked = await showTealTimePicker(
+                    context,
+                     initialTime: TimeOfDay.now(),
+                         primary: _teal,
+                                );
+
+                   if (picked != null) setState(() => startTime = picked);
+                   },
                   child: Text(
                     startTime == null ? 'Start Time' : startTime!.format(context),
                     style: TextStyle(
