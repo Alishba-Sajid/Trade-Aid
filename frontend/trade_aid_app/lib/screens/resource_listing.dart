@@ -1,6 +1,7 @@
 // lib/screens/resource_listing.dart
 import 'package:flutter/material.dart';
 import '../models/resource.dart';
+import '../models/cart.dart'; // added so resources can be added to cart
 
 class ResourceListingScreen extends StatefulWidget {
   const ResourceListingScreen({super.key});
@@ -132,6 +133,29 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
                                 : 'We couldn\'t find "${searchQuery.trim()}".',
                             textAlign: TextAlign.center,
                             style: const TextStyle(color: Colors.black54),
+                          ),
+
+                          const SizedBox(height: 14),
+
+                          // Create Wish Request button (no navigation)
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              // placeholder for backend-connected wish creation
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Wish request feature coming soon!'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.add_circle_outline),
+                            label: const Text('Create Wish Request'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF004D40),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
                           ),
                         ],
                       ),
@@ -290,12 +314,21 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
                             width: 44,
                             child: ElevatedButton(
                               onPressed: () {
+                                // add resource to shared in-memory cart
+                                Cart.instance.add(r);
+
+                                // show confirmation with current cart count
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content:
-                                        Text('${r.name} added to cart.'),
+                                    content: Text(
+                                      '${r.name} added to cart. (${Cart.instance.itemCount})',
+                                    ),
+                                    duration: const Duration(seconds: 2),
                                   ),
                                 );
+
+                                // optional: call setState if you need UI refresh
+                                setState(() {});
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.blue,

@@ -52,7 +52,7 @@ class TradeAidApp extends StatelessWidget {
         '/products': (context) => const ProductListingScreen(),
         '/resources': (context) => const ResourceListingScreen(),
         '/books': (context) => const BookScreen(),
-        '/cart': (context) => const CartScreen(),
+       '/cart': (context) => const CartScreen(), 
         // <-- added posting routes
         '/product_post': (context) => const ProductPostScreen(),
         '/resource_post': (context) => const ResourcePostScreen(),

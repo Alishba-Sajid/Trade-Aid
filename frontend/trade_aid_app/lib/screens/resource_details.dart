@@ -2,6 +2,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../models/resource.dart';
+import '../models/cart.dart';
 
 class ResourceDetailsScreen extends StatelessWidget {
   final Resource resource;
@@ -44,6 +45,9 @@ class ResourceDetailsScreen extends StatelessWidget {
     // Reserve scroll space so content isn't hidden behind the bottom bar
     final double scrollReserve = bottomBarHeight + deviceBottomInset + 8.0;
 
+    // subtle bg for image
+    final Color softBg = const Color(0xFFF7F6FB);
+
     return Scaffold(
       extendBody: true,
       backgroundColor: Colors.grey[50],
@@ -61,26 +65,31 @@ class ResourceDetailsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1) Image
+            // IMAGE: show full image (no cropping) using AspectRatio + BoxFit.contain
             ClipRRect(
               borderRadius: BorderRadius.circular(14),
-              child: Image.asset(
-                imagePath,
-                width: double.infinity,
-                height: 240,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    height: 240,
-                    color: Colors.grey[200],
-                    alignment: Alignment.center,
-                    margin: const EdgeInsets.only(top: 16, bottom: 2),
-                    child: const Icon(Icons.image_not_supported,
-                        size: 64, color: Colors.grey),
-                  );
-                },
+              child: Container(
+                color: softBg,
+                // Use an aspect ratio similar to product view (4:3). This keeps a consistent height.
+                child: AspectRatio(
+                  aspectRatio: 4 / 3,
+                  child: Image.asset(
+                    imagePath,
+                    fit: BoxFit.contain, // <- important: contain so entire image is visible
+                    width: double.infinity,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: Colors.grey[200],
+                        alignment: Alignment.center,
+                        child: const Icon(Icons.image_not_supported,
+                            size: 64, color: Colors.grey),
+                      );
+                    },
+                  ),
+                ),
               ),
             ),
+
             const SizedBox(height: 14),
 
             // 2) Name + price inline
@@ -131,8 +140,7 @@ class ResourceDetailsScreen extends StatelessWidget {
                   ]),
                   const SizedBox(height: 8),
                   Row(children: [
-                    const Icon(Icons.access_time,
-                        size: 18, color: Colors.grey),
+                    const Icon(Icons.access_time, size: 18, color: Colors.grey),
                     const SizedBox(width: 8),
                     Text(time, style: const TextStyle(color: Colors.black87)),
                   ]),
@@ -253,15 +261,22 @@ class ResourceDetailsScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
 
-                    // Add to Cart button
+                    // Add to Cart button (adds resource to shared cart and opens cart)
                     SizedBox(
                       height: 48,
                       width: 52,
                       child: ElevatedButton(
                         onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content:
-                                  Text('${resource.name} added to cart')));
+                          // add the resource to the shared cart
+                          Cart.instance.add(resource);
+
+                          // show confirmation
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('${resource.name} added to cart')),
+                          );
+
+                          // navigate to cart screen (optional)
+                          Navigator.pushNamed(context, '/cart');
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.black,

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'cart_screen.dart';
 import 'product_post.dart';
 import 'resource_post.dart';
+import 'manage_uploads.dart'; // <- ADD THIS IMPORT (file containing ManageUploadsScreen)
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -222,6 +223,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
               title: const Text('Home'),
               onTap: () => Navigator.pop(context),
             ),
+
+            // <-- NEW: My Uploads entry added here -->
+            ListTile(
+              leading: const Icon(Icons.cloud_upload_outlined, color: Color(0xFF004D40)),
+              title: const Text('My Uploads'),
+              subtitle: const Text('Manage your products & resources'),
+              onTap: () {
+                // close drawer then navigate to ManageUploadsScreen
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ManageUploadsScreen()),
+                );
+              },
+            ),
+            // <-- end new entry -->
+
             ListTile(
               leading: const Icon(Icons.settings),
               title: const Text('Settings'),
@@ -370,7 +388,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF004D40),
+                            color: const Color(0xFF004D40),
                           ),
                         ),
                       ),

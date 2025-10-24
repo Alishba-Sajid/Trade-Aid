@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'payment_option.dart'; // <-- added import
 import '../models/product.dart';
+import '../models/cart.dart'; // <-- import cart singleton
 
 class ProductDetailsScreen extends StatelessWidget {
   final Product product;
@@ -154,71 +155,80 @@ class ProductDetailsScreen extends StatelessWidget {
 
             const SizedBox(height: 14),
 
-            // SELLER CARD
-            Card(
-              color: cardBg,
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // avatar with subtle border
-                    Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.grey.shade200, width: 2),
-                      ),
-                      child: const CircleAvatar(radius: 22, backgroundImage: AssetImage('assets/images/seller.jpg')),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(sellerName, style: const TextStyle(fontWeight: FontWeight.w700)),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              const Text('House:', style: TextStyle(color: Colors.grey, fontSize: 13)),
-                              const SizedBox(width: 6),
-                              Text(houseNumber, style: const TextStyle(fontSize: 13)),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(addressRest,
-                              style: const TextStyle(color: Colors.black54, fontSize: 13),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis),
-                        ],
-                      ),
-                    ),
-
-                    // Chat button (rounded square)
-                    Container(
-                      height: 40,
-                      width: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.teal,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.chat_bubble_outline, color: Colors.teal, size: 20),
-                        tooltip: 'Chat with seller',
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Starting chat with $sellerName')),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
+           Card(
+  color: cardBg,
+  elevation: 2,
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  child: Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        // Avatar with subtle border
+        Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.grey.shade200, width: 2),
+          ),
+          child: const CircleAvatar(
+            radius: 22,
+            backgroundImage: AssetImage('assets/images/seller.jpg'),
+          ),
+        ),
+        const SizedBox(width: 12),
+        // Seller info (expanded to take available space)
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                sellerName,
+                style: const TextStyle(fontWeight: FontWeight.w700),
               ),
-            ),
-
-
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Text('Warehouse:', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: Text(houseNumber, style: const TextStyle(fontSize: 13)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                addressRest,
+                style: const TextStyle(color: Colors.black54, fontSize: 13),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+        // Chat icon on the right
+        IconButton(
+          icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.teal),
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Chat feature coming soon!')),
+            );
+          },
+        ),
+      ],
+    ),
+  ),
+),
+            const SizedBox(height: 14),
+                    // Chat icon removed per request — nothing displayed here anymore
+                    
+              
+            const SizedBox(height: 14),
           ],
         ),
       ),
@@ -272,19 +282,30 @@ class ProductDetailsScreen extends StatelessWidget {
 
                     const SizedBox(width: 10),
 
-                    // Add to cart (icon button)
+                    // Add to cart (icon button) - now adds to in-memory cart and navigates to /cart
                     SizedBox(
                       height: 46,
                       child: ElevatedButton(
                         onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Added to cart')));
+                          // add to local in-memory cart
+                          Cart.instance.add(product);
+
+                          // show confirmation
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('${product.name} added to cart.')),
+                          );
+
+                          // navigate to cart screen (if you have route '/cart' registered)
+                          Navigator.pushNamed(context, '/cart');
+
+                          
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.black,
                           padding: const EdgeInsets.symmetric(horizontal: 14),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
-                        child: const Icon(Icons.add_shopping_cart_outlined, color: Colors.white),
+                        child: const Icon(Icons.shopping_cart, color: Colors.white),
                       ),
                     ),
                   ],
