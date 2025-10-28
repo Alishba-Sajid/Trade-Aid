@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../widgets/time_picker.dart';
+
 class ResourcePostScreen extends StatefulWidget {
   const ResourcePostScreen({super.key});
 
@@ -29,7 +30,6 @@ class _ResourcePostScreenState extends State<ResourcePostScreen> {
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
 
-  final Color _teal = const Color(0xFF008080);
   final double _radius = 12;
 
   Future<void> _pickImage(int slot) async {
@@ -83,9 +83,9 @@ class _ResourcePostScreenState extends State<ResourcePostScreen> {
         width: 110,
         height: 110,
         decoration: BoxDecoration(
-          color: Colors.grey[100],
+          color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade300),
+          border: Border.all(color: kPrimaryTeal, width: 1.8),
         ),
         child: img == null
             ? Column(mainAxisAlignment: MainAxisAlignment.center, children: const [
@@ -106,16 +106,15 @@ class _ResourcePostScreenState extends State<ResourcePostScreen> {
     );
   }
 
-  // ✅ Updated TimePicker theme using WidgetState and withValues()
   Future<void> _pickTime({required bool isStart}) async {
     final TimeOfDay now = TimeOfDay.now();
     final TimeOfDay initial = isStart ? (_startTime ?? now) : (_endTime ?? now);
 
-final picked = await showTealTimePicker(
-  context,
-  initialTime: initial,
-  primary: _teal,
-);
+    final picked = await showTealTimePicker(
+      context,
+      initialTime: initial,
+      primary: kPrimaryTeal,
+    );
 
     if (picked != null) {
       setState(() {
@@ -175,120 +174,150 @@ final picked = await showTealTimePicker(
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Post Resource')),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: Column(children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Pictures (up to 3)',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 120,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: 3,
-                  separatorBuilder: (context, index) => const SizedBox(width: 12),
-                  itemBuilder: (context, i) => _buildImageSlot(i),
-                ),
-              ),
-              const SizedBox(height: 18),
-              TextFormField(
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Enter description' : null,
-                onSaved: (v) => _description = v!.trim(),
-              ),
-              const SizedBox(height: 12),
-
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Available days'),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      children: _availableDays.keys.map((d) {
-                        final sel = _availableDays[d]!;
-                        return FilterChip(
-                          label: Text(d),
-                          selected: sel,
-                          onSelected: (v) => setState(() => _availableDays[d] = v),
-                          selectedColor: _teal,
-                          checkmarkColor: Colors.white,
-                          backgroundColor: Colors.white,
-                          labelStyle: TextStyle(
-                              color: sel ? Colors.white : _teal,
-                              fontWeight: FontWeight.w600),
-                        );
-                      }).toList(),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              Row(children: [
-                Expanded(
-                  child: _buildTimeCard(
-                      label: 'Start Time',
-                      time: _startTime,
-                      onTap: () => _pickTime(isStart: true)),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildTimeCard(
-                      label: 'End Time',
-                      time: _endTime,
-                      onTap: () => _pickTime(isStart: false)),
-                ),
-              ]),
-
-              const SizedBox(height: 12),
-              TextFormField(
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
-                  labelText: 'Hourly rate (per hour)',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'Enter hourly rate';
-                  if (double.tryParse(v.trim()) == null) return 'Invalid number';
-                  return null;
-                },
-                onSaved: (v) => _hourlyRate = v!.trim(),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _submit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _teal,
-                ),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    return Theme(
+      data: Theme.of(context).copyWith(
+        inputDecorationTheme: InputDecorationTheme(
+          focusedBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: kPrimaryTeal, width: 2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          labelStyle: const TextStyle(color: kPrimaryTeal),
+          floatingLabelStyle: const TextStyle(color: kPrimaryTeal),
+        ),
+        colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: kPrimaryTeal,
+            ),
+      ),
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          centerTitle: true,
+          title: const Text(
+            'Post Resource',
+            style: TextStyle(
+              color: kPrimaryTeal,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Form(
+              key: _formKey,
+              child: Column(children: [
+                Align(
+                  alignment: Alignment.centerLeft,
                   child: Text(
-                    'Submit Resource',
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold),
+                    'Pictures (up to 3)',
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
-              ),
-            ]),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 120,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: 3,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(width: 12),
+                    itemBuilder: (context, i) => _buildImageSlot(i),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                TextFormField(
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Enter description'
+                      : null,
+                  onSaved: (v) => _description = v!.trim(),
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Available days'),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        children: _availableDays.keys.map((d) {
+                          final sel = _availableDays[d]!;
+                          return FilterChip(
+                            label: Text(d),
+                            selected: sel,
+                            onSelected: (v) =>
+                                setState(() => _availableDays[d] = v),
+                            selectedColor: kSkyBlue,
+                            checkmarkColor: Colors.white,
+                            backgroundColor: Colors.white,
+                            labelStyle: TextStyle(
+                              color: sel ? Colors.white : kPrimaryTeal,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(children: [
+                  Expanded(
+                    child: _buildTimeCard(
+                        label: 'Start Time',
+                        time: _startTime,
+                        onTap: () => _pickTime(isStart: true)),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildTimeCard(
+                        label: 'End Time',
+                        time: _endTime,
+                        onTap: () => _pickTime(isStart: false)),
+                  ),
+                ]),
+                const SizedBox(height: 12),
+                TextFormField(
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Hourly rate (per hour)',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) {
+                      return 'Enter hourly rate';
+                    }
+                    if (double.tryParse(v.trim()) == null) {
+                      return 'Invalid number';
+                    }
+                    return null;
+                  },
+                  onSaved: (v) => _hourlyRate = v!.trim(),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: _submit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kPrimaryTeal,
+                  ),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Text(
+                      'Submit Resource',
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ]),
+            ),
           ),
         ),
       ),
@@ -305,15 +334,15 @@ final picked = await showTealTimePicker(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
         decoration: BoxDecoration(
-          color: time != null ? _teal : Colors.white,
+          color: time != null ? kPrimaryTeal : Colors.white,
           borderRadius: BorderRadius.circular(_radius),
-          border: Border.all(color: _teal),
+          border: Border.all(color: kPrimaryTeal),
         ),
         child: Center(
           child: Text(
             time != null ? time.format(context) : label,
             style: TextStyle(
-              color: time != null ? Colors.white : _teal,
+              color: time != null ? Colors.white : kPrimaryTeal,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -322,3 +351,8 @@ final picked = await showTealTimePicker(
     );
   }
 }
+
+// 🎨 Shared color palette
+const Color kPrimaryTeal = Color(0xFF004D40); // main teal used across the UI
+const Color kLightTeal = Color(0xFF70B2B2); // lighter teal accent
+const Color kSkyBlue = Color(0xFF9ECFD4); // soft blue used for placeholders

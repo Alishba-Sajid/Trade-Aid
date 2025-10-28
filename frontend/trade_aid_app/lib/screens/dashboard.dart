@@ -3,7 +3,12 @@ import 'package:flutter/services.dart';
 import 'cart_screen.dart';
 import 'product_post.dart';
 import 'resource_post.dart';
-import 'manage_uploads.dart'; // <- ADD THIS IMPORT (file containing ManageUploadsScreen)
+import 'manage_uploads.dart';
+
+// 🌿 Shared App Colors
+const Color kPrimaryTeal = Color(0xFF004D40); // main teal used across the UI
+const Color kLightTeal = Color(0xFF70B2B2); // lighter teal accent
+const Color kSkyBlue = Color(0xFF9ECFD4); // soft blue used for placeholders
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -14,115 +19,19 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
-
-  // Mock invite link (will come from backend later)
   final String _communityInviteLink = "https://tradeaid.app/invite/eco123";
 
   void _onBottomNavTap(int index) {
     setState(() => _selectedIndex = index);
 
     switch (index) {
-      case 0:
-        break;
       case 1:
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Chat feature coming soon!')),
         );
         break;
       case 2:
-        showModalBottomSheet(
-          context: context,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-          ),
-          backgroundColor: const Color.fromARGB(255, 249, 249, 249),
-          builder: (context) {
-            return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(height: 6),
-                    Container(
-                      width: 48,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Create a Post',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF004D40),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    ListTile(
-                      leading: const Icon(
-                        Icons.shopping_bag_outlined,
-                        color: Color(0xFF004D40),
-                      ),
-                      title: const Text(
-                        'Post a Product',
-                        style: TextStyle(color: Color(0xFF004D40)),
-                      ),
-                      subtitle: const Text('Sell items in your community'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const ProductPostScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(
-                        Icons.groups_outlined,
-                        color: Color(0xFF004D40),
-                      ),
-                      title: const Text(
-                        'Share a Resource',
-                        style: TextStyle(color: Color(0xFF004D40)),
-                      ),
-                      subtitle: const Text('Share items — time-limited'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const ResourcePostScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text(
-                        'Cancel',
-                        style: TextStyle(
-                          color: Color(0xFF004D40),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
+        _showCreatePostSheet();
         break;
       case 3:
         Navigator.push(
@@ -138,6 +47,80 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  void _showCreatePostSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      backgroundColor: Colors.white,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 6),
+                Container(
+                  width: 48,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Create a Post',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: kPrimaryTeal,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ListTile(
+                  leading: const Icon(Icons.shopping_bag_outlined, color: kPrimaryTeal),
+                  title: const Text('Post a Product', style: TextStyle(color: kPrimaryTeal)),
+                  subtitle: const Text('Sell items in your community'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ProductPostScreen()),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.groups_outlined, color: kPrimaryTeal),
+                  title: const Text('Share a Resource', style: TextStyle(color: kPrimaryTeal)),
+                  subtitle: const Text('Share items — time-limited'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ResourcePostScreen()),
+                    );
+                  },
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: kPrimaryTeal, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _copyLink() {
     Clipboard.setData(ClipboardData(text: _communityInviteLink));
     ScaffoldMessenger.of(context).showSnackBar(
@@ -150,18 +133,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 👇 Get community name from route arguments
-    final args =
-        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    final String communityName = args != null && args['communityName'] != null
-        ? args['communityName']
-        : 'My Community';
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final String communityName = args?['communityName'] ?? 'My Community';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F9FB),
+      backgroundColor: Colors.white,
+    
+
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF6F9FB),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
         elevation: 0,
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Colors.white,
+          
+          statusBarIconBrightness: Brightness.dark,
+        ),
         leading: Builder(
           builder: (context) => IconButton(
             icon: const Icon(Icons.menu, color: Colors.black87),
@@ -181,13 +168,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
 
-      // 👇 Drawer with Community Name and Invite Link only
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
             DrawerHeader(
-              decoration: const BoxDecoration(color: Color(0xFF004D40)),
+              decoration: const BoxDecoration(color: kPrimaryTeal),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -210,27 +196,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     onPressed: _copyLink,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF004D40),
+                      foregroundColor: kPrimaryTeal,
                     ),
-                    icon: const Icon(Icons.copy, size: 18),
-                    label: const Text("Copy Invite Link"),
+                    icon: const Icon(Icons.copy, color: kPrimaryTeal, size: 18),
+                    label: const Text("Copy Invite Link", style: TextStyle(color: kPrimaryTeal)),
                   ),
                 ],
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.home),
+              leading: const Icon(Icons.home, color: kPrimaryTeal),
               title: const Text('Home'),
               onTap: () => Navigator.pop(context),
             ),
-
-            // <-- NEW: My Uploads entry added here -->
             ListTile(
-              leading: const Icon(Icons.cloud_upload_outlined, color: Color(0xFF004D40)),
+              leading: const Icon(Icons.cloud_upload_outlined, color: kPrimaryTeal),
               title: const Text('My Uploads'),
               subtitle: const Text('Manage your products & resources'),
               onTap: () {
-                // close drawer then navigate to ManageUploadsScreen
                 Navigator.pop(context);
                 Navigator.push(
                   context,
@@ -238,10 +221,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 );
               },
             ),
-            // <-- end new entry -->
-
             ListTile(
-              leading: const Icon(Icons.settings),
+              leading: const Icon(Icons.settings, color: kPrimaryTeal),
               title: const Text('Settings'),
               onTap: () {},
             ),
@@ -249,11 +230,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
 
-      // 👇 Main Dashboard Body (without community section)
       body: SafeArea(
         child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 20),
+          physics: const BouncingScrollPhysics(),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -264,7 +244,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF004D40),
+                    color: kPrimaryTeal,
                   ),
                 ),
               ),
@@ -274,16 +254,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   'assets/cart_illustration.png',
                   width: 180,
                   height: 180,
-                  fit: BoxFit.contain,
                 ),
               ),
               const SizedBox(height: 24),
 
-              // 🧩 Feature Cards
               GestureDetector(
-                onTap: () {
-                  Navigator.pushNamed(context, '/products');
-                },
+                onTap: () => Navigator.pushNamed(context, '/products'),
                 child: const FeatureCard(
                   title: 'Products',
                   subtitle: 'Browse / Purchase Products',
@@ -292,9 +268,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 20),
               GestureDetector(
-                onTap: () {
-                  Navigator.pushNamed(context, '/resources');
-                },
+                onTap: () => Navigator.pushNamed(context, '/resources'),
                 child: const FeatureCard(
                   title: 'Resource Sharing',
                   subtitle: 'Share / Access Resources\n(time-limited)',
@@ -303,13 +277,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Nearby Communities
               const Text(
                 'Nearby Communities',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF004D40),
+                  color: kPrimaryTeal,
                 ),
               ),
               const SizedBox(height: 12),
@@ -319,68 +292,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   scrollDirection: Axis.horizontal,
                   physics: const BouncingScrollPhysics(),
                   children: const [
-                    CommunityCard(
-                      icon: Icons.home_work_outlined,
-                      label: 'GG-12',
-                    ),
+                    CommunityCard(icon: Icons.home_work_outlined, label: 'GG-12'),
                     SizedBox(width: 12),
-                    CommunityCard(
-                      icon: Icons.apartment_outlined,
-                      label: 'GG-13',
-                    ),
+                    CommunityCard(icon: Icons.apartment_outlined, label: 'GG-13'),
                     SizedBox(width: 12),
-                    CommunityCard(
-                      icon: Icons.location_city_outlined,
-                      label: 'GG-14',
-                    ),
+                    CommunityCard(icon: Icons.location_city_outlined, label: 'GG-14'),
                   ],
                 ),
               ),
               const SizedBox(height: 22),
 
-              // Wish Requests Section
               const Text(
                 'Wish Requests',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF004D40),
+                  color: kPrimaryTeal,
                 ),
               ),
               const SizedBox(height: 10),
               Container(
-                width: double.infinity,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE0F2F1)),
+                  border: Border.all(color: kSkyBlue),
                   boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 6,
-                      offset: Offset(0, 2),
-                    ),
+                    BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2)),
                   ],
                 ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Items Required',
-                      style: TextStyle(color: Colors.black54),
-                    ),
+                    const Text('Items Required', style: TextStyle(color: Colors.black54)),
                     const SizedBox(height: 8),
                     Container(
                       width: 80,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE0F2F1),
+                        color: kSkyBlue.withOpacity(0.25),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFB2DFDB)),
+                        border: Border.all(color: kLightTeal),
                       ),
                       child: const Center(
                         child: Text(
@@ -388,7 +340,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF004D40),
+                            color: kPrimaryTeal,
                           ),
                         ),
                       ),
@@ -406,26 +358,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
         currentIndex: _selectedIndex,
         onTap: _onBottomNavTap,
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF004D40),
-        unselectedItemColor: Colors.black45,
+        backgroundColor: Colors.white,
+        selectedItemColor: kPrimaryTeal,
+        unselectedItemColor: kLightTeal.withOpacity(0.7),
+        elevation: 10,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat_bubble_outline),
-            label: 'Chat',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.add_box_outlined),
-            label: 'Post',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_cart_outlined),
-            label: 'Cart',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: 'Profile',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: 'Chat'),
+          BottomNavigationBarItem(icon: Icon(Icons.add_box_outlined), label: 'Post'),
+          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart_outlined), label: 'Cart'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
         ],
       ),
     );
@@ -448,7 +390,7 @@ class FeatureCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFE0F2F1),
+        color: kSkyBlue.withOpacity(0.2),
         borderRadius: BorderRadius.circular(18),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
@@ -458,26 +400,15 @@ class FeatureCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF004D40),
-                  ),
-                ),
+                Text(title,
+                    style: const TextStyle(
+                        fontSize: 22, fontWeight: FontWeight.w800, color: kPrimaryTeal)),
                 const SizedBox(height: 6),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF004D40),
-                  ),
-                ),
+                Text(subtitle, style: const TextStyle(fontSize: 16, color: kLightTeal)),
               ],
             ),
           ),
-          Icon(icon, color: const Color(0xFF00332E), size: 60),
+          Icon(icon, color: kPrimaryTeal, size: 60),
         ],
       ),
     );
@@ -498,22 +429,16 @@ class CommunityCard extends StatelessWidget {
           width: 96,
           height: 84,
           decoration: BoxDecoration(
-            color: const Color(0xFFE0F2F1),
+            color: kSkyBlue.withOpacity(0.25),
             borderRadius: BorderRadius.circular(12),
             boxShadow: const [
-              BoxShadow(
-                color: Colors.black12,
-                blurRadius: 6,
-                offset: Offset(0, 3),
-              ),
+              BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3)),
             ],
           ),
-          child: Center(
-            child: Icon(icon, size: 42, color: const Color(0xFF004D40)),
-          ),
+          child: Center(child: Icon(icon, size: 42, color: kPrimaryTeal)),
         ),
         const SizedBox(height: 8),
-        Text(label, style: const TextStyle(color: Color(0xFF004D40))),
+        Text(label, style: const TextStyle(color: kPrimaryTeal)),
       ],
     );
   }

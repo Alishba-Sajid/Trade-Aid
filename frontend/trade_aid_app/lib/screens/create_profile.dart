@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 
+// 🎨 Custom Color Palette
+const Color kPrimaryTeal = Color(0xFF004D40); // main teal used across the UI
+const Color kLightTeal = Color(0xFF70B2B2);   // lighter teal accent
+const Color kSkyBlue = Color(0xFF9ECFD4);     // soft blue used for placeholders
+const Color kPaleYellow = Color(0xFFE5E9C5);  // subtle yellow/green tint used sparingly
+
 class CreateProfileScreen extends StatefulWidget {
   const CreateProfileScreen({super.key});
 
@@ -31,10 +37,18 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("Create Profile"),
-        backgroundColor: Colors.teal,
+        title: const Text(
+          "Create Profile",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        backgroundColor: kPrimaryTeal,
         centerTitle: true,
+        elevation: 2,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -49,61 +63,73 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
               GestureDetector(
                 onTap: _pickImage,
                 child: CircleAvatar(
-                  radius: 50,
-                  backgroundColor: Colors.teal.shade100,
-                  backgroundImage: _profileImage != null
-                      ? FileImage(_profileImage!)
-                      : null,
+                  radius: 55,
+                  backgroundColor: kSkyBlue.withOpacity(0.3),
+                  backgroundImage:
+                      _profileImage != null ? FileImage(_profileImage!) : null,
                   child: _profileImage == null
                       ? const Icon(
                           Icons.camera_alt,
                           size: 40,
-                          color: Color(0xFF009688),
+                          color: kLightTeal,
                         )
                       : null,
                 ),
               ),
-              const SizedBox(height: 20),
+
+              const SizedBox(height: 25),
 
               // Name Field
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: "Full Name",
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.person),
+                  labelStyle: const TextStyle(color: kLightTeal),
+                  filled: true,
+                  fillColor: kSkyBlue.withOpacity(0.1),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: kLightTeal),
+                  ),
+                  focusedBorder: const OutlineInputBorder(
+                    borderSide: BorderSide(color: kPrimaryTeal, width: 2),
+                  ),
+                  prefixIcon: const Icon(Icons.person, color: kLightTeal),
                 ),
                 validator: (value) =>
                     value!.isEmpty ? "Please enter your name" : null,
               ),
               const SizedBox(height: 20),
 
-              // 👇 UPDATED: Gender Dropdown width reduced to 70%
-              Center(
-                child: SizedBox(
-                  width: MediaQuery.of(context).size.width * 0.9,
-                  child: DropdownButtonFormField<String>(
-                    menuMaxHeight: 180,
-                    initialValue: _selectedGender,
-                    items: const [
-                      DropdownMenuItem(value: "Male", child: Text("Male")),
-                      DropdownMenuItem(value: "Female", child: Text("Female")),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedGender = value;
-                      });
-                    },
-                    decoration: const InputDecoration(
-                      labelText: "Gender",
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.wc),
-                    ),
-                    validator: (value) =>
-                        value == null ? "Please select your gender" : null,
-                    alignment: Alignment.centerLeft,
+              // Gender Dropdown
+              DropdownButtonFormField<String>(
+                menuMaxHeight: 180,
+                value: _selectedGender,
+                items: const [
+                  DropdownMenuItem(value: "Male", child: Text("Male")),
+                  DropdownMenuItem(value: "Female", child: Text("Female")),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _selectedGender = value;
+                  });
+                },
+                decoration: InputDecoration(
+                  labelText: "Gender",
+                  labelStyle: const TextStyle(color: kLightTeal),
+                  filled: true,
+                  fillColor: kSkyBlue.withOpacity(0.1),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: kLightTeal),
                   ),
+                  focusedBorder: const OutlineInputBorder(
+                    borderSide: BorderSide(color: kPrimaryTeal, width: 2),
+                  ),
+                  prefixIcon: const Icon(Icons.wc, color: kLightTeal),
                 ),
+                validator: (value) =>
+                    value == null ? "Please select your gender" : null,
               ),
 
               const SizedBox(height: 20),
@@ -112,10 +138,19 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
               TextFormField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: "Phone Number",
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.phone),
+                  labelStyle: const TextStyle(color: kLightTeal),
+                  filled: true,
+                  fillColor: kSkyBlue.withOpacity(0.1),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: kLightTeal),
+                  ),
+                  focusedBorder: const OutlineInputBorder(
+                    borderSide: BorderSide(color: kPrimaryTeal, width: 2),
+                  ),
+                  prefixIcon: const Icon(Icons.phone, color: kLightTeal),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -132,10 +167,19 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
               // Address Field
               TextFormField(
                 controller: _addressController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: "Address",
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.home),
+                  labelStyle: const TextStyle(color: kLightTeal),
+                  filled: true,
+                  fillColor: kSkyBlue.withOpacity(0.1),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: kLightTeal),
+                  ),
+                  focusedBorder: const OutlineInputBorder(
+                    borderSide: BorderSide(color: kPrimaryTeal, width: 2),
+                  ),
+                  prefixIcon: const Icon(Icons.home, color: kLightTeal),
                 ),
                 validator: (value) =>
                     value!.isEmpty ? "Please enter your address" : null,
@@ -148,23 +192,29 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                 height: 50,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
+                    backgroundColor: kPrimaryTeal,
+                    foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(10),
                     ),
+                    shadowColor: kLightTeal.withOpacity(0.3),
+                    elevation: 4,
                   ),
                   onPressed: () {
                     if (_formKey.currentState!.validate()) {
-                      // Note: '/location_permission' must be defined in your MaterialApp routes.
                       Navigator.pushNamed(context, '/location_permission');
                     }
                   },
                   child: const Text(
                     "Next",
-                    style: TextStyle(fontSize: 18, color: Colors.white),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
+
+              const SizedBox(height: 25),
+
+              
             ],
           ),
         ),

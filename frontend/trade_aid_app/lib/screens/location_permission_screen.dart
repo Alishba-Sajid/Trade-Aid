@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
+const Color kPrimaryTeal = Color(0xFF004D40);
+const Color kLightTeal = Color(0xFF70B2B2);
+const Color kSkyBlue = Color(0xFF9ECFD4);
+const Color kPaleYellow = Color(0xFFE5E9C5);
+
 class LocationPermissionScreen extends StatefulWidget {
   const LocationPermissionScreen({super.key});
 
@@ -46,7 +51,6 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
       return;
     }
 
-    // ✅ If permission granted
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Location permission granted!')),
@@ -62,49 +66,79 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("Location Access"),
-        backgroundColor: Colors.teal,
-        elevation: 2,
+        title: const Text(
+          "Location Access",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: kPrimaryTeal,
+        centerTitle: true,
+        elevation: 3,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.location_on, color: Colors.teal, size: 80),
-            const SizedBox(height: 20),
+            // Location Icon
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: kSkyBlue.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.location_on,
+                  color: kPrimaryTeal, size: 80),
+            ),
+
+            const SizedBox(height: 30),
+
+            // Title
             const Text(
               "Enable Location Access",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: kPrimaryTeal,
+              ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
+
+            // Description
             const Text(
               "We need your location to find nearby communities and resources relevant to your area.",
-              style: TextStyle(fontSize: 16, color: Colors.black54),
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.black54,
+                height: 1.5,
+              ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 30),
+
+            const SizedBox(height: 40),
+
+            // Button or Loader
             _isLoading
-                ? const CircularProgressIndicator(color: Colors.teal)
-                : ElevatedButton(
-                    onPressed: _requestLocationPermission,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.teal,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                ? const CircularProgressIndicator(color: kPrimaryTeal)
+                : SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: _requestLocationPermission,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kPrimaryTeal,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 3,
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 40,
-                        vertical: 14,
-                      ),
-                    ),
-                    child: const Text(
-                      "Allow Location Access",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                      child: const Text(
+                        "Allow Location Access",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),

@@ -1,7 +1,12 @@
-// lib/screens/product_post.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+
+// 🌿 Shared App Colors
+const Color kPrimaryTeal = Color(0xFF004D40); // main teal used across the UI
+const Color kLightTeal = Color(0xFF70B2B2);   // lighter teal accent
+const Color kSkyBlue = Color(0xFF9ECFD4);     // soft blue used for placeholders
+const Color kPaleYellow = Color(0xFFE5E9C5);  // subtle yellow/green tint used for dropdown
 
 class ProductPostScreen extends StatefulWidget {
   const ProductPostScreen({super.key});
@@ -53,29 +58,32 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
           showModalBottomSheet(
             context: context,
             builder: (_) => SafeArea(
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                ListTile(
-                  leading: const Icon(Icons.photo_library),
-                  title: const Text('Replace'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _pickImage(index);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.delete),
-                  title: const Text('Remove'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _removeImage(index);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.close),
-                  title: const Text('Close'),
-                  onTap: () => Navigator.pop(context),
-                ),
-              ]),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.photo_library),
+                    title: const Text('Replace'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _pickImage(index);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.delete),
+                    title: const Text('Remove'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _removeImage(index);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.close),
+                    title: const Text('Close'),
+                    onTap: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
             ),
           );
         }
@@ -84,16 +92,19 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
         width: 110,
         height: 110,
         decoration: BoxDecoration(
-          color: Colors.grey[100],
+          color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade300),
+          border: Border.all(color: kLightTeal, width: 1.5),
         ),
         child: img == null
-            ? Column(mainAxisAlignment: MainAxisAlignment.center, children: const [
-                Icon(Icons.add_a_photo, size: 28, color: Colors.black54),
-                SizedBox(height: 6),
-                Text('Add', style: TextStyle(color: Colors.black54)),
-              ])
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.add_a_photo, size: 28, color: Colors.black54),
+                  SizedBox(height: 6),
+                  Text('Add', style: TextStyle(color: Colors.black54)),
+                ],
+              )
             : ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: Image.file(File(img.path), fit: BoxFit.cover),
@@ -134,11 +145,29 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Solid lighter teal for dropdown background (like BookingScreen)
-    const Color dropdownTeal = Color.fromARGB(255, 216, 255, 252); // solid light teal
+    // 💠 Common border styling
+    OutlineInputBorder border(Color color) => OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: color, width: 1.4),
+        );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Post Product')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black87),
+        title: const Text(
+          'Post Product',
+          style: TextStyle(
+            color: Colors.black87,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        centerTitle: true,
+      ),
+
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
@@ -159,28 +188,39 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: 3,
-                    separatorBuilder: (context, index) => const SizedBox(width: 12),
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(width: 12),
                     itemBuilder: (_, i) => _buildImageSlot(i),
                   ),
                 ),
                 const SizedBox(height: 18),
+
+                // 📝 Description
                 TextFormField(
                   maxLines: 4,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Description',
-                    border: OutlineInputBorder(),
+                    filled: true,
+                    fillColor: Colors.white,
+                    enabledBorder: border(Colors.grey.shade300),
+                    focusedBorder: border(kPrimaryTeal),
                   ),
                   validator: (v) =>
                       (v == null || v.trim().isEmpty) ? 'Enter description' : null,
                   onSaved: (v) => _description = v!.trim(),
                 ),
                 const SizedBox(height: 12),
+
+                // 💰 Price
                 TextFormField(
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Price',
-                    border: OutlineInputBorder(),
+                    filled: true,
+                    fillColor: Colors.white,
+                    enabledBorder: border(Colors.grey.shade300),
+                    focusedBorder: border(kPrimaryTeal),
                   ),
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'Enter price';
@@ -190,76 +230,91 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
                   onSaved: (v) => _price = v!.trim(),
                 ),
                 const SizedBox(height: 12),
-                Row(children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      isExpanded: true, // ensure dropdown width == field width
-                      alignment: AlignmentDirectional.centerStart,
-                      initialValue: _usedTime,
-                      decoration: const InputDecoration(
-                        labelText: 'Used for',
-                        border: OutlineInputBorder(),
+
+                // 🕓 Used time + condition
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        value: _usedTime,
+                        decoration: InputDecoration(
+                          labelText: 'Used for',
+                          filled: true,
+                          fillColor: Colors.white,
+                          enabledBorder: border(Colors.grey.shade300),
+                          focusedBorder: border(kPrimaryTeal),
+                        ),
+                        dropdownColor: kPaleYellow,
+                        items: _usedTimeOptions
+                            .map((e) =>
+                                DropdownMenuItem(value: e, child: Text(e)))
+                            .toList(),
+                        onChanged: (v) => setState(() => _usedTime = v!),
                       ),
-                      dropdownColor: dropdownTeal,
-                      items: _usedTimeOptions
-                          .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                          .toList(),
-                      onChanged: (v) => setState(() => _usedTime = v!),
-                      onSaved: (v) => _usedTime = v ?? _usedTime,
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      isExpanded: true, // ensure dropdown width == field width
-                      alignment: AlignmentDirectional.centerStart,
-                      initialValue: _condition,
-                      decoration: const InputDecoration(
-                        labelText: 'Condition',
-                        border: OutlineInputBorder(),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        value: _condition,
+                        decoration: InputDecoration(
+                          labelText: 'Condition',
+                          filled: true,
+                          fillColor: Colors.white,
+                          enabledBorder: border(Colors.grey.shade300),
+                          focusedBorder: border(kPrimaryTeal),
+                        ),
+                        dropdownColor: kPaleYellow,
+                        items: _conditionOptions
+                            .map((e) =>
+                                DropdownMenuItem(value: e, child: Text(e)))
+                            .toList(),
+                        onChanged: (v) => setState(() => _condition = v!),
                       ),
-                      dropdownColor: dropdownTeal,
-                      items: _conditionOptions
-                          .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                          .toList(),
-                      onChanged: (v) => setState(() => _condition = v!),
-                      onSaved: (v) => _condition = v ?? _condition,
                     ),
-                  ),
-                ]),
+                  ],
+                ),
                 const SizedBox(height: 12),
+
+                // 🏷️ Category
                 DropdownButtonFormField<String>(
-                  isExpanded: true, // ensure dropdown width == field width
-                  alignment: AlignmentDirectional.centerStart,
-                  initialValue: _productCategory,
-                  decoration: const InputDecoration(
+                  isExpanded: true,
+                  value: _productCategory,
+                  decoration: InputDecoration(
                     labelText: 'Category',
-                    border: OutlineInputBorder(),
+                    filled: true,
+                    fillColor: Colors.white,
+                    enabledBorder: border(Colors.grey.shade300),
+                    focusedBorder: border(kPrimaryTeal),
                   ),
-                  dropdownColor: dropdownTeal,
+                  dropdownColor: kPaleYellow,
                   items: _productCategories
                       .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                       .toList(),
                   onChanged: (v) => setState(() => _productCategory = v!),
-                  onSaved: (v) => _productCategory = v ?? _productCategory,
                 ),
                 const SizedBox(height: 20),
+
+                // ✅ Submit button
                 ElevatedButton(
                   onPressed: _submit,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal, // Teal button
-                  ),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    child: Text(
-                      'Submit Product',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    backgroundColor: kPrimaryTeal,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                )
+                  child: const Text(
+                    'Submit Product',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

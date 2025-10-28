@@ -44,8 +44,7 @@ class ManageUploadsScreen extends StatefulWidget {
 
 class _ManageUploadsScreenState extends State<ManageUploadsScreen>
     with SingleTickerProviderStateMixin {
-  // Weekday constants (short)
-  static const List<String> weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  // (removed unused `weekdays` declaration)
 
   // Sample product list
   List<Map<String, dynamic>> products = [
