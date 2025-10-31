@@ -1,10 +1,12 @@
+import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 // 🌈 App color palette
-const Color kPrimaryTeal = Color(0xFF004D40); // main teal used across the UI
-const Color kLightTeal = Color(0xFF70B2B2); // lighter teal accent
-const Color kSkyBlue = Color(0xFF9ECFD4); // soft blue used for placeholders
-const Color kPaleYellow = Color(0xFFE5E9C5); // subtle yellow/green tint used sparingly
+const Color kPrimaryTeal = Color(0xFF004D40); // main teal
+const Color kLightTeal = Color(0xFF70B2B2);   // lighter teal accent
+const Color kSkyBlue = Color(0xFF9ECFD4);     // soft blue for placeholders
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -47,19 +49,49 @@ class _LoginScreenState extends State<LoginScreen> {
     return null;
   }
 
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
   Future<void> _onLoginPressed() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (!mounted) return;
     setState(() => _loading = true);
 
-    await Future.delayed(const Duration(milliseconds: 800));
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
 
-    if (!mounted) return;
-    setState(() => _loading = false);
+    try {
+      // ⚙️ Replace with your backend IP
+      final url = Uri.parse('http://192.168.18.29:5000/api/auth/login');
 
-    if (!mounted) return;
-    Navigator.pushReplacementNamed(context, '/dashboard');
+      final response = await http
+          .post(
+            url,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email, 'password': password}),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        print('✅ Login success: ${data['user']}');
+
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/dashboard');
+      } else {
+        final error = jsonDecode(response.body);
+        _showSnackBar(error['error'] ?? 'Invalid credentials');
+      }
+    } on TimeoutException {
+      _showSnackBar('⏱ Network timeout – check your connection');
+    } catch (e) {
+      _showSnackBar('⚠️ Error: $e');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
@@ -77,16 +109,12 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 const SizedBox(height: 60),
 
-                // 🌿 Logo with soft pale-yellow halo
+                // 🌿 Logo (no yellow background)
                 Center(
-                  child: Container(
-                   
-                    padding: const EdgeInsets.all(20),
-                    child: Image.asset(
-                      'assets/logo.png',
-                      height: 150,
-                      width: 150,
-                    ),
+                  child: Image.asset(
+                    'assets/logo.png',
+                    height: 150,
+                    width: 150,
                   ),
                 ),
 
@@ -126,8 +154,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 14),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   ),
                   onFieldSubmitted: (_) {
                     FocusScope.of(context).requestFocus(_passwordFocus);
@@ -154,8 +182,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderSide: const BorderSide(color: kPrimaryTeal),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 14),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword

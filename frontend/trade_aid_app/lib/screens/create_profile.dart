@@ -1,15 +1,25 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'dart:convert'; // <-- needed for jsonDecode
 import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
+import '../screens/location_permission_screen.dart';
 
 // 🎨 Custom Color Palette
-const Color kPrimaryTeal = Color(0xFF004D40); // main teal used across the UI
-const Color kLightTeal = Color(0xFF70B2B2);   // lighter teal accent
-const Color kSkyBlue = Color(0xFF9ECFD4);     // soft blue used for placeholders
-const Color kPaleYellow = Color(0xFFE5E9C5);  // subtle yellow/green tint used sparingly
+const Color kPrimaryTeal = Color(0xFF004D40);
+const Color kLightTeal = Color(0xFF70B2B2);
+const Color kSkyBlue = Color(0xFF9ECFD4);
+const Color kPaleYellow = Color(0xFFE5E9C5);
 
 class CreateProfileScreen extends StatefulWidget {
-  const CreateProfileScreen({super.key});
+  final String email;
+  final String password;
+
+  const CreateProfileScreen({
+    super.key,
+    required this.email,
+    required this.password,
+  });
 
   @override
   State<CreateProfileScreen> createState() => _CreateProfileScreenState();
@@ -23,6 +33,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
 
   String? _selectedGender;
   File? _profileImage;
+  bool _isLoading = false;
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
@@ -34,6 +45,78 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
     }
   }
 
+  Future<void> _saveUserProfile() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    final url = Uri.parse('http://192.168.18.29:5000/api/users/profile');
+
+    try {
+      final request = http.MultipartRequest('POST', url);
+
+      // Add text fields
+      request.fields['email'] = widget.email;
+      // don't need to send password again for profile update
+      request.fields['full_name'] = _nameController.text.trim();
+      request.fields['gender'] = _selectedGender ?? '';
+      request.fields['phone'] = _phoneController.text.trim();
+      request.fields['address'] = _addressController.text.trim();
+
+      // Add profile picture if selected
+      if (_profileImage != null) {
+        request.files.add(await http.MultipartFile.fromPath(
+          'profile_picture',
+          _profileImage!.path,
+        ));
+      }
+
+      final streamedResponse = await request.send();
+      final responseBody = await streamedResponse.stream.bytesToString();
+      final status = streamedResponse.statusCode;
+
+      if (status == 200) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile created successfully!')),
+        );
+
+        Navigator.pushReplacement(
+  context,
+  MaterialPageRoute(builder: (context) => const LocationPermissionScreen()),
+);
+      } else {
+        if (!mounted) return;
+        // try to parse server message if provided
+        String msg = 'Failed to create profile (Error $status)';
+        try {
+          final parsed = jsonDecode(responseBody);
+          if (parsed is Map && parsed.containsKey('message')) {
+            msg = parsed['message'];
+          }
+        } catch (_) {
+          // ignore parse errors
+        }
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error connecting to server: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    _addressController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -41,10 +124,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
       appBar: AppBar(
         title: const Text(
           "Create Profile",
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         ),
         backgroundColor: kPrimaryTeal,
         centerTitle: true,
@@ -59,7 +139,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             children: [
               const SizedBox(height: 20),
 
-              // Profile Image
+              // 👤 Profile Image Picker
               GestureDetector(
                 onTap: _pickImage,
                 child: CircleAvatar(
@@ -68,18 +148,14 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                   backgroundImage:
                       _profileImage != null ? FileImage(_profileImage!) : null,
                   child: _profileImage == null
-                      ? const Icon(
-                          Icons.camera_alt,
-                          size: 40,
-                          color: kLightTeal,
-                        )
+                      ? const Icon(Icons.camera_alt, size: 40, color: kLightTeal)
                       : null,
                 ),
               ),
 
               const SizedBox(height: 25),
 
-              // Name Field
+              // 🧍 Full Name
               TextFormField(
                 controller: _nameController,
                 decoration: InputDecoration(
@@ -89,7 +165,6 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                   fillColor: kSkyBlue.withOpacity(0.1),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: kLightTeal),
                   ),
                   focusedBorder: const OutlineInputBorder(
                     borderSide: BorderSide(color: kPrimaryTeal, width: 2),
@@ -99,21 +174,17 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                 validator: (value) =>
                     value!.isEmpty ? "Please enter your name" : null,
               ),
+
               const SizedBox(height: 20),
 
-              // Gender Dropdown
+              // ⚧ Gender Dropdown
               DropdownButtonFormField<String>(
-                menuMaxHeight: 180,
                 value: _selectedGender,
                 items: const [
                   DropdownMenuItem(value: "Male", child: Text("Male")),
                   DropdownMenuItem(value: "Female", child: Text("Female")),
                 ],
-                onChanged: (value) {
-                  setState(() {
-                    _selectedGender = value;
-                  });
-                },
+                onChanged: (value) => setState(() => _selectedGender = value),
                 decoration: InputDecoration(
                   labelText: "Gender",
                   labelStyle: const TextStyle(color: kLightTeal),
@@ -121,7 +192,6 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                   fillColor: kSkyBlue.withOpacity(0.1),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: kLightTeal),
                   ),
                   focusedBorder: const OutlineInputBorder(
                     borderSide: BorderSide(color: kPrimaryTeal, width: 2),
@@ -134,7 +204,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
 
               const SizedBox(height: 20),
 
-              // Phone Field
+              // ☎️ Phone
               TextFormField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
@@ -145,7 +215,6 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                   fillColor: kSkyBlue.withOpacity(0.1),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: kLightTeal),
                   ),
                   focusedBorder: const OutlineInputBorder(
                     borderSide: BorderSide(color: kPrimaryTeal, width: 2),
@@ -162,9 +231,10 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                   return null;
                 },
               ),
+
               const SizedBox(height: 20),
 
-              // Address Field
+              // 🏠 Address
               TextFormField(
                 controller: _addressController,
                 decoration: InputDecoration(
@@ -174,7 +244,6 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                   fillColor: kSkyBlue.withOpacity(0.1),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: kLightTeal),
                   ),
                   focusedBorder: const OutlineInputBorder(
                     borderSide: BorderSide(color: kPrimaryTeal, width: 2),
@@ -184,9 +253,10 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                 validator: (value) =>
                     value!.isEmpty ? "Please enter your address" : null,
               ),
+
               const SizedBox(height: 40),
 
-              // Next Button
+              // 🔘 Next Button
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -197,24 +267,20 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    shadowColor: kLightTeal.withOpacity(0.3),
                     elevation: 4,
                   ),
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      Navigator.pushNamed(context, '/location_permission');
-                    }
-                  },
-                  child: const Text(
-                    "Next",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                  ),
+                  onPressed: _isLoading ? null : _saveUserProfile,
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          "Next",
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w600),
+                        ),
                 ),
               ),
 
               const SizedBox(height: 25),
-
-              
             ],
           ),
         ),

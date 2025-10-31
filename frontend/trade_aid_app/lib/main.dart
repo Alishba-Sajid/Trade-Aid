@@ -3,9 +3,7 @@ import 'package:flutter/material.dart';
 import 'screens/splash_screen.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/login_screen.dart';
-import 'screens/create_profile.dart';
 import 'screens/location_permission_screen.dart';
-import 'screens/select_community.dart';
 import 'screens/create_account.dart';
 import 'screens/dashboard.dart';
 import 'screens/product_listing.dart';
@@ -45,9 +43,7 @@ class TradeAidApp extends StatelessWidget {
         '/welcome': (context) => const WelcomeScreen(),
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const CreateAccountScreen(),
-        '/create_profile': (context) => const CreateProfileScreen(),
         '/location_permission': (context) => const LocationPermissionScreen(),
-        '/select_community': (context) => const SelectCommunityScreen(),
         '/dashboard': (context) => const DashboardScreen(),
         '/products': (context) => const ProductListingScreen(),
         '/resources': (context) => const ResourceListingScreen(),

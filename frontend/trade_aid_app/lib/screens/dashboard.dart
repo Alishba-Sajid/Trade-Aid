@@ -1,9 +1,11 @@
+// dashboard_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'cart_screen.dart';
 import 'product_post.dart';
 import 'resource_post.dart';
 import 'manage_uploads.dart';
+import 'manage_requests.dart'; // <-- new import for Manage Requests screen
 
 // 🌿 Shared App Colors
 const Color kPrimaryTeal = Color(0xFF004D40); // main teal used across the UI
@@ -138,15 +140,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-    
-
       appBar: AppBar(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.white,
         elevation: 0,
         systemOverlayStyle: const SystemUiOverlayStyle(
           statusBarColor: Colors.white,
-          
           statusBarIconBrightness: Brightness.dark,
         ),
         leading: Builder(
@@ -221,6 +220,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 );
               },
             ),
+
+            // <-- NEW Manage Requests drawer item
+            ListTile(
+              leading: const Icon(Icons.person_add_alt_1, color: kPrimaryTeal),
+              title: const Text('Manage Requests'),
+              subtitle: const Text('Approve or reject join requests'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ManageRequestsScreen()),
+                );
+              },
+            ),
+
             ListTile(
               leading: const Icon(Icons.settings, color: kPrimaryTeal),
               title: const Text('Settings'),
