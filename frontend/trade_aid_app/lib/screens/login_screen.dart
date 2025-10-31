@@ -1,4 +1,12 @@
+import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+// 🌈 App color palette
+const Color kPrimaryTeal = Color(0xFF004D40); // main teal
+const Color kLightTeal = Color(0xFF70B2B2);   // lighter teal accent
+const Color kSkyBlue = Color(0xFF9ECFD4);     // soft blue for placeholders
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -41,30 +49,58 @@ class _LoginScreenState extends State<LoginScreen> {
     return null;
   }
 
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
   Future<void> _onLoginPressed() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (!mounted) return;
     setState(() => _loading = true);
 
-    // Simulate authentication delay
-    await Future.delayed(const Duration(milliseconds: 800));
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
 
-    if (!mounted) return;
-    setState(() => _loading = false);
+    try {
+      // ⚙️ Replace with your backend IP
+      final url = Uri.parse('http://192.168.18.29:5000/api/auth/login');
 
-    if (!mounted) return;
-    Navigator.pushReplacementNamed(context, '/dashboard');
+      final response = await http
+          .post(
+            url,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email, 'password': password}),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        print('✅ Login success: ${data['user']}');
+
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/dashboard');
+      } else {
+        final error = jsonDecode(response.body);
+        _showSnackBar(error['error'] ?? 'Invalid credentials');
+      }
+    } on TimeoutException {
+      _showSnackBar('⏱ Network timeout – check your connection');
+    } catch (e) {
+      _showSnackBar('⚠️ Error: $e');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      resizeToAvoidBottomInset: true, // ✅ Prevent overflow on keyboard open
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: SingleChildScrollView(
-          // ✅ Enables scrolling
           padding: const EdgeInsets.all(24.0),
           child: Form(
             key: _formKey,
@@ -73,38 +109,53 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 const SizedBox(height: 60),
 
-                // ✅ Increased logo size
+                // 🌿 Logo (no yellow background)
                 Center(
                   child: Image.asset(
                     'assets/logo.png',
-                    height: 160,
-                    width: 160,
+                    height: 150,
+                    width: 150,
                   ),
                 ),
 
-                const SizedBox(height: 40),
+                const SizedBox(height: 30),
 
                 const Text(
                   "Welcome Back 👋",
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: kPrimaryTeal,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 const Text(
                   "Login to your account",
-                  style: TextStyle(color: Colors.grey),
+                  style: TextStyle(color: Colors.black54, fontSize: 16),
                 ),
                 const SizedBox(height: 30),
 
-                // Email Field
+                // 📧 Email Field
                 TextFormField(
                   controller: _emailController,
                   focusNode: _emailFocus,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
                   validator: _validateEmail,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: "Email",
-                    border: OutlineInputBorder(),
+                    labelStyle: const TextStyle(color: Colors.black87),
+                    hintText: "example@email.com",
+                    hintStyle: const TextStyle(color: kSkyBlue),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: const BorderSide(color: kPrimaryTeal),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   ),
                   onFieldSubmitted: (_) {
                     FocusScope.of(context).requestFocus(_passwordFocus);
@@ -112,7 +163,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Password Field
+                // 🔒 Password Field
                 TextFormField(
                   controller: _passwordController,
                   focusNode: _passwordFocus,
@@ -121,15 +172,24 @@ class _LoginScreenState extends State<LoginScreen> {
                   validator: _validatePassword,
                   decoration: InputDecoration(
                     labelText: "Password",
-                    border: const OutlineInputBorder(),
+                    labelStyle: const TextStyle(color: Colors.black87),
+                    hintText: "••••••••",
+                    hintStyle: const TextStyle(color: kSkyBlue),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: const BorderSide(color: kPrimaryTeal),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     suffixIcon: IconButton(
-                      tooltip: _obscurePassword
-                          ? 'Show password'
-                          : 'Hide password',
                       icon: Icon(
                         _obscurePassword
                             ? Icons.visibility_off
                             : Icons.visibility,
+                        color: kLightTeal,
                       ),
                       onPressed: () {
                         setState(() {
@@ -144,17 +204,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 30),
 
-                // ✅ Login Button (no overflow issue now)
+                // 🚪 Login Button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: _loading ? null : _onLoginPressed,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF009688),
+                      backgroundColor: kPrimaryTeal,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(10),
                       ),
+                      shadowColor: kLightTeal.withOpacity(0.3),
+                      elevation: 3,
                     ),
                     child: _loading
                         ? const SizedBox(
@@ -167,13 +229,17 @@ class _LoginScreenState extends State<LoginScreen> {
                           )
                         : const Text(
                             "Login",
-                            style: TextStyle(fontSize: 18, color: Colors.white),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
                           ),
                   ),
                 ),
                 const SizedBox(height: 20),
 
-                // Register link
+                // 🧭 Register Link
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -185,14 +251,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: const Text(
                         "Register",
                         style: TextStyle(
-                          color: Color(0xFF70B2B2),
+                          color: kLightTeal,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 20), // Add bottom padding for safety
+                const SizedBox(height: 40),
               ],
             ),
           ),

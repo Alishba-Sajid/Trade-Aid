@@ -3,6 +3,11 @@
 
 import 'package:flutter/material.dart';
 
+// 🎨 Shared color palette
+const Color kPrimaryTeal = Color(0xFF004D40); // main teal used across the UI
+const Color kLightTeal = Color(0xFF70B2B2); // lighter teal accent
+const Color kSkyBlue = Color(0xFF9ECFD4);   // soft blue used for accents
+
 class PaymentSelectionScreen extends StatefulWidget {
   const PaymentSelectionScreen({super.key});
 
@@ -10,20 +15,20 @@ class PaymentSelectionScreen extends StatefulWidget {
   State<PaymentSelectionScreen> createState() => _PaymentSelectionScreenState();
 }
 
-enum PaymentMethod { jazzCash, easyPaisa, cashOnDelivery }
+enum PaymentMethod { easyPaisa, cashOnDelivery }
 
 class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
-  PaymentMethod? _selected = PaymentMethod.jazzCash;
+  PaymentMethod? _selected = PaymentMethod.easyPaisa;
 
   void _onNext() {
     if (_selected == null) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Selected payment: ${_selected!.name}',
+          'Selected payment: ${_selected!.name} Coming soon!',
           style: const TextStyle(color: Colors.white),
         ),
-        backgroundColor: Colors.teal,
+        backgroundColor: kPrimaryTeal,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -38,26 +43,28 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
     final bool selected = _selected == value;
     return InkWell(
       onTap: () => setState(() => _selected = value),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
+        margin: const EdgeInsets.only(bottom: 14),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: selected ? Colors.teal : Colors.grey.shade300,
+            color: selected ? kPrimaryTeal : Colors.grey.shade300,
             width: selected ? 2 : 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey,
-              blurRadius: 6,
-              offset: const Offset(0, 2),
+              color: kSkyBlue.withOpacity(0.4),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
         child: Row(
           children: [
+            // Payment Logo
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: Image.asset(
@@ -68,25 +75,37 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
               ),
             ),
             const SizedBox(width: 14),
+
+            // Payment details
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title,
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 2),
-                  Text(subtitle,
-                      style:
-                          TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: kLightTeal,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
                 ],
               ),
             ),
+
+            // Radio Button
             Radio<PaymentMethod>(
               value: value,
-            
               groupValue: _selected,
-              activeColor: Colors.teal,
+              activeColor: kPrimaryTeal,
               onChanged: (v) => setState(() => _selected = v),
             ),
           ],
@@ -97,41 +116,37 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final Color tealColor = Colors.teal;
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F8),
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
-        elevation: 0,
+        elevation: 2,
         centerTitle: true,
-        foregroundColor: Colors.black,
-        title: const Text('Payments',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Payment Options',
+          style: TextStyle(
+            color: kPrimaryTeal,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        iconTheme: const IconThemeData(color: kPrimaryTeal),
       ),
       body: Padding(
         padding: const EdgeInsets.fromLTRB(18, 18, 18, 10),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Choose your payment method',
-                style: TextStyle(
-                    color: Colors.black54, fontWeight: FontWeight.w500),
+            const Text(
+              'Choose your payment method',
+              style: TextStyle(
+                color: Colors.black54,
+                fontWeight: FontWeight.w500,
+                fontSize: 15,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
 
-            // JazzCash
-            _paymentOption(
-              title: 'JazzCash',
-              subtitle: 'Pay securely using JazzCash wallet or app.',
-              imagePath: 'assets/jazzcash.png',
-              value: PaymentMethod.jazzCash,
-            ),
-
-            // EasyPaisa
+            // ✅ EasyPaisa
             _paymentOption(
               title: 'EasyPaisa',
               subtitle: 'Pay quickly using your EasyPaisa account.',
@@ -139,7 +154,7 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
               value: PaymentMethod.easyPaisa,
             ),
 
-            // Cash on Delivery
+            // ✅ Cash on Delivery
             _paymentOption(
               title: 'Cash on Delivery',
               subtitle: 'Pay in cash when your order arrives.',
@@ -149,23 +164,27 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
 
             const Spacer(),
 
+            // ✅ Next Button
             SizedBox(
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
                 onPressed: _onNext,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: tealColor,
+                  backgroundColor: kPrimaryTeal,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
+                  shadowColor: kSkyBlue.withOpacity(0.4),
+                  elevation: 4,
                 ),
                 child: const Text(
                   'Next',
                   style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),

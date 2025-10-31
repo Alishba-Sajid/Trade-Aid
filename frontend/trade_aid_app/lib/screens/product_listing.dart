@@ -1,6 +1,13 @@
+// lib/screens/product_listing.dart
 import 'package:flutter/material.dart';
-import 'payment_option.dart'; // <-- added import
+import 'payment_option.dart';
 import '../models/product.dart';
+import '../models/cart.dart';
+
+// 🎨 Shared color palette
+const Color kPrimaryTeal = Color(0xFF004D40); // main teal used across the UI
+const Color kLightTeal = Color(0xFF70B2B2); // lighter teal accent
+const Color kSkyBlue = Color(0xFF9ECFD4); // soft blue used for placeholders
 
 class ProductListingScreen extends StatefulWidget {
   const ProductListingScreen({super.key});
@@ -55,207 +62,268 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
     ],
   };
 
-  String safeString(dynamic Function() getter) {
-    try {
-      final v = getter();
-      if (v == null) return 'N/A';
-      return v.toString();
-    } catch (_) {
-      return 'N/A';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final products = (productsByCategory[selectedCategory] ?? <Product>[])
-        .where((product) => product.name.toLowerCase().contains(searchQuery.toLowerCase()))
+        .where((product) =>
+            product.name.toLowerCase().contains(searchQuery.toLowerCase()))
         .toList();
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        title: const Text('Products', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(children: [
-          TextField(
-            onChanged: (value) => setState(() => searchQuery = value),
-            decoration: InputDecoration(
-              hintText: 'Search',
-              prefixIcon: const Icon(Icons.search),
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-            ),
+        title: const Text(
+          'Products',
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
           ),
-          const SizedBox(height: 16),
-          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            _buildCategoryButton('Essential'),
-            const SizedBox(width: 12),
-            _buildCategoryButton('Lifestyle'),
-          ]),
-          const SizedBox(height: 20),
-
-          // Product list
-          if (products.isEmpty)
-            Expanded(child: _buildNotFoundPane())
-          else
-            Expanded(
-              child: ListView.builder(
-                itemCount: products.length,
-                itemBuilder: (context, index) {
-                  final product = products[index];
-                  final condition = safeString(() => (product as dynamic).condition ?? 'Good');
-                  final usedTime = safeString(() => (product as dynamic).usedTime ?? '2 months');
-                  final sellerName = safeString(() => (product as dynamic).sellerName ?? 'Rahim Ali');
-
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0),
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.pushNamed(context, '/product_details', arguments: {'product': product});
-                      },
-                      child: _buildVerticalProductCard(context, product, condition, usedTime, sellerName),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 1,
+      ),
+      backgroundColor: const Color(0xFFF3F6FA),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Search bar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
                     ),
-                  );
-                },
+                  ],
+                ),
+                child: TextField(
+                  onChanged: (v) => setState(() => searchQuery = v),
+                  decoration: InputDecoration(
+                    hintText: 'Search products...',
+                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
               ),
             ),
-        ]),
+
+            // Category buttons
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildCategoryButton('Essential'),
+                  const SizedBox(width: 12),
+                  _buildCategoryButton('Lifestyle'),
+                ],
+              ),
+            ),
+
+            // Product list
+            Expanded(
+              child: products.isEmpty
+                  ? _buildNotFoundPane()
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 8, horizontal: 16),
+                      itemCount: products.length,
+                      itemBuilder: (context, index) {
+                        final p = products[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16.0),
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.pushNamed(
+                                context,
+                                '/product_details',
+                                arguments: {'product': p},
+                              );
+                            },
+                            child: _buildProductCard(context, p),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildVerticalProductCard(BuildContext context, Product product, String condition, String usedTime, String sellerName) {
+  Widget _buildProductCard(BuildContext context, Product p) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 6, offset: const Offset(0, 3))],
-      ),
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Product Image
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Image.asset(
-              product.image,
-              width: 150,
-              height: 170,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stack) => Container(
-                width: 150,
-                height: 170,
-                color: Colors.grey[300],
-                alignment: Alignment.center,
-                child: const Icon(Icons.image_not_supported, size: 40, color: Colors.grey),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-
-          // Product Details
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Product Name
-                Container(
-                  margin: const EdgeInsets.only(top: 16), // ✅ Add top margin here
-                  child: Text(
-                    product.name,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 6),
-
-                // Description (2 lines)
-                Text(
-                  product.description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.black87, height: 1.3),
-                ),
-                const SizedBox(height: 8),
-
-                // Condition and Used Time
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text('Condition: $condition', style: const TextStyle(color: Colors.grey)),
-                    ),
-                    Text('Used: $usedTime', style: const TextStyle(color: Colors.grey)),
-                  ],
-                ),
-                const SizedBox(height: 10),
-
-                // Seller info (optional) - showing sellerName if present
-                Row(
-                  children: [
-                    const Icon(Icons.person_outline, size: 16, color: Colors.grey),
-                    const SizedBox(width: 6),
-                    Expanded(child: Text(sellerName, style: const TextStyle(fontSize: 13, color: Colors.black54))),
-                  ],
-                ),
-                const SizedBox(height: 10),
-
-                // Buttons Row
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Rs ${product.price.toStringAsFixed(0)}',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        // Navigate to payment selection screen
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => PaymentSelectionScreen()),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      ),
-                      child: const Text('Buy', style: TextStyle(color: Colors.white)),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Added to cart', style: TextStyle(color: Colors.black)),
-                            backgroundColor: Colors.white,
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      ),
-                      child: const Icon(Icons.add_shopping_cart_outlined),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image with teal border
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: kPrimaryTeal, width: 2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.asset(
+                  p.image,
+                  width: 120,
+                  height: 120,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      width: 120,
+                      height: 120,
+                      color: kSkyBlue,
+                      alignment: Alignment.center,
+                      child: const Icon(Icons.image_not_supported,
+                          size: 40, color: Colors.white),
+                    );
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+
+            // Right side
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Name
+                  Text(
+                    p.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87),
+                  ),
+                  const SizedBox(height: 6),
+
+                  // Description
+                  Text(
+                    p.description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.black54,
+                      height: 1.3,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Price and buttons row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Rs ${p.price.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: kPrimaryTeal,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          // Buy button
+                          SizedBox(
+                            height: 38,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const PaymentSelectionScreen(),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: kPrimaryTeal,
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: const Text(
+                                'Buy',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+
+                          // Add to cart
+                          SizedBox(
+                            height: 38,
+                            width: 44,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Cart.instance.add(p);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    backgroundColor: kPrimaryTeal,
+                                    content: Text(
+                                      '${p.name} added to cart. (${Cart.instance.itemCount})',
+                                      style:
+                                          const TextStyle(color: Colors.white),
+                                    ),
+                                    duration: const Duration(seconds: 2),
+                                  ),
+                                );
+                                setState(() {});
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: kLightTeal,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                elevation: 0,
+                                padding: EdgeInsets.zero,
+                              ),
+                              child: const Icon(Icons.shopping_cart,
+                                  color: Colors.white, size: 20),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -266,12 +334,34 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         const Icon(Icons.search_off, size: 64, color: Colors.grey),
         const SizedBox(height: 12),
-        const Text('No items found', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const Text('No products found',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         Text(
-          searchedText.isEmpty ? 'Try a different search term.' : 'We couldn\'t find "$searchedText".',
+          searchedText.isEmpty
+              ? 'Try a different search term.'
+              : 'We couldn\'t find "$searchedText".',
           textAlign: TextAlign.center,
           style: const TextStyle(color: Colors.black54),
+        ),
+        const SizedBox(height: 14),
+        ElevatedButton.icon(
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Wish request feature coming soon!'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          },
+          icon: const Icon(Icons.add_circle_outline),
+          label: const Text('Create Wish Request'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: kPrimaryTeal,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
         ),
       ]),
     );
@@ -283,8 +373,8 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
       onPressed: () => setState(() => selectedCategory = category),
       style: ElevatedButton.styleFrom(
         elevation: 0,
-        backgroundColor: isSelected ? Colors.black : Colors.grey[200],
-        foregroundColor: isSelected ? Colors.white : Colors.black54,
+        backgroundColor: isSelected ? kPrimaryTeal : kSkyBlue.withOpacity(0.5),
+        foregroundColor: isSelected ? Colors.white : Colors.black87,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
       child: Text(category),

@@ -1,23 +1,29 @@
 import 'package:flutter/material.dart';
 
+// Custom color palette
+const Color kPrimaryTeal = Color(0xFF004D40); // main teal used across the UI
+const Color kLightTeal = Color(0xFF70B2B2);   // lighter teal accent
+const Color kSkyBlue = Color(0xFF9ECFD4);     // soft blue used for placeholders
+const Color kPaleYellow = Color(0xFFE5E9C5);  // subtle yellow/green tint used sparingly
+
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // White background
+      backgroundColor: Colors.white, // clean background
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // App logo (✅ Increased size)
+              // App logo
               Image.asset(
                 'assets/logo.png',
-                height: 180, // was 130
-                width: 180, // added for proportional scaling
+                height: 180,
+                width: 180,
               ),
 
               const SizedBox(height: 50),
@@ -26,7 +32,7 @@ class WelcomeScreen extends StatelessWidget {
               const Text(
                 'Welcome to Trade & Aid',
                 style: TextStyle(
-                  color: Colors.teal, // Teal heading
+                  color: kPrimaryTeal,
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.0,
@@ -36,7 +42,7 @@ class WelcomeScreen extends StatelessWidget {
 
               const SizedBox(height: 60),
 
-              // Login Button (Teal background)
+              // Login Button (Primary teal background)
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -44,7 +50,7 @@ class WelcomeScreen extends StatelessWidget {
                     Navigator.pushNamed(context, '/login');
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
+                    backgroundColor: kPrimaryTeal,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -61,7 +67,7 @@ class WelcomeScreen extends StatelessWidget {
 
               const SizedBox(height: 20),
 
-              // Register Button (outlined teal)
+              // Register Button (outlined in lighter teal)
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
@@ -69,8 +75,8 @@ class WelcomeScreen extends StatelessWidget {
                     Navigator.pushNamed(context, '/register');
                   },
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.teal, width: 2),
-                    foregroundColor: Colors.teal,
+                    side: const BorderSide(color: kPrimaryTeal, width: 2),
+                    foregroundColor: kPrimaryTeal,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -85,16 +91,20 @@ class WelcomeScreen extends StatelessWidget {
 
               const SizedBox(height: 50),
 
-              // Small footer text
+              // Subtle footer text with accent
               const Text(
                 'Empowering Communities, One Trade at a Time.',
                 style: TextStyle(
-                  color: Colors.grey,
+                  color: kSkyBlue,
                   fontSize: 14,
                   fontStyle: FontStyle.italic,
                 ),
                 textAlign: TextAlign.center,
               ),
+
+              const SizedBox(height: 20),
+
+             
             ],
           ),
         ),
