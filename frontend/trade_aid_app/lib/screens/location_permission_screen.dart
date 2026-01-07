@@ -12,50 +12,51 @@ class LocationPermissionScreen extends StatefulWidget {
 class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
   bool _isLoading = false;
 
-  Future<void> _requestLocationPermission() async {
-    setState(() => _isLoading = true);
+ Future<void> _requestLocationPermission() async {
+  setState(() => _isLoading = true);
 
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enable location services')),
-      );
-      setState(() => _isLoading = false);
-      return;
-    }
-
-    LocationPermission permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.denied) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Location permission denied')),
-      );
-      setState(() => _isLoading = false);
-      return;
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Permission permanently denied. Enable in settings.'),
-        ),
-      );
-      setState(() => _isLoading = false);
-      return;
-    }
-
-    // ✅ If permission granted
+  bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+  if (!serviceEnabled) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Location permission granted!')),
+      const SnackBar(content: Text('Please enable location services')),
     );
-
     setState(() => _isLoading = false);
-
-    Navigator.pushReplacementNamed(context, '/select_community');
+    return;
   }
+
+  LocationPermission permission = await Geolocator.checkPermission();
+
+  if (permission == LocationPermission.denied) {
+    permission = await Geolocator.requestPermission();
+  }
+
+  if (permission == LocationPermission.denied) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Location permission denied')),
+    );
+    setState(() => _isLoading = false);
+    return;
+  }
+
+  if (permission == LocationPermission.deniedForever) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Permission permanently denied. Please enable it from settings.',
+        ),
+      ),
+    );
+    await Geolocator.openAppSettings();
+    setState(() => _isLoading = false);
+    return;
+  }
+
+  // ✅ Permission granted
+  setState(() => _isLoading = false);
+  Navigator.pushReplacementNamed(context, '/select_community');
+}
+
 
   @override
   Widget build(BuildContext context) {
