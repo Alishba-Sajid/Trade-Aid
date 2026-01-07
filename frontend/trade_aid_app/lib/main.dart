@@ -7,7 +7,7 @@ import 'screens/create_profile.dart';
 import 'screens/location_permission_screen.dart';
 import 'screens/select_community.dart';
 import 'screens/create_account.dart';
-import 'screens/dashboard.dart';
+import 'screens/dashboard/dashboard.dart';
 import 'screens/product_listing.dart';
 import 'screens/product_details.dart';
 import 'screens/resource_listing.dart';
