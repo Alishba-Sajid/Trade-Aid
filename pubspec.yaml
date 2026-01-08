@@ -46,6 +46,7 @@ flutter:
     - assets/easypaisa.png
     - assets/jazzcash.png
     - assets/cashondelivery.png
+    - assets/whitenamelogo.png
     - assets/whitelogo.png
 
 flutter_native_splash:
