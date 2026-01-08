@@ -345,7 +345,8 @@ class _LoginScreenState extends State<LoginScreen>
       onFieldSubmitted: (_) => onSubmit?.call(),
       decoration: InputDecoration(
         labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        suffixIcon: suffix,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }
