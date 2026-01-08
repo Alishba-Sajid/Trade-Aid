@@ -6,94 +6,90 @@ class WelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // White background
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Center(
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color.fromARGB(255, 15, 119, 124),
+              Color.fromARGB(255, 17, 158, 144),
+            ],
+          ),
+        ),
+        child: SafeArea(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.start, // ⬅️ start from top
             children: [
-              // App logo (✅ Increased size)
-              Image.asset(
-                'assets/logo.png',
-                height: 180, // was 130
-                width: 180, // added for proportional scaling
-              ),
+              const SizedBox(height: 170), // ⬅️ moves logo upward
+              // Logo
+              Image.asset('assets/whitelogo.png', height: 180, width: 180),
 
-              const SizedBox(height: 50),
+              const SizedBox(height: 0),
 
-              // Main heading
+              // Welcome Text
               const Text(
-                'Welcome to Trade & Aid',
+                'Welcome to Trade&Aid',
                 style: TextStyle(
-                  color: Colors.teal, // Teal heading
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.0,
+                  color: Colors.white,
+                  fontFamily: 'Poppins',
+                  fontSize: 25,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
                 ),
                 textAlign: TextAlign.center,
               ),
 
-              const SizedBox(height: 60),
+              const SizedBox(height: 70),
 
-              // Login Button (Teal background)
+              // Login Button
               SizedBox(
-                width: double.infinity,
+                width: 220,
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.pushNamed(context, '/login');
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.teal,
                     elevation: 3,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
                   ),
                   child: const Text(
                     'Login',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
-              // Register Button (outlined teal)
+              // Register Button
               SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
+                width: 220,
+                child: ElevatedButton(
                   onPressed: () {
                     Navigator.pushNamed(context, '/register');
                   },
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.teal, width: 2),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
                     foregroundColor: Colors.teal,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    elevation: 3,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(15),
                     ),
                   ),
                   child: const Text(
-                    'Register',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                    'Register Now',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
-              ),
-
-              const SizedBox(height: 50),
-
-              // Small footer text
-              const Text(
-                'Empowering Communities, One Trade at a Time.',
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 14,
-                  fontStyle: FontStyle.italic,
-                ),
-                textAlign: TextAlign.center,
               ),
             ],
           ),
