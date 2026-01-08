@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/social_auth_section.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -113,7 +114,6 @@ class _LoginScreenState extends State<LoginScreen>
                     const SizedBox(height: 15),
 
                     // 🏷 Logo
-                    // 🏷 Logo
                     Image.asset(
                       'assets/whitenamelogo.png',
                       height: 130,
@@ -199,7 +199,6 @@ class _LoginScreenState extends State<LoginScreen>
 
                               const SizedBox(height: 6),
 
-                              // ❓ Forgot Password
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: TextButton(
@@ -259,26 +258,9 @@ class _LoginScreenState extends State<LoginScreen>
 
                               const SizedBox(height: 20),
 
-                              // 🌐 Social login
-                              const Center(
-                                child: Text(
-                                  "Or login using social media",
-                                  style: TextStyle(color: Colors.grey),
-                                ),
-                              ),
-
-                              const SizedBox(height: 16),
-
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  _socialButton(Icons.facebook, Colors.blue),
-                                  _socialButton(
-                                    Icons.g_mobiledata,
-                                    const Color.fromARGB(255, 171, 30, 20),
-                                  ),
-                                ],
+                              // 🌐 Social login (SHARED WIDGET)
+                              const SocialAuthSection(
+                                title: "Or login using social media",
                               ),
 
                               const SizedBox(height: 24),
@@ -346,20 +328,6 @@ class _LoginScreenState extends State<LoginScreen>
       decoration: InputDecoration(
         labelText: label,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
-  }
-
-  // 🌐 Social Button Widget
-  Widget _socialButton(IconData icon, Color color) {
-    return CircleAvatar(
-      radius: 22,
-      backgroundColor: color.withOpacity(0.1),
-      child: IconButton(
-        icon: Icon(icon, color: color),
-        onPressed: () {
-          // TODO: connect social auth
-        },
       ),
     );
   }
