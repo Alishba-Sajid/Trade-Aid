@@ -48,11 +48,21 @@ flutter:
     - assets/cashondelivery.png
     - assets/whitenamelogo.png
     - assets/whitelogo.png
+
+
+  fonts:
+    - family: Pacifico
+      fonts:
+        - asset: assets/fonts/Pacifico-Regular.ttf
+
+
 flutter_native_splash:
-  color: "#FFFFFF"          # ✅ White background
-  image: assets/logo.png    # ✅ Your logo
-  branding: assets/branding.png   # ✅ We'll add Trade & Aid text via branding
+  color: "#FFFFFF"        
+  image: assets/whitelogo.png
+
   android_12:
-    image: assets/logo.png
+    color: "#FFFFFF"     
+    image: assets/whitelogo.png
     icon_background_color: "#FFFFFF"
+
   web: false
