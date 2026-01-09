@@ -24,15 +24,17 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
       return;
     }
 
-    // ✅ Generate random community ID
     final randomId = Random().nextInt(900000) + 100000; // 6-digit ID
     final inviteLink = "https://tradeaid.app/community/$randomId";
 
-    // ✅ Show success dialog with invite link
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Community Created!"),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: const Text(
+          "Community Created!",
+          style: TextStyle(color: Colors.teal),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -63,15 +65,19 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
                 "Copy Link",
                 style: TextStyle(color: Colors.white),
               ),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.pop(context); // Close dialog
-              // ✅ Navigate to Dashboard and send community name
+              Navigator.pop(context);
               Navigator.pushReplacementNamed(
                 context,
                 '/dashboard',
@@ -88,62 +94,96 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Create Community"),
-        backgroundColor: Colors.teal,
-        elevation: 2,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Create a Community of your own",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: "Community Name",
-                border: OutlineInputBorder(),
+      backgroundColor: Colors.white, // ✅ White background
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(height: 35),
+              // Logo
+              Image.asset('assets/logomain.png', height: 100, width: 100),
+              const SizedBox(height: 70),
+
+              // Title
+              const Text(
+                "Create Your Community",
+                style: TextStyle(
+                  color: Colors.teal,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                ),
+                textAlign: TextAlign.center,
               ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _descController,
-              decoration: const InputDecoration(
-                labelText: "Description",
-                border: OutlineInputBorder(),
+              const SizedBox(height: 8),
+              const Text(
+                "Trade what you have, Aid when you can",
+                style: TextStyle(
+                  color: Colors.black54,
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: 0.3,
+                ),
+                textAlign: TextAlign.center,
               ),
-              maxLines: 3,
-            ),
-            const SizedBox(height: 24),
-            Center(
-              child: ElevatedButton(
-                onPressed: _createCommunity,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+              const SizedBox(height: 40),
+
+              // Community Name Input
+              TextField(
+                controller: _nameController,
+                decoration: InputDecoration(
+                  labelText: "Community Name",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 40,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
                     vertical: 14,
                   ),
                 ),
-                child: const Text(
-                  "Create Community",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+              ),
+              const SizedBox(height: 16),
+
+              // Description Input
+              TextField(
+                controller: _descController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  labelText: "Description",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
                   ),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 30),
+
+              // Create Community Button
+              SizedBox(
+                width: 260,
+                child: ElevatedButton(
+                  onPressed: _createCommunity,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    "Create Community",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

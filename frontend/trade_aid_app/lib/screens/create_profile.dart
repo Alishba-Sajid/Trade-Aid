@@ -66,6 +66,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: Colors.white,
       body: Stack(
         children: [
@@ -86,13 +87,13 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
           ),
 
           // Main content centered
-          Center(
+          SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 const SizedBox(height: 40),
 
-                // 🏷 Logo
+                // Logo
                 Image.asset(
                   'assets/whitenamelogo.png',
                   height: 130,
@@ -101,7 +102,6 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
 
                 const SizedBox(height: 20),
 
-                // 🎬 Animated Card
                 FadeTransition(
                   opacity: _fadeAnim,
                   child: SlideTransition(
@@ -109,6 +109,8 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
                     child: _buildFormCard(context),
                   ),
                 ),
+
+                const SizedBox(height: 40), // extra space for keyboard
               ],
             ),
           ),

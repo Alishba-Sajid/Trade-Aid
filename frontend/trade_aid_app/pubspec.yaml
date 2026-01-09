@@ -48,6 +48,8 @@ flutter:
     - assets/cashondelivery.png
     - assets/whitenamelogo.png
     - assets/whitelogo.png
+    - assets/location.png
+    - assets/logomain.png
 
 
   fonts:

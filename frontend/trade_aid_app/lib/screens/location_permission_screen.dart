@@ -9,8 +9,42 @@ class LocationPermissionScreen extends StatefulWidget {
       _LocationPermissionScreenState();
 }
 
-class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
+class _LocationPermissionScreenState extends State<LocationPermissionScreen>
+    with SingleTickerProviderStateMixin {
   bool _isLoading = false;
+
+  late final AnimationController _animController;
+  late final Animation<double> _fadeAnim;
+  late final Animation<Offset> _slideAnim;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Animation controller
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+
+    // Fade animation
+    _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
+
+    // Slide animation (slide up)
+    _slideAnim = Tween<Offset>(begin: const Offset(0, 0.15), end: Offset.zero)
+        .animate(
+          CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
+        );
+
+    // Start animation
+    _animController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
 
   Future<void> _requestLocationPermission() async {
     setState(() => _isLoading = true);
@@ -46,7 +80,6 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
       return;
     }
 
-    // ✅ If permission granted
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Location permission granted!')),
@@ -61,53 +94,124 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text("Location Access"),
-        backgroundColor: Colors.teal,
-        elevation: 2,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
+      body: SingleChildScrollView(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.location_on, color: Colors.teal, size: 80),
-            const SizedBox(height: 20),
-            const Text(
-              "Enable Location Access",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              "We need your location to find nearby communities and resources relevant to your area.",
-              style: TextStyle(fontSize: 16, color: Colors.black54),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 30),
-            _isLoading
-                ? const CircularProgressIndicator(color: Colors.teal)
-                : ElevatedButton(
-                    onPressed: _requestLocationPermission,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.teal,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 40,
-                        vertical: 14,
-                      ),
-                    ),
-                    child: const Text(
-                      "Allow Location Access",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+            // Gradient container for logo
+            Container(
+              height: 290,
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color.fromARGB(255, 15, 119, 124),
+                    Color.fromARGB(255, 17, 158, 144),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+              child: FadeTransition(
+                opacity: _fadeAnim,
+                child: SlideTransition(
+                  position: _slideAnim,
+                  child: Center(
+                    child: Image.asset(
+                      'assets/whitenamelogo.png',
+                      height: 130,
+                      width: 130,
                     ),
                   ),
+                ),
+              ),
+            ),
+
+            // Card overlapping the gradient slightly
+            FadeTransition(
+              opacity: _fadeAnim,
+              child: SlideTransition(
+                position: _slideAnim,
+                child: Container(
+                  transform: Matrix4.translationValues(0, -60, 0),
+                  margin: const EdgeInsets.symmetric(horizontal: 24),
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Location Access 📍",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        "We need your location to provide relevant data nearby.",
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+
+                      Center(
+                        child: Image.asset(
+                          'assets/location.png',
+                          height: 230,
+                          width: 230,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: _isLoading
+                              ? null
+                              : _requestLocationPermission,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color.fromARGB(
+                              255,
+                              17,
+                              158,
+                              144,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: _isLoading
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                )
+                              : const Text(
+                                  "Allow Location Access",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 40),
           ],
         ),
       ),
