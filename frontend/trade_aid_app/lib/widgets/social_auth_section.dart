@@ -42,7 +42,7 @@ class _SocialButton extends StatelessWidget {
       child: IconButton(
         icon: Icon(icon, color: color),
         onPressed: () {
-          // TODO: connect social auth
+         
         },
       ),
     );
