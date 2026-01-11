@@ -46,12 +46,7 @@ class _DashboardBodyState extends State<DashboardBody> {
 
   @override
   Widget build(BuildContext context) {
-    // Remove focus from search field when the page rebuilds
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_searchFocusNode.hasFocus) {
-        _searchFocusNode.unfocus();
-      }
-    });
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -185,7 +180,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                     ),
                     child: TextField(
                       focusNode: _searchFocusNode,
-                      autofocus: false, // keyboard never auto opens
+                      autofocus: false,
                       decoration: InputDecoration(
                         hintText: 'Search products or resources...',
                         hintStyle: const TextStyle(
@@ -217,76 +212,79 @@ class _DashboardBodyState extends State<DashboardBody> {
             // Main White Section
             // =========================
             Expanded(
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    topRight: Radius.circular(20),
+              child: Padding(
+                padding: EdgeInsets.only(bottom: bottomInset),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
                   ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 0),
-                    _buildSectionHeader('Nearby Communities'),
-                    const SizedBox(height: 13),
-                    SizedBox(
-                      height: 130,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        clipBehavior: Clip.none,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 0),
+                      _buildSectionHeader('Nearby Communities'),
+                      const SizedBox(height: 13),
+                      SizedBox(
+                        height: 130,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          clipBehavior: Clip.none,
+                          children: const [
+                            _CommunityTile(
+                              'GG-12',
+                              description:
+                                  'GG-12 is a premium community for resource sharing, skill development, and community support.',
+                            ),
+                            _CommunityTile(
+                              'GG-13',
+                              description:
+                                  'GG-13 focuses on sustainability, eco-friendly projects, and collaboration among members.',
+                            ),
+                            _CommunityTile(
+                              'GG-14',
+                              description:
+                                  'GG-14 is a tech-oriented community where members share knowledge and products.',
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 0),
+                      _buildSectionHeader('Services'),
+                      const SizedBox(height: 13),
+                      Row(
                         children: const [
-                          _CommunityTile(
-                            'GG-12',
-                            description:
-                                'GG-12 is a premium community for resource sharing, skill development, and community support.',
+                          Expanded(
+                            child: _ServiceCard(
+                              title: 'Products',
+                              subtitle: 'Browse items',
+                              icon: Icons.shopping_cart_outlined,
+                              route: '/products',
+                            ),
                           ),
-                          _CommunityTile(
-                            'GG-13',
-                            description:
-                                'GG-13 focuses on sustainability, eco-friendly projects, and collaboration among members.',
-                          ),
-                          _CommunityTile(
-                            'GG-14',
-                            description:
-                                'GG-14 is a tech-oriented community where members share knowledge and products.',
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: _ServiceCard(
+                              title: 'Resources',
+                              subtitle: 'Available resources',
+                              icon: Icons.group,
+                              route: '/resources',
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 0),
-                    _buildSectionHeader('Services'),
-                    const SizedBox(height: 13),
-                    Row(
-                      children: const [
-                        Expanded(
-                          child: _ServiceCard(
-                            title: 'Products',
-                            subtitle: 'Browse items',
-                            icon: Icons.shopping_cart_outlined,
-                            route: '/products',
-                          ),
-                        ),
-                        SizedBox(width: 10),
-                        Expanded(
-                          child: _ServiceCard(
-                            title: 'Resources',
-                            subtitle: 'Available resources',
-                            icon: Icons.group,
-                            route: '/resources',
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    _buildSectionHeader('Wish Requests'),
-                    const SizedBox(height: 13),
-                    _buildPremiumWishCard(),
-                    const Spacer(),
-                  ],
+                      const SizedBox(height: 10),
+                      _buildSectionHeader('Wish Requests'),
+                      const SizedBox(height: 13),
+                      _buildPremiumWishCard(),
+                      const Spacer(),
+                    ],
+                  ),
                 ),
               ),
             ),
