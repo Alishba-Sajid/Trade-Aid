@@ -272,7 +272,7 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
       appBar: AppBar(
         centerTitle: true,
         title: const Text(
-          'NEW LISTING',
+          'Product Post',
           style: TextStyle(
             letterSpacing: 2,
             fontSize: 16,
