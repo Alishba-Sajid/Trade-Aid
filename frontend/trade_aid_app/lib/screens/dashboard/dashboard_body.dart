@@ -41,18 +41,20 @@ class DashboardBody extends StatelessWidget {
               ),
               Column(
                 children: [
-                  const CircleAvatar(
-                    radius: 22,
-                    backgroundColor: Color(0xFFE0F2F1),
-                    child: Icon(Icons.groups, color: Color(0xFF004D40)),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pushNamed(context, '/profile');
+                    },
+                    child: const CircleAvatar(
+                      radius: 22,
+                      backgroundColor: Color(0xFFE0F2F1),
+                      child: Icon(Icons.person, color: Color(0xFF004D40)),
+                    ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    communityName,
-                    style: const TextStyle(fontSize: 12),
-                  ),
+                  Text(communityName, style: const TextStyle(fontSize: 12)),
                 ],
-              )
+              ),
             ],
           ),
 
@@ -115,8 +117,7 @@ class DashboardBody extends StatelessWidget {
                   title: 'Products',
                   subtitle: 'Browse & Purchase',
                   icon: Icons.shopping_bag_outlined,
-                  onTap: () =>
-                      Navigator.pushNamed(context, '/products'),
+                  onTap: () => Navigator.pushNamed(context, '/products'),
                 ),
               ),
               const SizedBox(width: 16),
@@ -125,8 +126,7 @@ class DashboardBody extends StatelessWidget {
                   title: 'Resource Sharing',
                   subtitle: 'Time-limited',
                   icon: Icons.groups_outlined,
-                  onTap: () =>
-                      Navigator.pushNamed(context, '/resources'),
+                  onTap: () => Navigator.pushNamed(context, '/resources'),
                 ),
               ),
             ],
@@ -164,7 +164,7 @@ class DashboardBody extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                )
+                ),
               ],
             ),
           ),
@@ -193,8 +193,11 @@ class _CommunityTile extends StatelessWidget {
               color: const Color(0xFFE0F2F1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.location_city,
-                size: 40, color: Color(0xFF004D40)),
+            child: const Icon(
+              Icons.location_city,
+              size: 40,
+              color: Color(0xFF004D40),
+            ),
           ),
           const SizedBox(height: 6),
           Text(name),

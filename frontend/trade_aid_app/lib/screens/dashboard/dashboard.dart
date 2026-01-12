@@ -14,28 +14,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _currentIndex = 0;
 
   void _onBottomTap(int index) {
+    // 🚫 Do NOT change index for Profile
+    if (index == 4) {
+      Navigator.pushNamed(context, '/profile');
+      return;
+    }
+
     setState(() => _currentIndex = index);
 
     switch (index) {
       case 1:
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Chat coming soon')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Chat coming soon')));
         break;
+
       case 2:
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Use + to post')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Use + to post')));
         break;
+
       case 3:
         Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const CartScreen()),
-        );
-        break;
-      case 4:
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile coming soon')),
         );
         break;
     }
@@ -52,6 +55,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F9FB),
       drawer: DashboardDrawer(communityName: communityName),
+
       appBar: AppBar(
         backgroundColor: const Color(0xFFF6F9FB),
         elevation: 0,
@@ -68,10 +72,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-      body: DashboardBody(
-        userName: userName,
-        communityName: communityName,
-      ),
+
+      body: DashboardBody(userName: userName, communityName: communityName),
+
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: _onBottomTap,
@@ -82,7 +85,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Chat'),
           BottomNavigationBarItem(icon: Icon(Icons.add_box), label: 'Post'),
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: 'Cart'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.shopping_cart),
+            label: 'Cart',
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
