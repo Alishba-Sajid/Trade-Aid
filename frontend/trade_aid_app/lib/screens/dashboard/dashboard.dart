@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'dashboard_body.dart';
 import 'dashboard_drawer.dart';
 import '../cart_screen.dart';
-import '../profile.dart'; // Make sure to import your ProfileScreen
+import '../profile/profile.dart';
 
 const LinearGradient appGradient = LinearGradient(
   colors: [

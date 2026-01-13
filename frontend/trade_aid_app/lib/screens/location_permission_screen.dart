@@ -17,27 +17,35 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen>
   late final Animation<double> _fadeAnim;
   late final Animation<Offset> _slideAnim;
 
+  bool fromChangeLocation = false;
+
   @override
   void initState() {
     super.initState();
 
-    // Animation controller
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
     );
 
-    // Fade animation
     _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
 
-    // Slide animation (slide up)
     _slideAnim = Tween<Offset>(begin: const Offset(0, 0.15), end: Offset.zero)
         .animate(
           CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
         );
 
-    // Start animation
     _animController.forward();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    if (args != null) {
+      fromChangeLocation = args['fromChangeLocation'] ?? false;
+    }
   }
 
   @override
@@ -46,14 +54,40 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen>
     super.dispose();
   }
 
+  /// Custom SnackBar
+  void _showSnackBar(String message, {Color backgroundColor = Colors.teal}) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.location_on, color: Colors.white),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(fontSize: 16, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: backgroundColor,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   Future<void> _requestLocationPermission() async {
     setState(() => _isLoading = true);
 
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enable location services')),
+      _showSnackBar(
+        'Please enable location services',
+        backgroundColor: Colors.redAccent,
       );
       setState(() => _isLoading = false);
       return;
@@ -61,33 +95,93 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen>
 
     LocationPermission permission = await Geolocator.requestPermission();
     if (permission == LocationPermission.denied) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Location permission denied')),
+      _showSnackBar(
+        'Location permission denied',
+        backgroundColor: Colors.redAccent,
       );
       setState(() => _isLoading = false);
       return;
     }
 
     if (permission == LocationPermission.deniedForever) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Permission permanently denied. Enable in settings.'),
-        ),
+      _showSnackBar(
+        'Permission permanently denied. Enable in settings.',
+        backgroundColor: const Color.fromARGB(255, 80, 188, 173),
       );
       setState(() => _isLoading = false);
       return;
     }
 
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Location permission granted!')),
+    // Get new location
+    Position newLocation = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
     );
+
+    double distanceInMeters = 0.0;
+
+    if (fromChangeLocation) {
+      // Only calculate distance if changing location
+      final double prevLat = 33.6844; // replace with saved previous location
+      final double prevLon = 73.0479;
+
+      distanceInMeters = Geolocator.distanceBetween(
+        prevLat,
+        prevLon,
+        newLocation.latitude,
+        newLocation.longitude,
+      );
+
+      // Determine message and color
+      final bool within2km = distanceInMeters <= 2000;
+      final String distanceMessage = within2km
+          ? 'You are within 2 km of your previous location. Previous communities are accessible.'
+          : 'You are more than 2 km away from your previous location. Previous communities may not be accessible.';
+
+      final Color snackBarColor = within2km ? Colors.teal : Colors.amber[700]!;
+
+      // Show beautiful SnackBar
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(
+                  within2km ? Icons.check_circle : Icons.warning_amber_rounded,
+                  color: Colors.white,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    distanceMessage,
+                    style: const TextStyle(fontSize: 16, color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: snackBarColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 6,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
 
     setState(() => _isLoading = false);
 
-    Navigator.pushReplacementNamed(context, '/select_community');
+    // Navigate to SelectCommunityScreen
+    Navigator.pushReplacementNamed(
+      context,
+      '/select_community',
+      arguments: {
+        'distance': distanceInMeters,
+        'newLocation': newLocation,
+        'fromChangeLocation': fromChangeLocation,
+      },
+    );
   }
 
   @override
@@ -97,7 +191,6 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen>
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Gradient container for logo
             Container(
               height: 290,
               width: double.infinity,
@@ -125,8 +218,6 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen>
                 ),
               ),
             ),
-
-            // Card overlapping the gradient slightly
             FadeTransition(
               opacity: _fadeAnim,
               child: SlideTransition(
@@ -163,7 +254,6 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen>
                         style: TextStyle(color: Colors.grey),
                       ),
                       const SizedBox(height: 16),
-
                       Center(
                         child: Image.asset(
                           'assets/location.png',
@@ -172,7 +262,6 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen>
                         ),
                       ),
                       const SizedBox(height: 24),
-
                       SizedBox(
                         width: double.infinity,
                         height: 50,
@@ -210,7 +299,6 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen>
                 ),
               ),
             ),
-
             const SizedBox(height: 40),
           ],
         ),

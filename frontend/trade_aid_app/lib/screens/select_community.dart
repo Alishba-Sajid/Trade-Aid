@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'create_community.dart'; // Your community creation screen
+import 'create_community.dart';
 
 class SelectCommunityScreen extends StatefulWidget {
   const SelectCommunityScreen({super.key});
@@ -9,7 +9,30 @@ class SelectCommunityScreen extends StatefulWidget {
 }
 
 class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
-  bool noCommunitiesNearby = true; // Change based on your data
+  bool noCommunitiesNearby = true; // Change dynamically
+  bool fromChangeLocation = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    if (args != null) {
+      final double distance = args['distance'] ?? 0.0;
+      fromChangeLocation = args['fromChangeLocation'] ?? false;
+
+      // Logic: if changing location, check distance to previous
+      if (fromChangeLocation && distance <= 2000) {
+        noCommunitiesNearby = false; // keep previous communities accessible
+      } else if (!fromChangeLocation) {
+        // first-time registration: check nearby communities
+        noCommunitiesNearby = true; // default: no nearby communities
+      } else {
+        // changing location and > 2 km
+        noCommunitiesNearby = true;
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,17 +54,13 @@ class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              const SizedBox(height: 150), // Space from top
-              // Icon or logo
+              const SizedBox(height: 150),
               const Icon(
                 Icons.location_city_rounded,
                 size: 120,
                 color: Colors.white,
               ),
-
               const SizedBox(height: 20),
-
-              // Heading
               const Text(
                 'Select Your Community',
                 style: TextStyle(
@@ -53,10 +72,7 @@ class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
                 ),
                 textAlign: TextAlign.center,
               ),
-
               const SizedBox(height: 8),
-
-              // Subtext
               Text(
                 noCommunitiesNearby
                     ? 'No communities found near your location.'
@@ -70,10 +86,7 @@ class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
                 ),
                 textAlign: TextAlign.center,
               ),
-
               const SizedBox(height: 60),
-
-              // Buttons
               if (noCommunitiesNearby)
                 SizedBox(
                   width: 260,
@@ -111,7 +124,7 @@ class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
               else
                 Expanded(
                   child: ListView.builder(
-                    itemCount: 5, // Replace with your community count
+                    itemCount: 5, // Replace with actual community list
                     itemBuilder: (context, index) {
                       return Padding(
                         padding: const EdgeInsets.symmetric(
@@ -119,9 +132,7 @@ class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
                           vertical: 8,
                         ),
                         child: ElevatedButton(
-                          onPressed: () {
-                            // Handle community selection
-                          },
+                          onPressed: () {},
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             foregroundColor: Colors.teal,
