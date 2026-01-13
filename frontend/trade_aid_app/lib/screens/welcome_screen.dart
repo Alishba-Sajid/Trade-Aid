@@ -21,9 +21,9 @@ class WelcomeScreen extends StatelessWidget {
         ),
         child: SafeArea(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.start, // ⬅️ start from top
+            mainAxisAlignment: MainAxisAlignment.start, // start from top
             children: [
-              const SizedBox(height: 170), // ⬅️ moves logo upward
+              const SizedBox(height: 170), // moves logo upward
               // Logo
               Image.asset('assets/whitelogo.png', height: 180, width: 180),
 
@@ -35,7 +35,7 @@ class WelcomeScreen extends StatelessWidget {
                 style: TextStyle(
                   color: Colors.white,
                   fontFamily: 'Poppins',
-                  fontSize: 26,
+                  fontSize: 26, // resolved conflict here
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.5,
                 ),

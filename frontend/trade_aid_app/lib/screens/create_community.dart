@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'dart:math';
-import 'package:flutter/services.dart'; // For clipboard copy
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class CreateCommunityScreen extends StatefulWidget {
   const CreateCommunityScreen({super.key});
@@ -24,7 +24,8 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
       return;
     }
 
-    final randomId = Random().nextInt(900000) + 100000; // 6-digit ID
+    // Generate random 6-digit community ID
+    final randomId = Random().nextInt(900000) + 100000;
     final inviteLink = "https://tradeaid.app/community/$randomId";
 
     showDialog(
@@ -39,9 +40,9 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text("Your community has been created successfully."),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             const Text(
-              "Here’s your invite link:",
+              "Invite Link",
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
@@ -61,16 +62,8 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
                 );
               },
               icon: const Icon(Icons.copy, color: Colors.white),
-              label: const Text(
-                "Copy Link",
-                style: TextStyle(color: Colors.white),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.teal,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
+              label: const Text("Copy Link"),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
             ),
           ],
         ),
@@ -81,7 +74,7 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
               Navigator.pushReplacementNamed(
                 context,
                 '/dashboard',
-                arguments: {'communityName': _nameController.text.trim()},
+                arguments: {'communityName': name},
               );
             },
             child: const Text("Go to Dashboard"),
@@ -94,7 +87,7 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // ✅ White background
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 40),
@@ -102,35 +95,25 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 35),
-              // Logo
-              Image.asset('assets/logomain.png', height: 100, width: 100),
+
+              Image.asset('assets/logomain.png', height: 100),
               const SizedBox(height: 70),
 
-              // Title
               const Text(
                 "Create Your Community",
                 style: TextStyle(
                   color: Colors.teal,
                   fontSize: 26,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
                 ),
-                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               const Text(
                 "Trade what you have, Aid when you can",
-                style: TextStyle(
-                  color: Colors.black54,
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w400,
-                  letterSpacing: 0.3,
-                ),
-                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.black54),
               ),
               const SizedBox(height: 40),
 
-              // Community Name Input
               TextField(
                 controller: _nameController,
                 decoration: InputDecoration(
@@ -138,15 +121,10 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(15),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
                 ),
               ),
               const SizedBox(height: 16),
 
-              // Description Input
               TextField(
                 controller: _descController,
                 maxLines: 3,
@@ -155,15 +133,10 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
                 ),
               ),
               const SizedBox(height: 30),
 
-              // Create Community Button
               SizedBox(
                 width: 260,
                 child: ElevatedButton(
@@ -178,7 +151,7 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
                   ),
                   child: const Text(
                     "Create Community",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    style: TextStyle(fontSize: 16),
                   ),
                 ),
               ),

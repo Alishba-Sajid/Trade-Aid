@@ -34,6 +34,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
     );
 
     _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
+
     _slideAnim = Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero)
         .animate(
           CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
@@ -66,11 +67,9 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
-      resizeToAvoidBottomInset: true,
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // 🌈 Gradient Header
           Container(
             height: screenHeight * 0.35,
             width: double.infinity,
@@ -86,14 +85,11 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
             ),
           ),
 
-          // Main content centered
           SingleChildScrollView(
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             child: Column(
               children: [
                 const SizedBox(height: 40),
 
-                // Logo
                 Image.asset(
                   'assets/whitenamelogo.png',
                   height: 130,
@@ -110,7 +106,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
                   ),
                 ),
 
-                const SizedBox(height: 40), // extra space for keyboard
+                const SizedBox(height: 40),
               ],
             ),
           ),
@@ -119,7 +115,6 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
     );
   }
 
-  // Title and subtitle left-aligned, profile image centered inside the card
   Widget _buildFormCard(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24),
@@ -138,10 +133,8 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
       child: Form(
         key: _formKey,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start, // Left-aligned title
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Title
             const Text(
               "Create Profile 📝",
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -151,30 +144,26 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
               "Fill in your profile details",
               style: TextStyle(color: Colors.grey),
             ),
-            const SizedBox(height: 16), // slightly less space
-            // Profile Image centered inside the card
+            const SizedBox(height: 16),
+
             Center(
               child: GestureDetector(
                 onTap: _pickImage,
                 child: CircleAvatar(
-                  radius: 35, // slightly smaller
+                  radius: 35,
                   backgroundColor: Colors.teal.shade100,
                   backgroundImage: _profileImage != null
                       ? FileImage(_profileImage!)
                       : null,
                   child: _profileImage == null
-                      ? const Icon(
-                          Icons.person,
-                          size: 35, // smaller icon
-                          color: Colors.white,
-                        )
+                      ? const Icon(Icons.person, size: 35, color: Colors.white)
                       : null,
                 ),
               ),
             ),
+
             const SizedBox(height: 16),
 
-            // Name Field
             _buildField(
               controller: _nameController,
               label: "Full Name",
@@ -182,21 +171,31 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
               validator: (value) =>
                   value!.isEmpty ? "Please enter your name" : null,
             ),
+
             const SizedBox(height: 16),
 
-            // Gender Dropdown
-            _buildDropdown(
+            DropdownButtonFormField<String>(
               value: _selectedGender,
-              label: "Gender",
-              items: const ["Male", "Female"],
-              prefix: const Icon(Icons.wc),
-              onChanged: (val) => setState(() => _selectedGender = val),
-              validator: (val) =>
-                  val == null ? "Please select your gender" : null,
+              items: const [
+                DropdownMenuItem(value: "Male", child: Text("Male")),
+                DropdownMenuItem(value: "Female", child: Text("Female")),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  _selectedGender = value;
+                });
+              },
+              decoration: const InputDecoration(
+                labelText: "Gender",
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.wc),
+              ),
+              validator: (value) =>
+                  value == null ? "Please select your gender" : null,
             ),
+
             const SizedBox(height: 16),
 
-            // Phone Field
             _buildField(
               controller: _phoneController,
               label: "Phone Number",
@@ -212,9 +211,9 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
                 return null;
               },
             ),
+
             const SizedBox(height: 16),
 
-            // Address Field
             _buildField(
               controller: _addressController,
               label: "Address",
@@ -222,9 +221,9 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
               validator: (value) =>
                   value!.isEmpty ? "Please enter your address" : null,
             ),
+
             const SizedBox(height: 24),
 
-            // Next Button
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -261,43 +260,16 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
   }
 }
 
-// Text Field Builder
 Widget _buildField({
   required TextEditingController controller,
   required String label,
   Icon? prefix,
-  bool obscure = false,
   TextInputType keyboard = TextInputType.text,
   String? Function(String?)? validator,
 }) {
   return TextFormField(
     controller: controller,
-    obscureText: obscure,
     keyboardType: keyboard,
-    validator: validator,
-    decoration: InputDecoration(
-      labelText: label,
-      prefixIcon: prefix,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-    ),
-  );
-}
-
-// Dropdown Builder
-Widget _buildDropdown({
-  required String? value,
-  required String label,
-  required List<String> items,
-  Icon? prefix,
-  required void Function(String?) onChanged,
-  String? Function(String?)? validator,
-}) {
-  return DropdownButtonFormField<String>(
-    value: value,
-    items: items
-        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-        .toList(),
-    onChanged: onChanged,
     validator: validator,
     decoration: InputDecoration(
       labelText: label,

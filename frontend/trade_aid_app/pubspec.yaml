@@ -51,7 +51,6 @@ flutter:
     - assets/location.png
     - assets/logomain.png
 
-
   fonts:
     - family: Pacifico
       fonts:
