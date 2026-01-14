@@ -275,25 +275,13 @@ class DashboardDrawer extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const ManageUploadsScreen(),
+                        builder: (_) => const Manage_Upload(),
                       ),
                     );
                   },
                 ),
                 
-                _DrawerTile(
-                  icon: Icons.block_rounded,
-                  title: 'Blocked Users',
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const ManageUploadsScreen(),
-                      ),
-                    );
-                  },
-                ),
+              
                 _DrawerTile(
                   icon: Icons.help_rounded,
                   title: 'Help and Support',

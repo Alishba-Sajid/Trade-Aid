@@ -340,10 +340,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                         ),
                         _menuTile(
                           context,
-                          icon: Icons.info_outline,
-                          title: "About Us",
+                         icon: Icons.block,
+                          title: "Blocked Users",
                           onTap: () =>
-                              Navigator.pushNamed(context, "/about_us"),
+                              Navigator.pushNamed(context, "/blocked_users"),
                         ),
                         _menuTile(
                           context,

@@ -20,6 +20,7 @@ import 'screens/resource_post.dart';
 import 'screens/profile/profile.dart';
 import 'screens/profile/personaldetailsprofile.dart';
 import 'screens/profile/changepassword.dart';
+import 'screens/profile/blocked_user.dart';
 // models
 import 'models/product.dart';
 import 'models/resource.dart';
@@ -62,6 +63,7 @@ class TradeAidApp extends StatelessWidget {
         // <-- added posting routes
         '/product_post': (context) => const ProductPostScreen(),
         '/resource_post': (context) => const ResourcePostScreen(),
+        '/blocked_users': (context) => const BlockedUsersScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/product_details') {
