@@ -16,7 +16,8 @@ class _CartScreenState extends State<CartScreen> {
   static const Color subtleGrey = Color(0xFFF2F2F2);
   
   static const LinearGradient appGradient = LinearGradient(
-    colors: [Color(0xFF2E9499), Color(0xFF119E90)],
+    colors: [Color.fromARGB(255, 15, 119, 124),
+      Color.fromARGB(255, 17, 158, 144),],
     begin: Alignment.bottomLeft,
     end: Alignment.topRight,
   );
@@ -41,21 +42,27 @@ class _CartScreenState extends State<CartScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: backgroundLight,
-      body: CustomScrollView(
-        slivers: [
-          _buildModernAppBar(),
-          if (cartItems.isEmpty)
-            SliverFillRemaining(child: _buildEmptyState())
-          else
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) => _buildPremiumCard(index),
-                  childCount: cartItems.length,
-                ),
-              ),
+      body: Column(
+        children: [
+          _buildHeader(context), // <-- Updated header
+          Expanded(
+            child: CustomScrollView(
+              slivers: [
+                if (cartItems.isEmpty)
+                  SliverFillRemaining(child: _buildEmptyState())
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) => _buildPremiumCard(index),
+                        childCount: cartItems.length,
+                      ),
+                    ),
+                  ),
+              ],
             ),
+          ),
         ],
       ),
       extendBody: true,
@@ -63,23 +70,29 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  Widget _buildModernAppBar() {
-    return SliverAppBar(
-      floating: true,
-      backgroundColor: backgroundLight.withOpacity(0.8),
-      elevation: 0,
-      centerTitle: false,
-      title: Text(
-        selectionMode ? '${selectedIndexes.length} Selected' : 'My Cart',
-        style: GoogleFonts.poppins(color: darkPrimary, fontWeight: FontWeight.w700, fontSize: 24),
-      ),
-      actions: [
-        if (selectionMode)
+  /// =======================
+  /// APP BAR (Pending Requests Style)
+  /// =======================
+  Widget _buildHeader(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.only(top: 50, bottom: 20, left: 16, right: 16),
+      decoration: const BoxDecoration(gradient: appGradient),
+      child: Row(
+        children: [
           IconButton(
-            icon: const Icon(Icons.deselect_outlined, color: accentTeal),
-            onPressed: () => setState(() => selectedIndexes.clear()),
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
           ),
-      ],
+          const Text(
+            'My Cart',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -123,7 +136,6 @@ class _CartScreenState extends State<CartScreen> {
           ),
           child: Row(
             children: [
-              // Image container with selection overlay
               Stack(
                 children: [
                   ClipRRect(
@@ -160,7 +172,6 @@ class _CartScreenState extends State<CartScreen> {
                   ],
                 ),
               ),
-              // Delete Button
               IconButton(
                 icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 22),
                 onPressed: () => _removeItem(index),

@@ -4,7 +4,8 @@ import 'package:image_picker/image_picker.dart';
 
 /// 🌿 Premium Industrial Color Palette
 const LinearGradient appGradient = LinearGradient(
-  colors: [Color(0xFF2E9499), Color(0xFF119E90)],
+  colors: [Color.fromARGB(255, 15, 119, 124),
+      Color.fromARGB(255, 17, 158, 144),],
   begin: Alignment.bottomLeft,
   end: Alignment.topRight,
 );
@@ -197,16 +198,32 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
   Widget build(BuildContext context) {
     // 1. Wrap with GestureDetector to close keyboard when tapping outside
     return GestureDetector(
-      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-      child: Scaffold(
-        backgroundColor: backgroundLight,
-        appBar: AppBar(
-          centerTitle: true,
-          title: const Text('Product Post', style: TextStyle(letterSpacing: 2, fontSize: 16, fontWeight: FontWeight.w800)),
-          elevation: 0,
-          backgroundColor: Colors.white,
-          foregroundColor: darkPrimary,
+   onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+child: Scaffold(
+  backgroundColor: backgroundLight,
+  appBar: PreferredSize(
+    preferredSize: const Size.fromHeight(kToolbarHeight),
+    child: Container(
+      decoration: BoxDecoration(
+        gradient: appGradient, // Using the gradient defined at the top
+      ),
+      child: AppBar(
+        centerTitle: true,
+        title: const Text(
+          'Product Post',
+          style: TextStyle(
+            letterSpacing: 2,
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+          ),
         ),
+        elevation: 0,
+        backgroundColor: Colors.transparent, // Must be transparent for gradient
+        foregroundColor: Colors.white,
+      ),
+    ),
+  ),
+
         body: SafeArea(
           child: Form(
             key: _formKey,

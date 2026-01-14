@@ -280,14 +280,29 @@ class DashboardDrawer extends StatelessWidget {
                     );
                   },
                 ),
+                
                 _DrawerTile(
-                  icon: Icons.settings_rounded,
-                  title: 'Settings',
+                  icon: Icons.block_rounded,
+                  title: 'Blocked Users',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ManageUploadsScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _DrawerTile(
+                  icon: Icons.help_rounded,
+                  title: 'Help and Support',
                   onTap: () {},
                 ),
               ],
             ),
           ),
+          
 
           // 🚪 LOGOUT BUTTON
           Padding(
