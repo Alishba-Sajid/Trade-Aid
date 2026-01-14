@@ -22,6 +22,7 @@ import 'screens/profile/personaldetailsprofile.dart';
 import 'screens/profile/changepassword.dart';
 import 'screens/profile/terms&conditions.dart';
 import 'screens/welcomeT&C.dart';
+import 'screens/profile/history_screen.dart';
 // models
 import 'models/product.dart';
 import 'models/resource.dart';
@@ -63,6 +64,7 @@ class TradeAidApp extends StatelessWidget {
         "/change_password": (_) => const ChangePasswordScreen(),
         '/terms_conditions': (context) => const TermsAndConditionsScreen(),
         '/welcome_terms': (context) => const WelcomeTermsScreen(),
+        '/history': (context) => const HistoryScreen(),
         // <-- added posting routes
         '/product_post': (context) => const ProductPostScreen(),
         '/resource_post': (context) => const ResourcePostScreen(),
