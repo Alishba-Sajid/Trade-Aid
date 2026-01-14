@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../manage_uploads.dart';
 import '../welcome_screen.dart'; // For logout navigation
-
+import '../pending_request.dart';
 // 🌿 Color Palette
 const LinearGradient appGradient = LinearGradient(
   colors: [
@@ -254,10 +254,19 @@ class DashboardDrawer extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 12),
               children: [
                 _DrawerTile(
-                  icon: Icons.person_add_alt_1_rounded,
-                  title: 'Pending Requests',
-                  onTap: () => Navigator.pop(context),
-                ),
+  icon: Icons.person_add_alt_1_rounded,
+  title: 'Pending Requests',
+  onTap: () {
+    Navigator.pop(context);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const PendingRequestsScreen(),
+      ),
+    );
+  },
+),
+
                 _DrawerTile(
                   icon: Icons.upload_rounded,
                   title: 'Manage Uploads',
