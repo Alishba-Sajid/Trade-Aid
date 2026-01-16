@@ -205,7 +205,7 @@ class _LoginScreenState extends State<LoginScreen>
                                   onPressed: () {
                                     Navigator.pushNamed(
                                       context,
-                                      '/forgot-password',
+                                      '/forgot_password',
                                     );
                                   },
                                   child: const Text(

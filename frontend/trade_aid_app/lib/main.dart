@@ -23,6 +23,9 @@ import 'screens/profile/changepassword.dart';
 import 'screens/profile/terms&conditions.dart';
 import 'screens/welcomeT&C.dart';
 import 'screens/profile/history_screen.dart';
+import 'screens/forgotpass/forget_pass_screen.dart';
+import 'screens/forgotpass/verifycode_screen.dart';
+import 'screens/forgotpass/newpass_screen.dart';
 // models
 import 'models/product.dart';
 import 'models/resource.dart';
@@ -65,6 +68,9 @@ class TradeAidApp extends StatelessWidget {
         '/terms_conditions': (context) => const TermsAndConditionsScreen(),
         '/welcome_terms': (context) => const WelcomeTermsScreen(),
         '/history': (context) => const HistoryScreen(),
+        '/forgot_password': (context) => const ForgotPasswordScreen(),
+        '/verify-code': (context) => const VerifyCodeScreen(),
+        '/new-password': (context) => const NewPasswordScreen(),
         // <-- added posting routes
         '/product_post': (context) => const ProductPostScreen(),
         '/resource_post': (context) => const ResourcePostScreen(),
