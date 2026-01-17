@@ -117,28 +117,56 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
   /// =======================
   /// HEADER (SAME AS REF)
   /// =======================
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.only(top: 50, bottom: 20, left: 16, right: 16),
-      decoration: const BoxDecoration(gradient: AppColors.appGradient),
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => Navigator.pop(context),
-          ),
-          const Text(
-            'Blocked Users',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+  /// =======================
+/// HEADER (MATCHES ATTACHED DESIGN)
+/// =======================
+Widget _buildHeader(BuildContext context) {
+  return Container(
+    height: 130,
+    width: double.infinity,
+    decoration: const BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Color.fromARGB(255, 15, 119, 124),
+          Color.fromARGB(255, 17, 158, 144),
         ],
       ),
-    );
-  }
+    ),
+    child: SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // 🔙 Back Button
+            IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(
+                Icons.arrow_back,
+                color: Colors.white,
+              ),
+            ),
+
+            // 🏷 Heading
+            const Text(
+              'Blocked Users',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+
+            // Placeholder for spacing (matches attached layout)
+            const SizedBox(width: 48),
+          ],
+        ),
+      ),
+    ),
+  );
+}
 
   /// =======================
   /// CONFIRM DIALOG (DITTO)

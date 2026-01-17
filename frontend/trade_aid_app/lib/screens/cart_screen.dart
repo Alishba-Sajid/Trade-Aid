@@ -73,28 +73,30 @@ class _CartScreenState extends State<CartScreen> {
   /// =======================
   /// APP BAR (Pending Requests Style)
   /// =======================
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.only(top: 50, bottom: 20, left: 16, right: 16),
-      decoration: const BoxDecoration(gradient: appGradient),
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => Navigator.pop(context),
+ Widget _buildHeader(BuildContext context) {
+  return Container(
+    padding: const EdgeInsets.only(top: 50, bottom: 16, left: 16, right: 16),
+    decoration: const BoxDecoration(gradient: appGradient),
+    child: Row(
+      children: [
+        IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        const SizedBox(width: 100), // <-- Add spacing here
+        const Text(
+          'My Cart',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
           ),
-          const Text(
-            'My Cart',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
+
 
   Widget _buildPremiumCard(int index) {
     final item = cartItems[index];

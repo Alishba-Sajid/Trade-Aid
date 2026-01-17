@@ -168,7 +168,7 @@ child: Scaffold(
               child: Column(
                 children: [
                   _sectionWrapper(
-                    title: 'Technical Visuals',
+                    title: 'PICTURES',
                     child: Row(
                       children: List.generate(3, (index) => Expanded(
                         child: Padding(padding: EdgeInsets.only(right: index < 2 ? 8.0 : 0), child: _buildImageSlot(index))
@@ -205,7 +205,7 @@ child: Scaffold(
                   ),
                   const SizedBox(height: 14),
                   _sectionWrapper(
-                    title: 'Costing',
+                    title: 'Pricing',
                     child: TextFormField(
                       keyboardType: TextInputType.number,
                       decoration: _industrialInput('Hourly Rate (PKR)', icon: Icons.payments_outlined),

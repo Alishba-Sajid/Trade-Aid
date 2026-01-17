@@ -61,7 +61,7 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
   @override
   void initState() {
     super.initState();
-    // For now, using dummy data. Later replace with fetchRequests()
+    // Dummy data for now
     requests = [
       UserRequest(name: 'Ahmed Khan', location: 'House245, Gulberg, Lahore', rating: 4.5),
       UserRequest(name: 'Sara Ali', location: 'House246, Gulberg, Lahore', rating: 5.0),
@@ -121,25 +121,44 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
     );
   }
 
+  /// =======================
+  /// HEADER (GRADIENT APP BAR)
+  /// =======================
   Widget _buildHeader(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.only(top: 50, bottom: 20, left: 16, right: 16),
-      decoration: const BoxDecoration(gradient: AppColors.appGradient),
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => Navigator.pop(context),
+      decoration: const BoxDecoration(
+        gradient: AppColors.appGradient,
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // 🔙 Back Button
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(
+                  Icons.arrow_back,
+                  color: Colors.white,
+                ),
+              ),
+
+              // 🏷 Heading
+              const Text(
+                'Pending Requests',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+
+              // Placeholder for spacing to keep title centered
+              const SizedBox(width: 48),
+            ],
           ),
-          const Text(
-            'Pending Requests',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -281,7 +300,6 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
                         borderRadius: BorderRadius.only(
                           topLeft: Radius.circular(20),
                           topRight: Radius.circular(20),
-                         
                         ),
                       ),
                       child: const Center(
@@ -306,7 +324,6 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          // Ratings
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: List.generate(
@@ -321,7 +338,6 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          // Location
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [

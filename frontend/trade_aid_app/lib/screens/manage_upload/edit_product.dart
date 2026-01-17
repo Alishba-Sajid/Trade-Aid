@@ -2,10 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-/// 🌿 Premium Industrial Color Palette
 const LinearGradient appGradient = LinearGradient(
-  colors: [Color.fromARGB(255, 15, 119, 124),
-      Color.fromARGB(255, 17, 158, 144),],
+  colors: [Color.fromARGB(255, 15, 119, 124), Color.fromARGB(255, 17, 158, 144)],
   begin: Alignment.bottomLeft,
   end: Alignment.topRight,
 );
@@ -15,26 +13,25 @@ const Color backgroundLight = Color(0xFFF8FAFA);
 const Color accentTeal = Color(0xFF119E90);
 const Color subtleGrey = Color(0xFFF2F2F2);
 
-class ProductPostScreen extends StatefulWidget {
-  const ProductPostScreen({super.key});
+class EditUploadProductScreen extends StatefulWidget {
+  final Map<String, dynamic> product;
+  const EditUploadProductScreen({super.key, required this.product});
 
   @override
-  State<ProductPostScreen> createState() => _ProductPostScreenState();
+  State<EditUploadProductScreen> createState() => _EditUploadProductScreenState();
 }
 
-class _ProductPostScreenState extends State<ProductPostScreen> {
+class _EditUploadProductScreenState extends State<EditUploadProductScreen> {
   final _formKey = GlobalKey<FormState>();
   final ImagePicker _picker = ImagePicker();
   final List<XFile?> _images = [null, null, null];
 
-  // Fields
-  String? _productName; // ignore: unused_field
-  String? _description; // ignore: unused_field
-  String? _price; // ignore: unused_field
-
-  String? _usedTimeValue;
-  String? _conditionValue;
-  String? _productCategoryValue;
+  late String? _productName;
+  late String? _description;
+  late String? _price;
+  late String? _usedTimeValue;
+  late String? _conditionValue;
+  late String? _productCategoryValue;
 
   bool _isLoading = false;
 
@@ -42,21 +39,33 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
   final List<String> _conditionOptions = ['New', 'Best', 'Good', 'Average'];
   final List<String> _productCategories = ['Lifestyle', 'Essential'];
 
-  /// ---------------- IMAGE HANDLING ----------------
+  @override
+  void initState() {
+    super.initState();
+    _productName = widget.product['title'];
+    _description = widget.product['description'];
+    _price = widget.product['price']?.toString();
+    _usedTimeValue = widget.product['usedTime'];
+    _conditionValue = widget.product['condition'];
+    _productCategoryValue = widget.product['category'];
+
+    if (widget.product['images'] != null) {
+      for (int i = 0; i < widget.product['images'].length && i < 3; i++) {
+        _images[i] = XFile(widget.product['images'][i]);
+      }
+    }
+  }
+
   Future<void> _pickImage(int slot) async {
-    // Force keyboard down before opening gallery
     FocusScope.of(context).unfocus();
-    final XFile? picked = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 80,
-    );
+    final XFile? picked = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
     if (picked != null) setState(() => _images[slot] = picked);
   }
 
   void _removeImage(int slot) => setState(() => _images[slot] = null);
 
   void _showImageOptions(int index) {
-    FocusScope.of(context).unfocus(); // Kill keyboard
+    FocusScope.of(context).unfocus();
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -90,6 +99,7 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.blueGrey.withOpacity(0.2), width: 1), // subtle grey
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
         ),
         child: img == null
@@ -118,11 +128,21 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       filled: true,
       fillColor: Colors.white,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.blueGrey.withOpacity(0.2), width: 1), // subtle grey
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.blueGrey.withOpacity(0.2), width: 1),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: accentTeal.withOpacity(0.6), width: 1.5),
+      ),
     );
   }
 
-  /// ---------------- DROPDOWN ----------------
   Widget _premiumDropdown({
     required String label,
     required String? value,
@@ -134,9 +154,7 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
     return Builder(
       builder: (context) => InkWell(
         onTap: () async {
-          // IMPORTANT: This kills the keyboard immediately when the dropdown is touched
           FocusManager.instance.primaryFocus?.unfocus();
-
           final RenderBox box = context.findRenderObject() as RenderBox;
           final Offset position = box.localToGlobal(Offset.zero);
           final Size size = box.size;
@@ -161,7 +179,18 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             filled: true,
             fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.blueGrey.withOpacity(0.2), width: 1),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.blueGrey.withOpacity(0.2), width: 1),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: accentTeal.withOpacity(0.6), width: 1.5),
+            ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -176,10 +205,11 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
   }
 
   void _submit() async {
-    FocusScope.of(context).unfocus(); // Close keyboard on submit
-    
+    FocusScope.of(context).unfocus();
     if (!_images.any((e) => e != null)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(backgroundColor: Colors.redAccent, content: Text('Please upload at least one image')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          backgroundColor: Colors.redAccent,
+          content: Text('Please upload at least one image')));
       return;
     }
 
@@ -187,43 +217,67 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
     _formKey.currentState!.save();
 
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 1));
     setState(() => _isLoading = false);
 
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(backgroundColor: darkPrimary, content: Text('Product Published Successfully')));
-    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        backgroundColor: darkPrimary,
+        content: Text('Product updated successfully')));
+
+    Navigator.pop(context, {
+      ...widget.product,
+      'title': _productName,
+      'description': _description,
+      'price': _price,
+      'usedTime': _usedTimeValue,
+      'condition': _conditionValue,
+      'category': _productCategoryValue,
+      'images': _images.whereType<XFile>().map((e) => e.path).toList(),
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    // 1. Wrap with GestureDetector to close keyboard when tapping outside
     return GestureDetector(
-   onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-child: Scaffold(
-  backgroundColor: backgroundLight,
-  appBar: PreferredSize(
-    preferredSize: const Size.fromHeight(kToolbarHeight),
-    child: Container(
-      decoration: BoxDecoration(
-        gradient: appGradient, // Using the gradient defined at the top
-      ),
-      child: AppBar(
-        centerTitle: true,
-        title: const Text(
-          'Product Post',
-          style: TextStyle(
-            letterSpacing: 2,
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
+      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+      child: Scaffold(
+        backgroundColor: backgroundLight,
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(130),
+          child: Container(
+            height: 130,
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color.fromARGB(255, 15, 119, 124),
+                  Color.fromARGB(255, 17, 158, 144),
+                ],
+              ),
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    ),
+                    const Text(
+                      "Edit Product",
+                      style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
-        elevation: 0,
-        backgroundColor: Colors.transparent, // Must be transparent for gradient
-        foregroundColor: Colors.white,
-      ),
-    ),
-  ),
-
         body: SafeArea(
           child: Form(
             key: _formKey,
@@ -235,13 +289,27 @@ child: Scaffold(
                   // --- Images ---
                   Container(
                     padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: subtleGrey, borderRadius: BorderRadius.circular(12)),
+                    decoration: BoxDecoration(
+                      color: subtleGrey,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.blueGrey.withOpacity(0.2), width: 1),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('PRODUCT IMAGES', style: TextStyle(letterSpacing: 2, fontSize: 11, fontWeight: FontWeight.w600, color: Colors.blueGrey)),
                         const SizedBox(height: 6),
-                        Row(children: List.generate(3, (index) => Expanded(child: Padding(padding: EdgeInsets.only(right: index < 2 ? 8.0 : 0), child: _buildImageSlot(index))))),
+                        Row(
+                          children: List.generate(
+                            3,
+                            (index) => Expanded(
+                              child: Padding(
+                                padding: EdgeInsets.only(right: index < 2 ? 8.0 : 0),
+                                child: _buildImageSlot(index),
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -250,21 +318,27 @@ child: Scaffold(
                   // --- Basic Info ---
                   Container(
                     padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: subtleGrey, borderRadius: BorderRadius.circular(12)),
+                    decoration: BoxDecoration(
+                      color: subtleGrey,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.blueGrey.withOpacity(0.2), width: 1),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('BASIC INFORMATION', style: TextStyle(letterSpacing: 2, fontSize: 11, fontWeight: FontWeight.w600, color: Colors.blueGrey)),
                         const SizedBox(height: 10),
                         TextFormField(
-                          textInputAction: TextInputAction.done, // Changes 'Next' to 'Done'
-                          onEditingComplete: () => FocusScope.of(context).unfocus(), // Kills keyboard on Done
+                          initialValue: _productName,
+                          textInputAction: TextInputAction.done,
+                          onEditingComplete: () => FocusScope.of(context).unfocus(),
                           decoration: _industrialInput('Product Name', icon: Icons.shopping_bag_outlined),
                           validator: (v) => v == null || v.isEmpty ? 'Required' : null,
                           onSaved: (v) => _productName = v,
                         ),
                         const SizedBox(height: 8),
                         TextFormField(
+                          initialValue: _description,
                           maxLines: 3,
                           maxLength: 250,
                           textInputAction: TextInputAction.done,
@@ -272,13 +346,10 @@ child: Scaffold(
                           decoration: _industrialInput('Enter Full Description'),
                           validator: (v) => v == null || v.isEmpty ? 'Required' : null,
                           onSaved: (v) => _description = v,
-                          buildCounter: (context, {required currentLength, maxLength, required isFocused}) {
-                            final isLimitApproaching = currentLength >= 240;
-                            return Text('$currentLength / ${maxLength ?? 0}', style: TextStyle(fontSize: 10, color: isLimitApproaching ? Colors.red : Colors.grey[600]));
-                          },
                         ),
                         const SizedBox(height: 10),
                         TextFormField(
+                          initialValue: _price,
                           keyboardType: TextInputType.number,
                           textInputAction: TextInputAction.done,
                           onEditingComplete: () => FocusScope.of(context).unfocus(),
@@ -294,7 +365,11 @@ child: Scaffold(
                   // --- Details ---
                   Container(
                     padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: subtleGrey, borderRadius: BorderRadius.circular(12)),
+                    decoration: BoxDecoration(
+                      color: subtleGrey,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.blueGrey.withOpacity(0.2), width: 1),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -302,7 +377,7 @@ child: Scaffold(
                         const SizedBox(height: 10),
                         Row(
                           children: [
-                            Expanded(child: _premiumDropdown(label: 'Duration ', value: _usedTimeValue, items: _usedTimeOptions, onChanged: (v) => setState(() => _usedTimeValue = v), icon: Icons.timelapse)),
+                            Expanded(child: _premiumDropdown(label: 'Duration', value: _usedTimeValue, items: _usedTimeOptions, onChanged: (v) => setState(() => _usedTimeValue = v), icon: Icons.timelapse)),
                             const SizedBox(width: 10),
                             Expanded(child: _premiumDropdown(label: 'Status', value: _conditionValue, items: _conditionOptions, onChanged: (v) => setState(() => _conditionValue = v), icon: Icons.check_circle_outline)),
                           ],
@@ -329,7 +404,7 @@ child: Scaffold(
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent),
                         child: _isLoading
                             ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white))
-                            : const Text('Post Product', style: TextStyle(letterSpacing: 2, fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white)),
+                            : const Text('Update Product', style: TextStyle(letterSpacing: 2, fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
                       ),
                     ),
                   ),
