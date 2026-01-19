@@ -115,10 +115,7 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
   }
 
   /// =======================
-  /// HEADER (SAME AS REF)
-  /// =======================
-  /// =======================
-/// HEADER (MATCHES ATTACHED DESIGN)
+/// HEADER
 /// =======================
 Widget _buildHeader(BuildContext context) {
   return Container(

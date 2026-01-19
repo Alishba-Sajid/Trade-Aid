@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'community_dialog.dart';
+import '../wish_request.dart';
 
 // 🌿 Premium Color Constants
 const LinearGradient appGradient = LinearGradient(
@@ -284,8 +285,16 @@ class _DashboardBodyState extends State<DashboardBody> {
                     const SizedBox(height: 10),
                     _buildSectionHeader('Wish Requests'),
                     const SizedBox(height: 13),
-                    _buildPremiumWishCard(),
-                    const Spacer(),
+                    GestureDetector(
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const WishRequestsScreen()),
+    );
+  },
+  child: _buildPremiumWishCard(),
+),
+
                   ],
                 ),
               ),

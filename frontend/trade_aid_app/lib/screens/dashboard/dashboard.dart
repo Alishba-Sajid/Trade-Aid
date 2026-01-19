@@ -5,6 +5,7 @@ import 'dashboard_drawer.dart';
 import '../cart_screen.dart';
 import '../profile/profile.dart';
 
+
 const LinearGradient appGradient = LinearGradient(
   colors: [
     Color.fromARGB(255, 15, 119, 124),

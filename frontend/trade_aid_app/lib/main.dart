@@ -22,6 +22,7 @@ import 'screens/profile/personaldetailsprofile.dart';
 import 'screens/profile/changepassword.dart';
 import 'screens/profile/blocked_user.dart';
 import 'screens/help&support.dart';
+import 'screens/wish_request.dart';
 // models
 import 'models/product.dart';
 import 'models/resource.dart';
@@ -66,6 +67,7 @@ class TradeAidApp extends StatelessWidget {
         '/resource_post': (context) => const ResourcePostScreen(),
         '/blocked_users': (context) => const BlockedUsersScreen(),
         '/help_support': (context) => const HelpSupportScreen(),
+        '/wish_request': (context) => const WishRequestsScreen(),
 
       },
       onGenerateRoute: (settings) {
