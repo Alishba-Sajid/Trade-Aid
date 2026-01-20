@@ -88,7 +88,7 @@ class WelcomeScreen extends StatelessWidget {
                 width: 220,
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.pushNamed(context, '/register');
+                    Navigator.pushNamed(context, '/welcome_terms');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,

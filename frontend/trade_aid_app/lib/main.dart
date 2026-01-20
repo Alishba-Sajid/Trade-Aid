@@ -24,6 +24,13 @@ import 'screens/profile/blocked_user.dart';
 import 'screens/help&support.dart';
 import 'screens/wish_request.dart';
 import 'screens/chat/chat_list_screen.dart';
+import 'screens/profile/terms&conditions.dart';
+import 'screens/welcomeT&C.dart';
+import 'screens/profile/history_screen.dart';
+import 'screens/forgotpass/forget_pass_screen.dart';
+import 'screens/forgotpass/verifycode_screen.dart';
+import 'screens/forgotpass/newpass_screen.dart';
+
 // models
 import 'models/product.dart';
 import 'models/resource.dart';
@@ -63,7 +70,12 @@ class TradeAidApp extends StatelessWidget {
         '/profile': (context) => const ProfileScreen(),
         "/personal_details": (_) => const PersonalDetailsScreen(),
         "/change_password": (_) => const ChangePasswordScreen(),
-        // <-- added posting routes
+        '/terms_conditions': (context) => const TermsAndConditionsScreen(),
+        '/welcome_terms': (context) => const WelcomeTermsScreen(),
+        '/history': (context) => const HistoryScreen(),
+        '/forgot_password': (context) => const ForgotPasswordScreen(),
+        '/verify-code': (context) => const VerifyCodeScreen(),
+        '/new-password': (context) => const NewPasswordScreen(),
         '/product_post': (context) => const ProductPostScreen(),
         '/resource_post': (context) => const ResourcePostScreen(),
         '/blocked_users': (context) => const BlockedUsersScreen(),

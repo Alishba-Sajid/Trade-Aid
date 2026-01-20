@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'community_dialog.dart';
-import '../wish_request.dart';
 
 // 🌿 Premium Color Constants
 const LinearGradient appGradient = LinearGradient(
@@ -228,74 +227,69 @@ class _DashboardBodyState extends State<DashboardBody> {
                     topRight: Radius.circular(20),
                   ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 0),
-                    _buildSectionHeader('Nearby Communities'),
-                    const SizedBox(height: 13),
-                    SizedBox(
-                      height: 130,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        clipBehavior: Clip.none,
+                child: SingleChildScrollView(
+                  // ✅ wrapped to prevent overflow
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 0),
+                      _buildSectionHeader('Nearby Communities'),
+                      const SizedBox(height: 13),
+                      SizedBox(
+                        height: 130,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          clipBehavior: Clip.none,
+                          children: const [
+                            _CommunityTile(
+                              'GG-12',
+                              description:
+                                  'GG-12 is a premium community for resource sharing, skill development, and community support.',
+                            ),
+                            _CommunityTile(
+                              'GG-13',
+                              description:
+                                  'GG-13 focuses on sustainability, eco-friendly projects, and collaboration among members.',
+                            ),
+                            _CommunityTile(
+                              'GG-14',
+                              description:
+                                  'GG-14 is a tech-oriented community where members share knowledge and products.',
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 0),
+                      _buildSectionHeader('Services'),
+                      const SizedBox(height: 13),
+                      Row(
                         children: const [
-                          _CommunityTile(
-                            'GG-12',
-                            description:
-                                'GG-12 is a premium community for resource sharing, skill development, and community support.',
+                          Expanded(
+                            child: _ServiceCard(
+                              title: 'Products',
+                              subtitle: 'Browse items',
+                              icon: Icons.shopping_cart_outlined,
+                              route: '/products',
+                            ),
                           ),
-                          _CommunityTile(
-                            'GG-13',
-                            description:
-                                'GG-13 focuses on sustainability, eco-friendly projects, and collaboration among members.',
-                          ),
-                          _CommunityTile(
-                            'GG-14',
-                            description:
-                                'GG-14 is a tech-oriented community where members share knowledge and products.',
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: _ServiceCard(
+                              title: 'Resources',
+                              subtitle: 'Available resources',
+                              icon: Icons.group,
+                              route: '/resources',
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 0),
-                    _buildSectionHeader('Services'),
-                    const SizedBox(height: 13),
-                    Row(
-                      children: const [
-                        Expanded(
-                          child: _ServiceCard(
-                            title: 'Products',
-                            subtitle: 'Browse items',
-                            icon: Icons.shopping_cart_outlined,
-                            route: '/products',
-                          ),
-                        ),
-                        SizedBox(width: 10),
-                        Expanded(
-                          child: _ServiceCard(
-                            title: 'Resources',
-                            subtitle: 'Available resources',
-                            icon: Icons.group,
-                            route: '/resources',
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    _buildSectionHeader('Wish Requests'),
-                    const SizedBox(height: 13),
-                    GestureDetector(
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const WishRequestsScreen()),
-    );
-  },
-  child: _buildPremiumWishCard(),
-),
-
-                  ],
+                      const SizedBox(height: 10),
+                      _buildSectionHeader('Wish Requests'),
+                      const SizedBox(height: 13),
+                      _buildPremiumWishCard(),
+                      const SizedBox(height: 20), // ✅ replaced Spacer
+                    ],
+                  ),
                 ),
               ),
             ),

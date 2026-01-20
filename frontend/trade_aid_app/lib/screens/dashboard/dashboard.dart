@@ -4,7 +4,6 @@ import 'dashboard_body.dart';
 import 'dashboard_drawer.dart';
 import '../cart_screen.dart';
 import '../profile/profile.dart';
-import '../chat/chat_list_screen.dart';
 
 const LinearGradient appGradient = LinearGradient(
   colors: [
@@ -35,10 +34,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         case 1:
           ScaffoldMessenger.of(
             context,
-          ); Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const ChatListScreen()),
-          ).then((_) => setState(() => _currentIndex = 0));
+          ).showSnackBar(const SnackBar(content: Text('Chat coming soon')));
           break;
         case 2:
           _showPostDialog();
