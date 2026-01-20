@@ -86,7 +86,7 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen>
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       _showSnackBar(
-        'Please enable location services',
+        'Please turn on GPS location of your device',
         backgroundColor: Colors.redAccent,
       );
       setState(() => _isLoading = false);

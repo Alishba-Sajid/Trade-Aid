@@ -23,6 +23,7 @@ import 'screens/profile/changepassword.dart';
 import 'screens/profile/blocked_user.dart';
 import 'screens/help&support.dart';
 import 'screens/wish_request.dart';
+import 'screens/chat/chat_list_screen.dart';
 // models
 import 'models/product.dart';
 import 'models/resource.dart';
@@ -68,6 +69,7 @@ class TradeAidApp extends StatelessWidget {
         '/blocked_users': (context) => const BlockedUsersScreen(),
         '/help_support': (context) => const HelpSupportScreen(),
         '/wish_request': (context) => const WishRequestsScreen(),
+        '/chat_list': (context) => const ChatListScreen(),
 
       },
       onGenerateRoute: (settings) {
