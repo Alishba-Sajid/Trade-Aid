@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'community_dialog.dart';
+import '../wish_request.dart';
 
 // 🌿 Premium Color Constants
 const LinearGradient appGradient = LinearGradient(
@@ -12,7 +13,7 @@ const Color dark = Color(0xFF004D40);
 const Color light = Color(0xFFF0F9F8);
 const Color accent = Color(0xFF119E90);
 
-/// DashboardBody displays the main content of the dashboard.
+/// DashboardBody displays the main content of the dashboard without the search bar.
 class DashboardBody extends StatefulWidget {
   final String userName, communityName;
 
@@ -27,29 +28,8 @@ class DashboardBody extends StatefulWidget {
 }
 
 class _DashboardBodyState extends State<DashboardBody> {
-  late final FocusNode _searchFocusNode;
-
-  @override
-  void initState() {
-    super.initState();
-    _searchFocusNode = FocusNode();
-  }
-
-  @override
-  void dispose() {
-    _searchFocusNode.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
-    // Remove focus from search field when the page rebuilds
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_searchFocusNode.hasFocus) {
-        _searchFocusNode.unfocus();
-      }
-    });
-
     return LayoutBuilder(
       builder: (context, constraints) {
         return Column(
@@ -59,10 +39,10 @@ class _DashboardBodyState extends State<DashboardBody> {
             // =========================
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(20, 25, 20, 15),
-              decoration: BoxDecoration(
+              padding: const EdgeInsets.fromLTRB(20, 25, 20, 25), // Adjusted bottom padding since search is gone
+              decoration: const BoxDecoration(
                 gradient: appGradient,
-                borderRadius: const BorderRadius.only(
+                borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(18),
                   bottomRight: Radius.circular(18),
                 ),
@@ -166,47 +146,6 @@ class _DashboardBodyState extends State<DashboardBody> {
                       ),
                     ],
                   ),
-
-                  const SizedBox(height: 14),
-
-                  // --- Search Bar ---
-                  Container(
-                    decoration: BoxDecoration(
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: TextField(
-                      focusNode: _searchFocusNode,
-                      autofocus: false, // keyboard never auto opens
-                      decoration: InputDecoration(
-                        hintText: 'Search products or resources...',
-                        hintStyle: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
-                        ),
-                        prefixIcon: const Icon(
-                          Icons.search_rounded,
-                          color: Colors.white,
-                          size: 22,
-                        ),
-                        filled: true,
-                        fillColor: Colors.white.withOpacity(0.15),
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 10,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -228,11 +167,9 @@ class _DashboardBodyState extends State<DashboardBody> {
                   ),
                 ),
                 child: SingleChildScrollView(
-                  // ✅ wrapped to prevent overflow
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 0),
                       _buildSectionHeader('Nearby Communities'),
                       const SizedBox(height: 13),
                       SizedBox(
@@ -259,7 +196,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 0),
+                      const SizedBox(height: 20),
                       _buildSectionHeader('Services'),
                       const SizedBox(height: 13),
                       Row(
@@ -283,11 +220,17 @@ class _DashboardBodyState extends State<DashboardBody> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 20),
                       _buildSectionHeader('Wish Requests'),
                       const SizedBox(height: 13),
-                      _buildPremiumWishCard(),
-                      const SizedBox(height: 20), // ✅ replaced Spacer
+                      GestureDetector(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const WishRequestsScreen()),
+                        ),
+                        child: _buildPremiumWishCard(),
+                      ),
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
@@ -299,9 +242,6 @@ class _DashboardBodyState extends State<DashboardBody> {
     );
   }
 
-  // =========================
-  // Section Header Widget
-  // =========================
   static Widget _buildSectionHeader(String title) {
     return Text(
       title,
@@ -314,9 +254,6 @@ class _DashboardBodyState extends State<DashboardBody> {
     );
   }
 
-  // =========================
-  // Wish Card Widget
-  // =========================
   static Widget _buildPremiumWishCard() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -431,7 +368,7 @@ class _CommunityTile extends StatelessWidget {
               child: Center(
                 child: Container(
                   padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: light,
                     shape: BoxShape.circle,
                   ),

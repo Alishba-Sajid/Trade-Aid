@@ -40,13 +40,7 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
       'timeAgo': '1 hour ago',
       'urgency': 'Normal',
     },
-    {
-      'requester': 'Hania Batool',
-      'item': 'Ladder',
-      'description': 'Need a tall ladder to reach the ceiling fan for cleaning.',
-      'timeAgo': '3 hours ago',
-      'urgency': 'Normal',
-    },
+    
   ];
 
   /// ================== DIALOGUE FUNCTIONALITY ==================

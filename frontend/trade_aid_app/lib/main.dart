@@ -13,7 +13,6 @@ import 'screens/product_details.dart';
 import 'screens/resource_listing.dart';
 import 'screens/resource_details.dart';
 import 'screens/booking_screen.dart';
-import 'screens/book_screen.dart';
 import 'screens/cart_screen.dart';
 import 'screens/product_post.dart';
 import 'screens/resource_post.dart';
@@ -65,7 +64,6 @@ class TradeAidApp extends StatelessWidget {
         '/dashboard': (context) => const DashboardScreen(),
         '/products': (context) => const ProductListingScreen(),
         '/resources': (context) => const ResourceListingScreen(),
-        '/books': (context) => const BookScreen(),
         '/cart': (context) => const CartScreen(),
         '/profile': (context) => const ProfileScreen(),
         "/personal_details": (_) => const PersonalDetailsScreen(),
