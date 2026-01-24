@@ -1,298 +1,529 @@
 // lib/screens/product_details.dart
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'payment_option.dart'; // <-- added import
+import 'package:google_fonts/google_fonts.dart';
 import '../models/product.dart';
+import 'payment_option.dart';
+import 'chat_screen.dart'; // Your actual chat screen
 
-class ProductDetailsScreen extends StatelessWidget {
+/* ===================== COLORS & GRADIENT ===================== */
+
+const LinearGradient appGradient = LinearGradient(
+  colors: [Color(0xFF2E9499), Color(0xFF119E90)],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+);
+
+const Color dark = Color(0xFF004D40);
+const Color light = Color(0xFFF0F9F8);
+
+/* ===================== PRODUCT DETAILS SCREEN ===================== */
+
+class ProductDetailsScreen extends StatefulWidget {
   final Product product;
 
   const ProductDetailsScreen({super.key, required this.product});
 
   @override
+  State<ProductDetailsScreen> createState() => _ProductDetailsScreenState();
+}
+
+class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
+  int currentImageIndex = 0;
+
+  @override
   Widget build(BuildContext context) {
-    // safe reader for optional fields
-    String safeString(dynamic Function() getter) {
-      try {
-        final v = getter();
-        if (v == null) return 'N/A';
-        return v.toString();
-      } catch (_) {
-        return 'N/A';
-      }
-    }
-
-    // core fields
-    final imagePath = safeString(() => (product as dynamic).image);
-    final name = safeString(() => product.name);
-    final description = safeString(() => product.description);
-    final priceText = 'Rs ${product.price.toStringAsFixed(0)}';
-
-    // optional/extended fields
-    final condition = safeString(() => (product as dynamic).condition);
-    final usedTime = safeString(() => (product as dynamic).usedTime);
-
-    // seller fields (address parsing like your resource example)
-    final sellerName = safeString(() => (product as dynamic).sellerName);
-    final sellerAddressFull = safeString(() => (product as dynamic).sellerAddress);
-    final addressParts = sellerAddressFull.split(',');
-    final houseNumber = addressParts.isNotEmpty ? addressParts[0].trim() : 'N/A';
-    final addressRest = addressParts.length > 1 ? addressParts.sublist(1).join(',').trim() : sellerAddressFull;
-
-    // bottom bar sizing
-    const double bottomBarHeight = 84.0;
-
-    // device bottom inset
-    final double deviceInset = MediaQuery.of(context).padding.bottom;
-
-    // scroll reserve: include device inset and a small margin so content doesn't jam the bar
-    final double scrollReserve = bottomBarHeight + deviceInset + 12.0;
-
-    // subtle colors
-    final Color cardBg = Colors.white;
-    final Color softBg = const Color(0xFFF7F6FB); // faint lilac-ish
-    final TextStyle sectionTitle = const TextStyle(fontSize: 16, fontWeight: FontWeight.w700);
+    final product = widget.product;
 
     return Scaffold(
-      extendBody: true,
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: const Text('Product Details',
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600)),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-        centerTitle: true,
+      backgroundColor: light,
+      body: Column(
+        children: [
+          _buildAppBar(context),
+          Expanded(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildImageSlider(product),
+                  const SizedBox(height: 16),
+                  _buildTitlePrice(product),
+                  const SizedBox(height: 10),
+                  _buildDescription(product),
+                  const SizedBox(height: 20),
+                  _buildSpecs(product),
+                  const SizedBox(height: 20),
+                  _SellerCard(product: product),
+                  const SizedBox(height: 20),
+                  _buildBuyNowBar(product),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(18, 18, 18, scrollReserve),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    );
+  }
+
+  // ───────────── APP BAR ─────────────
+  Widget _buildAppBar(BuildContext context) {
+    return Container(
+      height: 100,
+      decoration: const BoxDecoration(gradient: appGradient),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+              ),
+              const Spacer(),
+              Text(
+                'Product Details',
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Spacer(),
+              const SizedBox(width: 48),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ───────────── IMAGE SLIDER ─────────────
+  Widget _buildImageSlider(Product product) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: dark.withOpacity(0.08),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Stack(
           children: [
-            // IMAGE: aspect ratio + contain to avoid cropping
-            ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Container(
-                color: softBg,
-                child: AspectRatio(
-                  aspectRatio: 4 / 3,
-                  child: Image.asset(
-                    imagePath,
-                    fit: BoxFit.contain,
-                    width: double.infinity,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: Colors.grey[200],
-                        alignment: Alignment.center,
-                        child: const Icon(Icons.image_not_supported, size: 64, color: Colors.grey),
-                      );
-                    },
+            SizedBox(
+              height: 260,
+              child: PageView.builder(
+                itemCount: product.images.length,
+                onPageChanged: (index) =>
+                    setState(() => currentImageIndex = index),
+                itemBuilder: (context, index) {
+                  return GestureDetector(
+                    onTap: () => _openZoomViewer(product.images, index),
+                    child: Image.asset(
+                      product.images[index],
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                    ),
+                  );
+                },
+              ),
+            ),
+            if (product.images.length > 1)
+              Positioned(
+                bottom: 10,
+                left: 0,
+                right: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    product.images.length,
+                    (index) => Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width: currentImageIndex == index ? 8 : 6,
+                      height: currentImageIndex == index ? 8 : 6,
+                      decoration: BoxDecoration(
+                        color: currentImageIndex == index
+                            ? appGradient.colors[1]
+                            : Colors.white70,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-
-            const SizedBox(height: 14),
-
-            // NAME + PRICE row
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                ),
-                const SizedBox(width: 12),
-                Text(priceText, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-              ],
-            ),
-
-            const SizedBox(height: 10),
-
-            // SHORT DESCRIPTION
-            Text(
-              description,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.black87, height: 1.45),
-            ),
-
-            const SizedBox(height: 16),
-            const Divider(height: 1, thickness: 1),
-            const SizedBox(height: 14),
-
-            // CONDITION CARD
-            Card(
-              color: cardBg,
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 14.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Condition', style: sectionTitle),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        const Icon(Icons.info_outline, size: 18, color: Colors.grey),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(condition, style: const TextStyle(color: Colors.black87))),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        const Icon(Icons.access_time_outlined, size: 18, color: Colors.grey),
-                        const SizedBox(width: 8),
-                        Text('Used: $usedTime', style: const TextStyle(color: Colors.black87)),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 14),
-
-            // SELLER CARD
-            Card(
-              color: cardBg,
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // avatar with subtle border
-                    Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.grey.shade200, width: 2),
-                      ),
-                      child: const CircleAvatar(radius: 22, backgroundImage: AssetImage('assets/images/seller.jpg')),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(sellerName, style: const TextStyle(fontWeight: FontWeight.w700)),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              const Text('House:', style: TextStyle(color: Colors.grey, fontSize: 13)),
-                              const SizedBox(width: 6),
-                              Text(houseNumber, style: const TextStyle(fontSize: 13)),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(addressRest,
-                              style: const TextStyle(color: Colors.black54, fontSize: 13),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis),
-                        ],
-                      ),
-                    ),
-
-                    // Chat button (rounded square)
-                    Container(
-                      height: 40,
-                      width: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.teal,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.chat_bubble_outline, color: Colors.teal, size: 20),
-                        tooltip: 'Chat with seller',
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Starting chat with $sellerName')),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-
           ],
         ),
       ),
+    );
+  }
 
-      // Bottom bar as bottomNavigationBar so it is always flush at the bottom
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 10, 18, 12),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-              child: Container(
-                height: bottomBarHeight,
+  // ───────────── TITLE + PRICE ─────────────
+  Widget _buildTitlePrice(Product product) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Text(
+            product.name,
+            style: GoogleFonts.poppins(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: dark,
+            ),
+          ),
+        ),
+        Text(
+          "Rs ${product.price}",
+          style: GoogleFonts.poppins(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: appGradient.colors[1],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ───────────── DESCRIPTION ─────────────
+  Widget _buildDescription(Product product) {
+    return Text(
+      product.description,
+      style: GoogleFonts.poppins(
+        fontSize: 13,
+        color: Colors.black54,
+        height: 1.5,
+      ),
+    );
+  }
+
+  // ───────────── SPECIFICATIONS ─────────────
+  Widget _buildSpecs(Product product) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Product Information',
+          style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        _SpecTile('Condition', product.condition ?? 'N/A'),
+        _SpecTile('Used', product.usedTime ?? 'N/A'),
+        _SpecTile('Seller', product.sellerName ?? 'N/A'),
+      ],
+    );
+  }
+
+  // ───────────── BUY NOW BAR ─────────────
+  Widget _buildBuyNowBar(Product product) {
+    return Row(
+      children: [
+        Expanded(
+          flex: 1,
+          child: GestureDetector(
+            onTap: () {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('Added to Cart')));
+            },
+            child: Container(
+              height: 50,
+              decoration: BoxDecoration(
                 color: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                child: Row(
-                  children: [
-                    // Price column
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Price', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                        const SizedBox(height: 6),
-                        Text(priceText, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-                      ],
-                    ),
-                    const Spacer(),
-
-                    // Buy button
-                    SizedBox(
-                      height: 46,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          // navigate to payment selection screen
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => PaymentSelectionScreen()),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.teal,
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        child: const Text('Buy', style: TextStyle(fontSize: 16, color: Colors.white)),
-                      ),
-                    ),
-
-                    const SizedBox(width: 10),
-
-                    // Add to cart (icon button)
-                    SizedBox(
-                      height: 46,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Added to cart')));
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        child: const Icon(Icons.add_shopping_cart_outlined, color: Colors.white),
-                      ),
-                    ),
-                  ],
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: dark.withOpacity(0.1)),
+              ),
+              child: const Icon(Icons.shopping_bag_outlined, color: dark),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          flex: 2,
+          child: InkWell(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => PaymentSelectionScreen()),
+            ),
+            child: Container(
+              height: 50,
+              decoration: BoxDecoration(
+                gradient: appGradient,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Center(
+                child: Text(
+                  'Buy Now',
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),
           ),
         ),
+      ],
+    );
+  }
+
+  // ───────────── FULL SCREEN ZOOM ─────────────
+  void _openZoomViewer(List<String> images, int initialIndex) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            _ZoomImageViewer(images: images, initialIndex: initialIndex),
+      ),
+    );
+  }
+}
+
+/* ===================== SPEC TILE ===================== */
+class _SpecTile extends StatelessWidget {
+  final String title;
+  final String value;
+
+  const _SpecTile(this.title, this.value);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+            ),
+          ),
+          Text(value, style: GoogleFonts.poppins(color: Colors.black54)),
+        ],
+      ),
+    );
+  }
+}
+
+/* ===================== ZOOM VIEWER ===================== */
+class _ZoomImageViewer extends StatefulWidget {
+  final List<String> images;
+  final int initialIndex;
+
+  const _ZoomImageViewer({required this.images, required this.initialIndex});
+
+  @override
+  State<_ZoomImageViewer> createState() => _ZoomImageViewerState();
+}
+
+class _ZoomImageViewerState extends State<_ZoomImageViewer> {
+  late final PageController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: PageView.builder(
+        controller: controller,
+        itemCount: widget.images.length,
+        itemBuilder: (context, index) {
+          return InteractiveViewer(
+            minScale: 1,
+            maxScale: 4,
+            child: Center(child: Image.asset(widget.images[index])),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/* ===================== CHAT BUTTON ===================== */
+class _ChatButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _ChatButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 48,
+        width: 48,
+        decoration: BoxDecoration(
+          gradient: appGradient,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: const Icon(
+          Icons.chat_bubble_outline_rounded,
+          color: Colors.white,
+          size: 20,
+        ),
+      ),
+    );
+  }
+}
+
+/* ===================== SELLER CARD ===================== */
+class _SellerCard extends StatefulWidget {
+  final Product product;
+
+  const _SellerCard({required this.product});
+
+  @override
+  State<_SellerCard> createState() => _SellerCardState();
+}
+
+class _SellerCardState extends State<_SellerCard>
+    with SingleTickerProviderStateMixin {
+  bool isExpanded = false;
+  late final AnimationController _controller;
+  late final Animation<double> _arrowAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _arrowAnimation = Tween<double>(begin: 0, end: 0.5).animate(_controller);
+  }
+
+  void _toggleExpand() {
+    setState(() {
+      isExpanded = !isExpanded;
+      if (isExpanded) {
+        _controller.forward();
+      } else {
+        _controller.reverse();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sellerName = widget.product.sellerName ?? 'Seller';
+    final address = widget.product.sellerAddress ?? 'House 123, Sample Street';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: dark.withOpacity(0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const CircleAvatar(
+                radius: 28,
+                backgroundColor: light,
+                backgroundImage: AssetImage('assets/seller.jpg'),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      sellerName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                        color: dark,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      address.split(',').first,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.black.withOpacity(0.5),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _ChatButton(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ChatScreen(sellerName: sellerName),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: _toggleExpand,
+                child: RotationTransition(
+                  turns: _arrowAnimation,
+                  child: const Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Colors.black54,
+                    size: 28,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          AnimatedCrossFade(
+            firstChild: const SizedBox.shrink(),
+            secondChild: Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Full Address: $address',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.black.withOpacity(0.7),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
+            crossFadeState: isExpanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 200),
+          ),
+        ],
       ),
     );
   }

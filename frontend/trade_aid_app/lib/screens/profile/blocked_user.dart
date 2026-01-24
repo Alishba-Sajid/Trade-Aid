@@ -1,7 +1,7 @@
-import 'dart:convert'; //ignore: unused_import
+import 'dart:convert'; // ignore: unused_import
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http; //ignore: unused_import
+import 'package:http/http.dart' as http; // ignore: unused_import
 
 /// =======================
 /// PREMIUM COLOR PALETTE
@@ -23,21 +23,21 @@ class AppColors {
 }
 
 /// =======================
-/// MODEL FOR USER REQUEST
+/// MODEL FOR BLOCKED USER
 /// =======================
-class UserRequest {
+class BlockedUser {
   final String name;
   final String location;
   final double rating;
 
-  UserRequest({
+  BlockedUser({
     required this.name,
     required this.location,
     required this.rating,
   });
 
-  factory UserRequest.fromJson(Map<String, dynamic> json) {
-    return UserRequest(
+  factory BlockedUser.fromJson(Map<String, dynamic> json) {
+    return BlockedUser(
       name: json['name'] ?? '',
       location: json['location'] ?? '',
       rating: (json['rating'] ?? 0).toDouble(),
@@ -46,41 +46,34 @@ class UserRequest {
 }
 
 /// =======================
-/// PENDING REQUESTS SCREEN
+/// BLOCKED USERS SCREEN
 /// =======================
-class PendingRequestsScreen extends StatefulWidget {
-  const PendingRequestsScreen({super.key});
+class BlockedUsersScreen extends StatefulWidget {
+  const BlockedUsersScreen({super.key});
 
   @override
-  State<PendingRequestsScreen> createState() => _PendingRequestsScreenState();
+  State<BlockedUsersScreen> createState() => _BlockedUsersScreenState();
 }
 
-class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
-  List<UserRequest> requests = [];
+class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
+  List<BlockedUser> blockedUsers = [];
 
   @override
   void initState() {
     super.initState();
-    // Dummy data for now
-    requests = [
-      UserRequest(name: 'Ahmed Khan', location: 'House245, Gulberg, Lahore', rating: 4.5),
-      UserRequest(name: 'Sara Ali', location: 'House246, Gulberg, Lahore', rating: 5.0),
+    blockedUsers = [
+      BlockedUser(
+        name: 'Ahmed Khan',
+        location: 'House245, Gulberg, Lahore',
+        rating: 4.5,
+      ),
+      BlockedUser(
+        name: 'Sara Ali',
+        location: 'House246, Gulberg, Lahore',
+        rating: 5.0,
+      ),
     ];
-    // fetchRequests(); // Uncomment when backend is ready
   }
-
-  // Example API fetch (uncomment when ready)
-  /*
-  Future<void> fetchRequests() async {
-    final response = await http.get(Uri.parse('https://yourapi.com/requests'));
-    if (response.statusCode == 200) {
-      final List data = jsonDecode(response.body);
-      setState(() {
-        requests = data.map((e) => UserRequest.fromJson(e)).toList();
-      });
-    }
-  }
-  */
 
   @override
   Widget build(BuildContext context) {
@@ -92,26 +85,26 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-              itemCount: requests.length,
+              itemCount: blockedUsers.length,
               itemBuilder: (context, index) {
-                final request = requests[index];
-                return _RequestCard(
-                  data: request,
-                  onAccept: () => _showConfirmDialog(
+                final user = blockedUsers[index];
+                return _BlockedUserCard(
+                  data: user,
+                  onUnblock: () => _showConfirmDialog(
                     context,
-                    title: 'Accept Request',
-                    message: 'Do you really want to accept ${request.name} request?',
-                    confirmText: 'Accept',
-                    isAccept: true,
+                    title: 'Unblock User',
+                    message: 'Do you really want to unblock ${user.name}?',
+                    confirmText: 'Unblock',
+                    isUnblock: true,
                   ),
-                  onReject: () => _showConfirmDialog(
+                  onKeepBlocked: () => _showConfirmDialog(
                     context,
-                    title: 'Reject Request',
-                    message: 'Do you really want to reject ${request.name} request?',
-                    confirmText: 'Reject',
-                    isAccept: false,
+                    title: 'Keep Blocked',
+                    message: 'Do you want to keep ${user.name} blocked?',
+                    confirmText: 'Keep Blocked',
+                    isUnblock: false,
                   ),
-                  onProfileTap: () => _showProfileDialog(context, request),
+                  onProfileTap: () => _showProfileDialog(context, user),
                 );
               },
             ),
@@ -122,53 +115,65 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
   }
 
   /// =======================
-  /// HEADER (GRADIENT APP BAR)
-  /// =======================
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: AppColors.appGradient,
+/// HEADER
+/// =======================
+Widget _buildHeader(BuildContext context) {
+  return Container(
+    height: 130,
+    width: double.infinity,
+    decoration: const BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Color.fromARGB(255, 15, 119, 124),
+          Color.fromARGB(255, 17, 158, 144),
+        ],
       ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // 🔙 Back Button
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(
-                  Icons.arrow_back,
-                  color: Colors.white,
-                ),
+    ),
+    child: SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // 🔙 Back Button
+            IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(
+                Icons.arrow_back,
+                color: Colors.white,
               ),
+            ),
 
-              // 🏷 Heading
-              const Text(
-                'Pending Requests',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                ),
+            // 🏷 Heading
+            const Text(
+              'Blocked Users',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
               ),
+            ),
 
-              // Placeholder for spacing to keep title centered
-              const SizedBox(width: 48),
-            ],
-          ),
+            // Placeholder for spacing (matches attached layout)
+            const SizedBox(width: 48),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
+  /// =======================
+  /// CONFIRM DIALOG (DITTO)
+  /// =======================
   void _showConfirmDialog(
     BuildContext context, {
     required String title,
     required String message,
     required String confirmText,
-    required bool isAccept,
+    required bool isUnblock,
   }) {
     showDialog(
       context: context,
@@ -219,8 +224,11 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: isAccept ? null : const Color.fromARGB(255, 164, 10, 10),
-                        gradient: isAccept ? AppColors.appGradient : null,
+                        gradient:
+                            isUnblock ? AppColors.appGradient : null,
+                        color: isUnblock
+                            ? null
+                            : const Color.fromARGB(255, 164, 10, 10),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: ElevatedButton(
@@ -229,11 +237,11 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                isAccept
-                                    ? 'Request accepted successfully'
-                                    : 'Request rejected successfully',
+                                isUnblock
+                                    ?  'Unblocked successfully'
+                                    : 'Remains blocked',
                               ),
-                              backgroundColor: isAccept
+                              backgroundColor: isUnblock
                                   ? AppColors.accentTeal
                                   : const Color.fromARGB(255, 164, 10, 10),
                             ),
@@ -242,7 +250,8 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10)),
                         ),
@@ -265,7 +274,10 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
     );
   }
 
-  void _showProfileDialog(BuildContext context, UserRequest data) {
+  /// =======================
+  /// PROFILE DIALOG (DITTO)
+  /// =======================
+  void _showProfileDialog(BuildContext context, BlockedUser data) {
     showDialog(
       context: context,
       builder: (_) => Dialog(
@@ -273,22 +285,15 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
         backgroundColor: Colors.transparent,
         child: Stack(
           children: [
-            // Blur background
             BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
               child: Container(color: Colors.transparent),
             ),
-            // Centered dialog
             Center(
               child: Container(
                 decoration: const BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    topRight: Radius.circular(20),
-                    bottomLeft: Radius.circular(20),
-                    bottomRight: Radius.circular(20),
-                  ),
+                  borderRadius: BorderRadius.all(Radius.circular(20)),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -307,7 +312,8 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
                           radius: 40,
                           backgroundColor: Colors.white,
                           child: Icon(Icons.person,
-                              size: 45, color: AppColors.accentTeal),
+                              size: 45,
+                              color: AppColors.accentTeal),
                         ),
                       ),
                     ),
@@ -342,12 +348,14 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               const Icon(Icons.location_on,
-                                  size: 16, color: AppColors.darkPrimary),
+                                  size: 16,
+                                  color: AppColors.darkPrimary),
                               const SizedBox(width: 4),
                               Text(
                                 data.location,
                                 style: TextStyle(
-                                  color: AppColors.darkPrimary.withOpacity(0.7),
+                                  color: AppColors.darkPrimary
+                                      .withOpacity(0.7),
                                 ),
                               ),
                             ],
@@ -356,7 +364,8 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
                           ElevatedButton(
                             onPressed: () => Navigator.pop(context),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.appGradient.colors.first,
+                              backgroundColor:
+                                  AppColors.appGradient.colors.first,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
@@ -386,18 +395,18 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
 }
 
 /// =======================
-/// REQUEST CARD
+/// BLOCKED USER CARD (DITTO)
 /// =======================
-class _RequestCard extends StatelessWidget {
-  final UserRequest data;
-  final VoidCallback onAccept;
-  final VoidCallback onReject;
+class _BlockedUserCard extends StatelessWidget {
+  final BlockedUser data;
+  final VoidCallback onUnblock;
+  final VoidCallback onKeepBlocked;
   final VoidCallback onProfileTap;
 
-  const _RequestCard({
+  const _BlockedUserCard({
     required this.data,
-    required this.onAccept,
-    required this.onReject,
+    required this.onUnblock,
+    required this.onKeepBlocked,
     required this.onProfileTap,
   });
 
@@ -427,7 +436,8 @@ class _RequestCard extends StatelessWidget {
                   const CircleAvatar(
                     radius: 26,
                     backgroundColor: AppColors.subtleGrey,
-                    child: Icon(Icons.person, color: AppColors.accentTeal),
+                    child: Icon(Icons.person,
+                        color: AppColors.accentTeal),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -447,7 +457,8 @@ class _RequestCard extends StatelessWidget {
                             const SizedBox(width: 4),
                             Text(
                               data.location,
-                              style: TextStyle(color: Colors.grey[600]),
+                              style:
+                                  TextStyle(color: Colors.grey[600]),
                             ),
                           ],
                         ),
@@ -462,15 +473,21 @@ class _RequestCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: onReject,
+                    onPressed: onKeepBlocked,
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.redAccent),
+                      side:
+                          const BorderSide(color: Colors.redAccent),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                          borderRadius:
+                              BorderRadius.circular(10)),
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: const Text('Decline',
-                        style: TextStyle(color: Colors.redAccent)),
+                    child: const Text(
+                      'Keep Blocked',
+                      style:
+                          TextStyle(color: Colors.redAccent),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -481,18 +498,21 @@ class _RequestCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: ElevatedButton(
-                      onPressed: onAccept,
+                      onPressed: onUnblock,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
+                            borderRadius:
+                                BorderRadius.circular(10)),
                       ),
                       child: const Text(
-                        'Accept',
+                        'Unblock',
                         style: TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.bold),
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),

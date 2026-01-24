@@ -1,9 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../manage_uploads.dart';
+import '../manage_upload/manage_uploads_screen.dart';
 import '../welcome_screen.dart'; // For logout navigation
 import '../pending_request.dart';
+import '../help&support.dart';
 // 🌿 Color Palette
 const LinearGradient appGradient = LinearGradient(
   colors: [
@@ -268,36 +269,33 @@ class DashboardDrawer extends StatelessWidget {
 ),
 
                 _DrawerTile(
-                  icon: Icons.upload_rounded,
-                  title: 'Manage Uploads',
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const ManageUploadsScreen(),
-                      ),
-                    );
-                  },
-                ),
+  icon: Icons.upload_rounded,
+  title: 'Manage Uploads',
+  onTap: () {
+    Navigator.pop(context);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ManageUploadsScreen(currentUserName: 'Hania B.'), // <-- add the user name
+      ),
+    );
+  },
+),
+
                 
-                _DrawerTile(
-                  icon: Icons.block_rounded,
-                  title: 'Blocked Users',
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const ManageUploadsScreen(),
-                      ),
-                    );
-                  },
-                ),
+              
                 _DrawerTile(
                   icon: Icons.help_rounded,
-                  title: 'Help and Support',
-                  onTap: () {},
+                  title: 'Help & Support',
+                     onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const HelpSupportScreen(),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),

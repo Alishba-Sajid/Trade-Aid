@@ -1,10 +1,12 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+
 import 'dashboard_body.dart';
 import 'dashboard_drawer.dart';
+import 'notification_screen.dart';
+import '../chat/chat_list_screen.dart';
 import '../cart_screen.dart';
 import '../profile/profile.dart';
-import 'notification_screen.dart';
 
 const LinearGradient appGradient = LinearGradient(
   colors: [
@@ -29,23 +31,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _currentIndex = 0;
 
   void _onBottomTap(int index) {
-    // For Post, Cart, Chat, Profile, we don't want to select the tab permanently
     if (index == 1 || index == 2 || index == 3 || index == 4) {
       switch (index) {
         case 1:
-          ScaffoldMessenger.of(
+          Navigator.push(
             context,
-          ).showSnackBar(const SnackBar(content: Text('Chat coming soon')));
+            MaterialPageRoute(builder: (_) => const ChatListScreen()),
+          ).then((_) => setState(() => _currentIndex = 0));
           break;
+
         case 2:
           _showPostDialog();
           break;
+
         case 3:
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const CartScreen()),
           ).then((_) => setState(() => _currentIndex = 0));
           break;
+
         case 4:
           Navigator.push(
             context,
@@ -108,7 +113,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       const SizedBox(height: 24),
 
-                      // 🟢 Post Product
                       _PremiumPostCard(
                         icon: Icons.shopping_bag_outlined,
                         title: 'Post Product',
@@ -123,10 +127,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
 
                       const SizedBox(height: 16),
-                      Divider(color: Colors.grey[300], thickness: 1),
+                      Divider(color: Colors.grey[300]),
                       const SizedBox(height: 16),
 
-                      // 🟢 Post Resource
                       _PremiumPostCard(
                         icon: Icons.groups_outlined,
                         title: 'Post Resource',
@@ -183,35 +186,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
       body: DashboardBody(userName: userName, communityName: communityName),
-      bottomNavigationBar: Theme(
-        data: Theme.of(
-          context,
-        ).copyWith(highlightColor: appGradient.colors[0].withOpacity(0.2)),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: _onBottomTap,
-          backgroundColor: Colors.white,
-          selectedItemColor: appGradient.colors[1],
-          unselectedItemColor: Colors.black45,
-          type: BottomNavigationBarType.fixed,
-          showUnselectedLabels: true,
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Chat'),
-            BottomNavigationBarItem(icon: Icon(Icons.add_box), label: 'Post'),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.shopping_cart),
-              label: 'Cart',
-            ),
-            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-          ],
-        ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: _onBottomTap,
+        selectedItemColor: appGradient.colors[1],
+        unselectedItemColor: Colors.black45,
+        type: BottomNavigationBarType.fixed,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Chat'),
+          BottomNavigationBarItem(icon: Icon(Icons.add_box), label: 'Post'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.shopping_cart),
+            label: 'Cart',
+          ),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+        ],
       ),
     );
   }
 }
 
-// 🌟 PREMIUM POST CARD FOR DIALOG
 class _PremiumPostCard extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -230,8 +225,6 @@ class _PremiumPostCard extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
-      splashColor: dark.withOpacity(0.1),
-      highlightColor: dark.withOpacity(0.05),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(

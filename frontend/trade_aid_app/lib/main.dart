@@ -1,5 +1,7 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
+
+// screens
 import 'screens/splash_screen.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/login_screen.dart';
@@ -8,6 +10,7 @@ import 'screens/location_permission_screen.dart';
 import 'screens/select_community.dart';
 import 'screens/create_account.dart';
 import 'screens/dashboard/dashboard.dart';
+import 'screens/dashboard/notification_screen.dart';
 import 'screens/product_listing.dart';
 import 'screens/product_details.dart';
 import 'screens/resource_listing.dart';
@@ -20,13 +23,18 @@ import 'screens/resource_post.dart';
 import 'screens/profile/profile.dart';
 import 'screens/profile/personaldetailsprofile.dart';
 import 'screens/profile/changepassword.dart';
+import 'screens/profile/blocked_user.dart';
+import 'screens/help&support.dart';
+import 'screens/wish_request.dart';
+import 'screens/chat/chat_list_screen.dart';
 import 'screens/profile/terms&conditions.dart';
 import 'screens/welcomeT&C.dart';
 import 'screens/profile/history_screen.dart';
 import 'screens/forgotpass/forget_pass_screen.dart';
 import 'screens/forgotpass/verifycode_screen.dart';
 import 'screens/forgotpass/newpass_screen.dart';
-import 'screens//dashboard/notification_screen.dart';
+import 'screens/chat/chat_screen.dart';
+
 // models
 import 'models/product.dart';
 import 'models/resource.dart';
@@ -52,46 +60,50 @@ class TradeAidApp extends StatelessWidget {
       ),
       home: const SplashScreen(),
       routes: {
-        '/welcome': (context) => const WelcomeScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/register': (context) => const CreateAccountScreen(),
-        '/create_profile': (context) => const CreateProfileScreen(),
-        '/location_permission': (context) => const LocationPermissionScreen(),
-        '/select_community': (context) => const SelectCommunityScreen(),
-        '/dashboard': (context) => const DashboardScreen(),
-        '/products': (context) => const ProductListingScreen(),
-        '/resources': (context) => const ResourceListingScreen(),
-        '/books': (context) => const BookScreen(),
-        '/cart': (context) => const CartScreen(),
-        '/profile': (context) => const ProfileScreen(),
-        "/personal_details": (_) => const PersonalDetailsScreen(),
-        "/change_password": (_) => const ChangePasswordScreen(),
-        '/terms_conditions': (context) => const TermsAndConditionsScreen(),
-        '/welcome_terms': (context) => const WelcomeTermsScreen(),
-        '/history': (context) => const HistoryScreen(),
-        '/forgot_password': (context) => const ForgotPasswordScreen(),
-        '/verify-code': (context) => const VerifyCodeScreen(),
-        '/new-password': (context) => const NewPasswordScreen(),
-        '/notifications': (context) => const NotificationsScreen(),
-        // <-- added posting routes
-        '/product_post': (context) => const ProductPostScreen(),
-        '/resource_post': (context) => const ResourcePostScreen(),
+        '/welcome': (_) => const WelcomeScreen(),
+        '/login': (_) => const LoginScreen(),
+        '/register': (_) => const CreateAccountScreen(),
+        '/create_profile': (_) => const CreateProfileScreen(),
+        '/location_permission': (_) => const LocationPermissionScreen(),
+        '/select_community': (_) => const SelectCommunityScreen(),
+        '/dashboard': (_) => const DashboardScreen(),
+        '/products': (_) => const ProductListingScreen(),
+        '/resources': (_) => const ResourceListingScreen(),
+        '/books': (_) => const BookScreen(),
+        '/cart': (_) => const CartScreen(),
+        '/profile': (_) => const ProfileScreen(),
+        '/personal_details': (_) => const PersonalDetailsScreen(),
+        '/change_password': (_) => const ChangePasswordScreen(),
+        '/terms_conditions': (_) => const TermsAndConditionsScreen(),
+        '/welcome_terms': (_) => const WelcomeTermsScreen(),
+        '/history': (_) => const HistoryScreen(),
+        '/forgot_password': (_) => const ForgotPasswordScreen(),
+        '/verify-code': (_) => const VerifyCodeScreen(),
+        '/new-password': (_) => const NewPasswordScreen(),
+        '/notifications': (_) => const NotificationsScreen(),
+        '/product_post': (_) => const ProductPostScreen(),
+        '/resource_post': (_) => const ResourcePostScreen(),
+        '/blocked_users': (_) => const BlockedUsersScreen(),
+        '/help_support': (_) => const HelpSupportScreen(),
+        '/wish_request': (_) => const WishRequestsScreen(),
+        '/chat_list': (_) => const ChatListScreen(),
+        '/chat_screen': (_) => const ChatScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/product_details') {
           final args = settings.arguments as Map<String, dynamic>;
-          final product = args['product'] as Product;
           return MaterialPageRoute(
-            builder: (_) => ProductDetailsScreen(product: product),
+            builder: (_) =>
+                ProductDetailsScreen(product: args['product'] as Product),
             settings: settings,
           );
         }
 
         if (settings.name == '/resource_details') {
           final args = settings.arguments as Map<String, dynamic>;
-          final resource = args['resource'] as Resource;
           return MaterialPageRoute(
-            builder: (_) => ResourceDetailsScreen(resource: resource),
+            builder: (_) =>
+                ResourceDetailsScreen(resource: args['resource'] as Resource),
             settings: settings,
           );
         }

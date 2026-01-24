@@ -1,16 +1,23 @@
-// simple product model used across product listing/details
 class Product {
   final String id;
   final String name;
-  final String image; // asset path
-  final double price;
+  final List<String> images; // <-- change/add this
+  final int price;
   final String description;
+  final String? condition;
+  final String? usedTime;
+  final String? sellerName;
+  final String? sellerAddress;
 
   Product({
     required this.id,
     required this.name,
-    required this.image,
+    required this.images, // <-- required list now
     required this.price,
     required this.description,
+    this.condition,
+    this.usedTime,
+    this.sellerName,
+    this.sellerAddress,
   });
 }
