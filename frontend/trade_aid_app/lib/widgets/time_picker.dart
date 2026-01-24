@@ -1,4 +1,3 @@
-// lib/widgets/teal_time_picker.dart
 import 'package:flutter/material.dart';
 
 /// Reusable showTimePicker wrapper that applies the app's teal theme
