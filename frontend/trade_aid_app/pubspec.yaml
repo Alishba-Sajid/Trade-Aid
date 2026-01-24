@@ -51,6 +51,11 @@ flutter:
     - assets/whitelogo.png
     - assets/location.png
     - assets/logomain.png
+    - assets/forgot-password.png
+    - assets/verify_code.jpg
+    - assets/verify-code.png
+    - assets/reset_pass.png
+    
 
   fonts:
     - family: Pacifico

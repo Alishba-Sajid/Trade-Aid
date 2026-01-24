@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import '../widgets/time_picker.dart';
+
 // Teal color palette (consistent)
 const Color kPrimaryTeal = Color(0xFF004D40); // main teal used across the UI
 const Color kLightTeal = Color(0xFF70B2B2); // lighter teal accent
 const Color kSkyBlue = Color(0xFF9ECFD4); // soft blue used for placeholders
-const Color kPaleYellow = Color(0xFFE5E9C5); // subtle yellow/green tint used sparingly
+const Color kPaleYellow = Color(
+  0xFFE5E9C5,
+); // subtle yellow/green tint used sparingly
 
 void main() {
   runApp(const MyApp());
@@ -129,7 +132,10 @@ class _ManageUploadsScreenState extends State<ManageUploadsScreen>
         title: const Text('Delete item'),
         content: const Text('Are you sure you want to delete this item?'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () {
               setState(() {
@@ -140,7 +146,9 @@ class _ManageUploadsScreenState extends State<ManageUploadsScreen>
                 }
               });
               Navigator.of(ctx).pop();
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Deleted successfully')));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Deleted successfully')),
+              );
             },
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
@@ -187,21 +195,34 @@ class _ManageUploadsScreenState extends State<ManageUploadsScreen>
     if (isProduct) {
       final price = (item['price'] as num?)?.toDouble();
       final seller = item['seller'] as String?;
-      if (price != null) subtitleWidgets.add(Text('Rs ${price.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold)));
+      if (price != null)
+        subtitleWidgets.add(
+          Text(
+            'Rs ${price.toStringAsFixed(0)}',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        );
       if (seller != null) subtitleWidgets.add(Text('Provider: $seller'));
     } else {
       final author = item['author'] as String?;
       if (author != null) subtitleWidgets.add(Text('Author: $author'));
 
       // Resource-specific info: days & time
-      final availableDays = (item['availableDays'] as List<dynamic>?)?.cast<String>();
+      final availableDays = (item['availableDays'] as List<dynamic>?)
+          ?.cast<String>();
       final from = item['availableFrom'] as String?;
       final to = item['availableTo'] as String?;
       final daysText = _formatDaysList(availableDays);
       final timeText = _formatTimeRange(from, to);
 
-      if (daysText.isNotEmpty) subtitleWidgets.add(Text('Days: $daysText', style: const TextStyle(fontSize: 12)));
-      if (timeText.isNotEmpty) subtitleWidgets.add(Text('Time: $timeText', style: const TextStyle(fontSize: 12)));
+      if (daysText.isNotEmpty)
+        subtitleWidgets.add(
+          Text('Days: $daysText', style: const TextStyle(fontSize: 12)),
+        );
+      if (timeText.isNotEmpty)
+        subtitleWidgets.add(
+          Text('Time: $timeText', style: const TextStyle(fontSize: 12)),
+        );
     }
 
     return Card(
@@ -235,9 +256,20 @@ class _ManageUploadsScreenState extends State<ManageUploadsScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: 6),
-                  Text(desc, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.black87)),
+                  Text(
+                    desc,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.black87),
+                  ),
                   const SizedBox(height: 6),
                   Wrap(spacing: 8, runSpacing: 4, children: subtitleWidgets),
                 ],
@@ -251,7 +283,10 @@ class _ManageUploadsScreenState extends State<ManageUploadsScreen>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.edit_outlined, color: kPrimaryTeal),
+                      icon: const Icon(
+                        Icons.edit_outlined,
+                        color: kPrimaryTeal,
+                      ),
                       onPressed: () => _openEditScreen(item),
                       tooltip: 'Edit',
                     ),
@@ -266,7 +301,10 @@ class _ManageUploadsScreenState extends State<ManageUploadsScreen>
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(enabled ? 'Enabled' : 'Disabled', style: const TextStyle(fontSize: 12)),
+                      Text(
+                        enabled ? 'Enabled' : 'Disabled',
+                        style: const TextStyle(fontSize: 12),
+                      ),
                       const SizedBox(width: 6),
                       Switch(
                         value: enabled,
@@ -277,7 +315,11 @@ class _ManageUploadsScreenState extends State<ManageUploadsScreen>
                           });
                           // optional: show feedback
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(val ? 'Resource enabled' : 'Resource disabled')),
+                            SnackBar(
+                              content: Text(
+                                val ? 'Resource enabled' : 'Resource disabled',
+                              ),
+                            ),
                           );
                         },
                       ),
@@ -379,7 +421,15 @@ class _EditUploadScreenState extends State<EditUploadScreen> {
   late String _availableFrom; // '09:00'
   late String _availableTo; // '17:00'
 
-  static const List<String> _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  static const List<String> _weekdays = [
+    'Mon',
+    'Tue',
+    'Wed',
+    'Thu',
+    'Fri',
+    'Sat',
+    'Sun',
+  ];
 
   bool get isProduct => widget.item['type'] == 'product';
 
@@ -387,15 +437,28 @@ class _EditUploadScreenState extends State<EditUploadScreen> {
   void initState() {
     super.initState();
     _nameC = TextEditingController(text: widget.item['name'] as String? ?? '');
-    _descC = TextEditingController(text: widget.item['description'] as String? ?? '');
-    _priceC = TextEditingController(text: (widget.item['price']?.toString() ?? ''));
-    _durationC = TextEditingController(text: widget.item['duration'] as String? ?? '');
-    _sellerC = TextEditingController(text: (widget.item['seller'] as String?) ?? (widget.item['author'] as String?) ?? '');
+    _descC = TextEditingController(
+      text: widget.item['description'] as String? ?? '',
+    );
+    _priceC = TextEditingController(
+      text: (widget.item['price']?.toString() ?? ''),
+    );
+    _durationC = TextEditingController(
+      text: widget.item['duration'] as String? ?? '',
+    );
+    _sellerC = TextEditingController(
+      text:
+          (widget.item['seller'] as String?) ??
+          (widget.item['author'] as String?) ??
+          '',
+    );
     _imagePath = widget.item['image'] as String? ?? '';
     _enabled = widget.item['enabled'] as bool? ?? true;
 
     // Initialize resource-specific fields
-    _availableDays = (widget.item['availableDays'] as List<dynamic>?)?.cast<String>() ?? <String>[];
+    _availableDays =
+        (widget.item['availableDays'] as List<dynamic>?)?.cast<String>() ??
+        <String>[];
     _availableFrom = widget.item['availableFrom'] as String? ?? '';
     _availableTo = widget.item['availableTo'] as String? ?? '';
   }
@@ -426,34 +489,36 @@ class _EditUploadScreenState extends State<EditUploadScreen> {
     final m = t.minute.toString().padLeft(2, '0');
     return '$h:$m';
   }
-Future<void> _pickFromTime() async {
-  final initial = _parseTime(_availableFrom) ?? const TimeOfDay(hour: 9, minute: 0);
-  final picked = await showTealTimePicker(
-    context,
-    initialTime: initial,
-    primary: kPrimaryTeal,
-  );
-  if (picked != null) {
-    setState(() {
-      _availableFrom = _formatTimeOfDay(picked);
-    });
-  }
-}
 
-Future<void> _pickToTime() async {
-  final initial = _parseTime(_availableTo) ?? const TimeOfDay(hour: 17, minute: 0);
-  final picked = await showTealTimePicker(
-    context,
-    initialTime: initial,
-    primary: kPrimaryTeal,
-  );
-  if (picked != null) {
-    setState(() {
-      _availableTo = _formatTimeOfDay(picked);
-    });
+  Future<void> _pickFromTime() async {
+    final initial =
+        _parseTime(_availableFrom) ?? const TimeOfDay(hour: 9, minute: 0);
+    final picked = await showTealTimePicker(
+      context,
+      initialTime: initial,
+      primary: kPrimaryTeal,
+    );
+    if (picked != null) {
+      setState(() {
+        _availableFrom = _formatTimeOfDay(picked);
+      });
+    }
   }
-}
 
+  Future<void> _pickToTime() async {
+    final initial =
+        _parseTime(_availableTo) ?? const TimeOfDay(hour: 17, minute: 0);
+    final picked = await showTealTimePicker(
+      context,
+      initialTime: initial,
+      primary: kPrimaryTeal,
+    );
+    if (picked != null) {
+      setState(() {
+        _availableTo = _formatTimeOfDay(picked);
+      });
+    }
+  }
 
   void _toggleDay(String day) {
     setState(() {
@@ -497,7 +562,10 @@ Future<void> _pickToTime() async {
         title: const Text('Delete item'),
         content: const Text('Delete this upload permanently?'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () {
               Navigator.of(ctx).pop(); // close dialog
@@ -514,7 +582,9 @@ Future<void> _pickToTime() async {
   void _pickImageDemo() {
     setState(() {
       if (_imagePath.isEmpty) {
-        _imagePath = isProduct ? 'assets/lawn.jpg' : 'assets/resource_event.jpg';
+        _imagePath = isProduct
+            ? 'assets/lawn.jpg'
+            : 'assets/resource_event.jpg';
       } else {
         _imagePath = '';
       }
@@ -529,8 +599,16 @@ Future<void> _pickToTime() async {
         title: Text(title),
         backgroundColor: kPrimaryTeal,
         actions: [
-          IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: _delete, tooltip: 'Delete'),
-          IconButton(icon: const Icon(Icons.check, color: Colors.white), onPressed: _save, tooltip: 'Save'),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            onPressed: _delete,
+            tooltip: 'Delete',
+          ),
+          IconButton(
+            icon: const Icon(Icons.check, color: Colors.white),
+            onPressed: _save,
+            tooltip: 'Save',
+          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -553,57 +631,109 @@ Future<void> _pickToTime() async {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: const [
-                              Icon(Icons.photo, size: 48, color: Colors.white70),
+                              Icon(
+                                Icons.photo,
+                                size: 48,
+                                color: Colors.white70,
+                              ),
                               SizedBox(height: 8),
-                              Text('Tap to set image (demo)', style: TextStyle(color: Colors.white70)),
+                              Text(
+                                'Tap to set image (demo)',
+                                style: TextStyle(color: Colors.white70),
+                              ),
                             ],
                           ),
                         )
-                      : Image.asset(_imagePath, width: double.infinity, height: 180, fit: BoxFit.cover, errorBuilder: (c, e, st) {
-                          return Container(
-                            width: double.infinity,
-                            height: 180,
-                            color: kSkyBlue,
-                            alignment: Alignment.center,
-                            child: const Icon(Icons.broken_image, color: Colors.white70),
-                          );
-                        }),
+                      : Image.asset(
+                          _imagePath,
+                          width: double.infinity,
+                          height: 180,
+                          fit: BoxFit.cover,
+                          errorBuilder: (c, e, st) {
+                            return Container(
+                              width: double.infinity,
+                              height: 180,
+                              color: kSkyBlue,
+                              alignment: Alignment.center,
+                              child: const Icon(
+                                Icons.broken_image,
+                                color: Colors.white70,
+                              ),
+                            );
+                          },
+                        ),
                 ),
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _nameC,
-                decoration: InputDecoration(labelText: 'Name', border: OutlineInputBorder(), focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: kPrimaryTeal))),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Name required' : null,
+                decoration: InputDecoration(
+                  labelText: 'Name',
+                  border: OutlineInputBorder(),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: kPrimaryTeal),
+                  ),
+                ),
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Name required' : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _descC,
                 minLines: 3,
                 maxLines: 6,
-                decoration: InputDecoration(labelText: 'Description', border: const OutlineInputBorder(), focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: kPrimaryTeal))),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Description required' : null,
+                decoration: InputDecoration(
+                  labelText: 'Description',
+                  border: const OutlineInputBorder(),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: kPrimaryTeal),
+                  ),
+                ),
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'Description required'
+                    : null,
               ),
               const SizedBox(height: 12),
               if (isProduct)
                 TextFormField(
                   controller: _priceC,
                   keyboardType: TextInputType.number,
-                  decoration: InputDecoration(labelText: 'Price', border: const OutlineInputBorder(), prefixText: 'Rs ', focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: kPrimaryTeal))),
+                  decoration: InputDecoration(
+                    labelText: 'Price',
+                    border: const OutlineInputBorder(),
+                    prefixText: 'Rs ',
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: kPrimaryTeal),
+                    ),
+                  ),
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'Price required';
-                    return double.tryParse(v.trim()) == null ? 'Enter valid number' : null;
+                    return double.tryParse(v.trim()) == null
+                        ? 'Enter valid number'
+                        : null;
                   },
                 ),
               if (isProduct) const SizedBox(height: 12),
               TextFormField(
                 controller: _durationC,
-                decoration: InputDecoration(labelText: 'Duration / Time', border: const OutlineInputBorder(), focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: kPrimaryTeal))),
+                decoration: InputDecoration(
+                  labelText: 'Duration / Time',
+                  border: const OutlineInputBorder(),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: kPrimaryTeal),
+                  ),
+                ),
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _sellerC,
-                decoration: InputDecoration(labelText: isProduct ? 'Seller / Provider' : 'Author', border: const OutlineInputBorder(), focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: kPrimaryTeal))),
+                decoration: InputDecoration(
+                  labelText: isProduct ? 'Seller / Provider' : 'Author',
+                  border: const OutlineInputBorder(),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: kPrimaryTeal),
+                  ),
+                ),
               ),
 
               // ---------------------------
@@ -613,7 +743,10 @@ Future<void> _pickToTime() async {
                 const SizedBox(height: 16),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: Text('Available Days', style: Theme.of(context).textTheme.titleMedium),
+                  child: Text(
+                    'Available Days',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
@@ -624,17 +757,25 @@ Future<void> _pickToTime() async {
                       selectedColor: kPrimaryTeal.withOpacity(0.18),
                       checkmarkColor: kPrimaryTeal,
                       selected: selected,
-                      label: Text(d, style: TextStyle(color: selected ? kPrimaryTeal : null)),
+                      label: Text(
+                        d,
+                        style: TextStyle(color: selected ? kPrimaryTeal : null),
+                      ),
                       onSelected: (_) => _toggleDay(d),
                       backgroundColor: Colors.grey[100],
-                      side: BorderSide(color: selected ? kPrimaryTeal : Colors.transparent),
+                      side: BorderSide(
+                        color: selected ? kPrimaryTeal : Colors.transparent,
+                      ),
                     );
                   }).toList(),
                 ),
                 const SizedBox(height: 16),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: Text('Available Time', style: Theme.of(context).textTheme.titleMedium),
+                  child: Text(
+                    'Available Time',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Row(
@@ -646,7 +787,11 @@ Future<void> _pickToTime() async {
                           foregroundColor: kPrimaryTeal,
                         ),
                         onPressed: _pickFromTime,
-                        child: Text(_availableFrom.isEmpty ? 'From' : 'From: $_availableFrom'),
+                        child: Text(
+                          _availableFrom.isEmpty
+                              ? 'From'
+                              : 'From: $_availableFrom',
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -657,7 +802,9 @@ Future<void> _pickToTime() async {
                           foregroundColor: kPrimaryTeal,
                         ),
                         onPressed: _pickToTime,
-                        child: Text(_availableTo.isEmpty ? 'To' : 'To: $_availableTo'),
+                        child: Text(
+                          _availableTo.isEmpty ? 'To' : 'To: $_availableTo',
+                        ),
                       ),
                     ),
                   ],
@@ -666,26 +813,34 @@ Future<void> _pickToTime() async {
 
               const SizedBox(height: 16),
               if (!isProduct)
-              Row(
-                children: [
-                  const Text('Enabled', style: TextStyle(fontSize: 16)),
-                  const Spacer(),
-                  Switch(
-                    value: _enabled,
-                    activeColor: kPrimaryTeal,
-                    onChanged: (v) => setState(() => _enabled = v),
-                  ),
-                ],
-              ),
+                Row(
+                  children: [
+                    const Text('Enabled', style: TextStyle(fontSize: 16)),
+                    const Spacer(),
+                    Switch(
+                      value: _enabled,
+                      activeColor: kPrimaryTeal,
+                      onChanged: (v) => setState(() => _enabled = v),
+                    ),
+                  ],
+                ),
               const SizedBox(height: 24),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: _pickImageDemo,
-                      icon: const Icon(Icons.photo_library, color: kPrimaryTeal),
-                      label: const Text('Pick Image (demo)', style: TextStyle(color: kPrimaryTeal)),
-                      style: OutlinedButton.styleFrom(side: const BorderSide(color: kPrimaryTeal)),
+                      icon: const Icon(
+                        Icons.photo_library,
+                        color: kPrimaryTeal,
+                      ),
+                      label: const Text(
+                        'Pick Image (demo)',
+                        style: TextStyle(color: kPrimaryTeal),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: kPrimaryTeal),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -694,7 +849,9 @@ Future<void> _pickToTime() async {
                       onPressed: _save,
                       icon: const Icon(Icons.save),
                       label: const Text('Save'),
-                      style: ElevatedButton.styleFrom(backgroundColor: kPrimaryTeal),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kPrimaryTeal,
+                      ),
                     ),
                   ),
                 ],

@@ -4,6 +4,7 @@ import 'dashboard_body.dart';
 import 'dashboard_drawer.dart';
 import '../cart_screen.dart';
 import '../profile/profile.dart';
+import 'notification_screen.dart';
 
 const LinearGradient appGradient = LinearGradient(
   colors: [
@@ -169,10 +170,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
           style: TextStyle(color: dark, fontWeight: FontWeight.w600),
         ),
         iconTheme: const IconThemeData(color: dark),
-        actions: const [
-          Padding(
-            padding: EdgeInsets.only(right: 12),
-            child: Icon(Icons.notifications_none),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_none),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+              );
+            },
           ),
         ],
       ),

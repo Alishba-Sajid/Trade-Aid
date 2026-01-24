@@ -1,4 +1,3 @@
-// lib/widgets/teal_time_picker.dart
 import 'package:flutter/material.dart';
 
 /// Reusable showTimePicker wrapper that applies the app's teal theme
@@ -28,21 +27,25 @@ Future<TimeOfDay?> showTealTimePicker(
           dialHandColor: primary,
           dialBackgroundColor: primary.withOpacity(0.08),
           hourMinuteTextColor: WidgetStateColor.resolveWith(
-            (states) => states.contains(WidgetState.selected) ? Colors.white : primary,
+            (states) =>
+                states.contains(WidgetState.selected) ? Colors.white : primary,
           ),
           dialTextColor: WidgetStateColor.resolveWith(
-            (states) => states.contains(WidgetState.selected) ? Colors.white : primary,
+            (states) =>
+                states.contains(WidgetState.selected) ? Colors.white : primary,
           ),
           dayPeriodShape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
             side: BorderSide(color: primary, width: 1.5),
           ),
           dayPeriodTextColor: WidgetStateColor.resolveWith(
-            (states) => states.contains(WidgetState.selected) ? Colors.white : primary,
+            (states) =>
+                states.contains(WidgetState.selected) ? Colors.white : primary,
           ),
           dayPeriodColor: WidgetStateColor.resolveWith((states) {
             if (states.contains(WidgetState.selected)) return primary;
-            if (states.contains(WidgetState.hovered)) return primary.withOpacity(0.12);
+            if (states.contains(WidgetState.hovered))
+              return primary.withOpacity(0.12);
             return Colors.white;
           }),
           helpTextStyle: TextStyle(fontWeight: FontWeight.bold, color: primary),

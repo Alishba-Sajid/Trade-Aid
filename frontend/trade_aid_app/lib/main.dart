@@ -26,6 +26,7 @@ import 'screens/profile/history_screen.dart';
 import 'screens/forgotpass/forget_pass_screen.dart';
 import 'screens/forgotpass/verifycode_screen.dart';
 import 'screens/forgotpass/newpass_screen.dart';
+import 'screens//dashboard/notification_screen.dart';
 // models
 import 'models/product.dart';
 import 'models/resource.dart';
@@ -71,6 +72,7 @@ class TradeAidApp extends StatelessWidget {
         '/forgot_password': (context) => const ForgotPasswordScreen(),
         '/verify-code': (context) => const VerifyCodeScreen(),
         '/new-password': (context) => const NewPasswordScreen(),
+        '/notifications': (context) => const NotificationsScreen(),
         // <-- added posting routes
         '/product_post': (context) => const ProductPostScreen(),
         '/resource_post': (context) => const ResourcePostScreen(),
