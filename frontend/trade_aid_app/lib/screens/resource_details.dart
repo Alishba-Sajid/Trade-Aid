@@ -6,10 +6,7 @@ import '../models/resource.dart';
 /* ===================== COLORS & GRADIENT ===================== */
 
 const LinearGradient appGradient = LinearGradient(
-  colors: [
-    Color(0xFF0F777C),
-    Color(0xFF119E90),
-  ],
+  colors: [Color(0xFF0F777C), Color(0xFF119E90)],
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
 );
@@ -122,9 +119,12 @@ class ResourceDetailsScreen extends StatelessWidget {
     final ownerName = safeString(() => resource.ownerName);
     final ownerAddressFull = safeString(() => resource.ownerAddress);
     final addressParts = ownerAddressFull.split(',');
-    final houseNumber = addressParts.isNotEmpty ? addressParts[0].trim() : 'N/A';
-    final addressRest =
-        addressParts.length > 1 ? addressParts.sublist(1).join(',').trim() : ownerAddressFull;
+    final houseNumber = addressParts.isNotEmpty
+        ? addressParts[0].trim()
+        : 'N/A';
+    final addressRest = addressParts.length > 1
+        ? addressParts.sublist(1).join(',').trim()
+        : ownerAddressFull;
 
     /* ---------- Bottom Bar Spacing ---------- */
     const double bottomBarHeight = 90;
@@ -258,7 +258,9 @@ class ResourceDetailsScreen extends StatelessWidget {
                   _ChatButton(
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Starting chat with $ownerName')),
+                        SnackBar(
+                          content: Text('Starting chat with $ownerName'),
+                        ),
                       );
                     },
                   ),
@@ -340,10 +342,14 @@ class ResourceDetailsScreen extends StatelessWidget {
                 flex: 2,
                 child: InkWell(
                   onTap: () {
-                    Navigator.pushNamed(context, '/booking', arguments: {
-                      'resourceId': resource.id,
-                      'resourceName': resource.name,
-                    });
+                    Navigator.pushNamed(
+                      context,
+                      '/booking',
+                      arguments: {
+                        'resourceId': resource.id,
+                        'resourceName': resource.name,
+                      },
+                    );
                   },
                   child: Container(
                     height: 54,
@@ -383,7 +389,8 @@ class ResourceDetailsScreen extends StatelessWidget {
             child: _ImageCard(
               path: images[0],
               heroTag: 'res_img_0',
-              onTap: () => _openFullScreenImage(context, images[0], 'res_img_0'),
+              onTap: () =>
+                  _openFullScreenImage(context, images[0], 'res_img_0'),
             ),
           ),
           if (images.length > 1) ...[
@@ -396,7 +403,8 @@ class ResourceDetailsScreen extends StatelessWidget {
                     child: _ImageCard(
                       path: images[1],
                       heroTag: 'res_img_1',
-                      onTap: () => _openFullScreenImage(context, images[1], 'res_img_1'),
+                      onTap: () =>
+                          _openFullScreenImage(context, images[1], 'res_img_1'),
                     ),
                   ),
                   if (images.length > 2) ...[
@@ -405,7 +413,11 @@ class ResourceDetailsScreen extends StatelessWidget {
                       child: _ImageCard(
                         path: images[2],
                         heroTag: 'res_img_2',
-                        onTap: () => _openFullScreenImage(context, images[2], 'res_img_2'),
+                        onTap: () => _openFullScreenImage(
+                          context,
+                          images[2],
+                          'res_img_2',
+                        ),
                       ),
                     ),
                   ],

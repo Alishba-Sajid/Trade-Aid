@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'payment_option.dart';
 import 'post_wish_request.dart';
 import '../models/product.dart';
+import 'product_details.dart'; // new details screen
 
 // 🌿 Premium Color Constants
 const LinearGradient appGradient = LinearGradient(
@@ -27,8 +28,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
   String selectedCategory = 'Essential';
   String searchQuery = '';
 
-  // Track product lock for 5 minutes when added to cart
-  Map<String, DateTime> cartTimers = {}; // productId -> unlock time
+  Map<String, DateTime> cartTimers = {};
   Timer? countdownTimer;
 
   final Map<String, List<Product>> productsByCategory = {
@@ -36,39 +36,55 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
       Product(
         id: 'p1',
         name: 'Vintage Leather Jacket',
-        image: 'assets/jacket.jpg',
+        images: ['assets/jacket1.png', 'assets/jacket2.png'],
         price: 5000,
-        description: 'A stylish vintage leather jacket perfect for all seasons.',
+        description:
+            'A stylish vintage leather jacket perfect for all seasons.',
+        condition: 'Excellent',
+        usedTime: 'New',
+        sellerName: 'Community Member',
       ),
       Product(
         id: 'p2',
         name: 'Handmade Ceramic Vase',
-        image: 'assets/vase.jpg',
+        images: ['assets/vase1.png', 'assets/vase2.png', 'assets/vase3.png'],
         price: 1200,
         description: 'Beautiful ceramic vase made by local artisans.',
+        condition: 'Good',
+        usedTime: 'Used 1 month',
+        sellerName: 'Artisan Shop',
       ),
       Product(
         id: 'p3',
         name: 'Tote Bag',
-        image: 'assets/tote.jpg',
+        images: ['assets/tote.png'],
         price: 1100,
         description: 'Durable cotton tote bag suitable for everyday use.',
+        condition: 'Excellent',
+        usedTime: 'New',
+        sellerName: 'Community Member',
       ),
     ],
     'Lifestyle': [
       Product(
         id: 'p4',
         name: 'Yoga Mat',
-        image: 'assets/yoga.jpg',
+        images: ['assets/yoga.jpg'],
         price: 2000,
         description: 'Non-slip yoga mat ideal for home workouts.',
+        condition: 'New',
+        usedTime: 'New',
+        sellerName: 'Fitness Store',
       ),
       Product(
         id: 'p5',
         name: 'Aroma Candle Set',
-        image: 'assets/candles.jpg',
+        images: ['assets/candles.jpg'],
         price: 900,
         description: 'Set of 3 scented candles with relaxing aromas.',
+        condition: 'New',
+        usedTime: 'New',
+        sellerName: 'Candle Shop',
       ),
     ],
   };
@@ -77,7 +93,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
   void initState() {
     super.initState();
     countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      setState(() {}); // refresh countdowns every second
+      setState(() {});
     });
   }
 
@@ -107,7 +123,6 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
       body: Column(
         children: [
           _buildPremiumAppBar(context),
-          // Sticky search bar and category buttons
           Container(
             color: light,
             padding: const EdgeInsets.all(16),
@@ -119,16 +134,17 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
               ],
             ),
           ),
-          // Scrollable product list
           Expanded(
             child: products.isEmpty
                 ? _buildNoProductsFound()
                 : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: products.length,
                     itemBuilder: (context, index) {
                       final product = products[index];
-                      final isLocked = cartTimers[product.id]?.isAfter(DateTime.now()) ?? false;
+                      final isLocked =
+                          cartTimers[product.id]?.isAfter(DateTime.now()) ??
+                          false;
                       final remaining = isLocked
                           ? cartTimers[product.id]!.difference(DateTime.now())
                           : Duration.zero;
@@ -136,9 +152,9 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                       return _buildPremiumProductCard(
                         context,
                         product,
-                        safeString(() => (product as dynamic).condition ?? 'Excellent'),
-                        safeString(() => (product as dynamic).usedTime ?? 'New'),
-                        safeString(() => (product as dynamic).sellerName ?? 'Community Member'),
+                        safeString(() => product.condition),
+                        safeString(() => product.usedTime),
+                        safeString(() => product.sellerName),
                         isLocked,
                         remaining,
                       );
@@ -152,7 +168,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
 
   Widget _buildPremiumAppBar(BuildContext context) {
     return Container(
-      height: 130,
+      height: 100,
       decoration: const BoxDecoration(gradient: appGradient),
       child: SafeArea(
         child: Padding(
@@ -228,146 +244,228 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
     bool isLocked,
     Duration remaining,
   ) {
-    String countdown = "${remaining.inMinutes.toString().padLeft(2,'0')}:${(remaining.inSeconds % 60).toString().padLeft(2,'0')}";
+    final countdown =
+        "${remaining.inMinutes.toString().padLeft(2, '0')}:${(remaining.inSeconds % 60).toString().padLeft(2, '0')}";
+    int currentImageIndex = 0;
 
     return GestureDetector(
       onTap: () {
-        Navigator.pushNamed(context, '/product_details', arguments: {'product': product});
+        // Open product details page
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ProductDetailsScreen(product: product),
+          ),
+        );
       },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 20),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: dark.withOpacity(0.08),
-              blurRadius: 14,
-              offset: const Offset(0, 8),
+      child: StatefulBuilder(
+        builder: (context, setState) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 20),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: dark.withOpacity(0.08),
+                  blurRadius: 14,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Image.asset(
-                product.image,
-                width: 120,
-                height: 150,
-                fit: BoxFit.cover,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          product.name,
-                          style: GoogleFonts.poppins(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: dark,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        "Rs ${product.price}",
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: accent,
-                        ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // IMAGE SLIDER
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 8,
+                        offset: Offset(0, 5),
                       ),
                     ],
+                    border: Border.all(
+                      color: accent.withOpacity(0.2),
+                      width: 1.2,
+                    ),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    product.description,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.poppins(fontSize: 12, color: Colors.black54),
-                  ),
-                  const SizedBox(height: 8),
-                  _infoRow(Icons.star_border, "Condition", condition),
-                  _infoRow(Icons.history, "Used", usedTime),
-                  _infoRow(Icons.person_outline, "Seller", sellerName),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const PaymentSelectionScreen(),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: Stack(
+                      children: [
+                        SizedBox(
+                          height: 220,
+                          width: double.infinity,
+                          child: PageView.builder(
+                            itemCount: product.images.length,
+                            onPageChanged: (index) {
+                              setState(() {
+                                currentImageIndex = index;
+                              });
+                            },
+                            itemBuilder: (context, index) {
+                              return Image.asset(
+                                product.images[index],
+                                fit: BoxFit.cover,
+                                alignment: Alignment.center,
+                              );
+                            },
+                          ),
+                        ),
+                        if (product.images.length > 1)
+                          Positioned(
+                            bottom: 8,
+                            left: 0,
+                            right: 0,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: List.generate(
+                                product.images.length,
+                                (index) => Container(
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 3,
+                                  ),
+                                  width: currentImageIndex == index ? 8 : 6,
+                                  height: currentImageIndex == index ? 8 : 6,
+                                  decoration: BoxDecoration(
+                                    color: currentImageIndex == index
+                                        ? accent
+                                        : Colors.grey[300],
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
                               ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: accent,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
                             ),
                           ),
-                          child: const Text(
-                            "Buy Now",
-                            style: TextStyle(fontWeight: FontWeight.w600),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // NAME & PRICE
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        product.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: dark,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      "Rs ${product.price}",
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: accent.withOpacity(0.9),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                // DESCRIPTION
+                Text(
+                  product.description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: Colors.black54,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _infoRow(Icons.star_border, "Condition", condition),
+                _infoRow(Icons.history, "Used", usedTime),
+                _infoRow(Icons.person_outline, "Seller", sellerName),
+                const SizedBox(height: 12),
+                // ACTION BUTTONS
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const PaymentSelectionScreen(),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: accent,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: isLocked ? Colors.grey : dark,
-                          borderRadius: BorderRadius.circular(10),
+                        child: const Text(
+                          "Buy Now",
+                          style: TextStyle(fontWeight: FontWeight.w600),
                         ),
-                        child: IconButton(
-                          onPressed: isLocked
-                              ? null
-                              : () {
-                                  setState(() {
-                                    cartTimers[product.id] =
-                                        DateTime.now().add(const Duration(minutes: 5));
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text("Added to cart")),
-                                    );
-                                  });
-                                },
-                          icon: isLocked
-                              ? Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    const Icon(Icons.lock_outline, color: Colors.white),
-                                    Text(
-                                      countdown,
-                                      style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: isLocked ? Colors.grey : accent,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: IconButton(
+                        onPressed: isLocked
+                            ? null
+                            : () {
+                                setState(() {
+                                  cartTimers[product.id] = DateTime.now().add(
+                                    const Duration(minutes: 5),
+                                  );
+                                });
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("Added to cart"),
+                                  ),
+                                );
+                              },
+                        icon: isLocked
+                            ? Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.lock_outline,
+                                    color: Colors.white,
+                                  ),
+                                  Text(
+                                    countdown,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                  ],
-                                )
-                              : const Icon(Icons.shopping_cart_outlined, color: Colors.white),
-                        ),
+                                  ),
+                                ],
+                              )
+                            : const Icon(
+                                Icons.shopping_cart_outlined,
+                                color: Colors.white,
+                              ),
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -419,14 +517,21 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const PostWishRequestScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const PostWishRequestScreen(),
+                  ),
                 );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: accent,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
               child: const Text(
                 "Create Wish Request",

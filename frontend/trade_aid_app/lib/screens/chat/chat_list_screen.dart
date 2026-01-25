@@ -10,7 +10,7 @@ const LinearGradient appGradient = LinearGradient(
 );
 
 const Color dark = Color(0xFF004D40);
-const Color light = Color(0xFFF8FBFB); 
+const Color light = Color(0xFFF8FBFB);
 const Color accent = Color(0xFF119E90);
 const Color mutedText = Color(0xFF757575);
 
@@ -25,33 +25,31 @@ class _ChatListScreenState extends State<ChatListScreen> {
   String selectedCategory = 'Recent Chats';
   String searchQuery = '';
 
-  // 🔹 Updated Mock Data with more names for testing search
+  // 🔹 BACKEND-READY MOCK DATA
+  // Replace later with API / Firebase / Supabase
   final List<String> recentChats = [
-    "Alex Johnson", 
-    "Ahmed Khan", 
-    "Sarah Williams", 
-    "Tech Support Group", 
-    "Design Team"
+    "Alex Johnson",
+    "Ahmed Khan",
+    "Sarah Williams",
+    "Tech Support Group",
+    "Design Team",
   ];
 
   final List<String> communityMembers = [
-    "Dr. Emily Stone", 
-    "Ahmad Raza", 
-    "Mark Rifalo", 
-    "Sophie Turner", 
-    "Jessica Alba"
+    "Dr. Emily Stone",
+    "Ahmad Raza",
+    "Mark Rifalo",
+    "Sophie Turner",
+    "Jessica Alba",
   ];
 
   @override
   Widget build(BuildContext context) {
-    // Determine which list to show based on tab
-    final currentList = selectedCategory == 'Recent Chats' ? recentChats : communityMembers;
-    
-    // 🔹 FIX: CASE-INSENSITIVE SEARCH
+    final currentList =
+        selectedCategory == 'Recent Chats' ? recentChats : communityMembers;
+
     final filteredList = currentList.where((name) {
-      final String lowerName = name.toLowerCase();
-      final String lowerQuery = searchQuery.toLowerCase();
-      return lowerName.contains(lowerQuery);
+      return name.toLowerCase().contains(searchQuery.toLowerCase());
     }).toList();
 
     return Scaffold(
@@ -74,31 +72,37 @@ class _ChatListScreenState extends State<ChatListScreen> {
           Expanded(
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
-              child: filteredList.isEmpty 
-                ? _buildEmptyState()
-                : ListView.separated(
-                    key: ValueKey("${selectedCategory}_${filteredList.length}"),
-                    padding: const EdgeInsets.only(top: 10, bottom: 20),
-                    itemCount: filteredList.length,
-                    separatorBuilder: (context, index) => const Divider(
-                      height: 1, 
-                      indent: 80, 
-                      endIndent: 20, 
-                      color: Color(0xFFE0E0E0),
+              child: filteredList.isEmpty
+                  ? _buildEmptyState()
+                  : ListView.separated(
+                      key: ValueKey(
+                          '${selectedCategory}_${filteredList.length}'),
+                      padding:
+                          const EdgeInsets.only(top: 10, bottom: 20),
+                      itemCount: filteredList.length,
+                      separatorBuilder: (_, __) => const Divider(
+                        height: 1,
+                        indent: 80,
+                        endIndent: 20,
+                        color: Color(0xFFE0E0E0),
+                      ),
+                      itemBuilder: (context, index) {
+                        final sellerName = filteredList[index];
+
+                        return ChatTile(
+                          // UI unchanged
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    ChatScreen(sellerName: sellerName),
+                              ),
+                            );
+                          },
+                        );
+                      },
                     ),
-                    itemBuilder: (context, index) {
-                      return ChatTile(
-                        // pass the name to your widget if it supports it
-                        // name: filteredList[index], 
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const ChatScreen()),
-                          );
-                        },
-                      );
-                    },
-                  ),
             ),
           ),
         ],
@@ -119,7 +123,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
             children: [
               IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                icon:
+                    const Icon(Icons.arrow_back, color: Colors.white),
               ),
               const Text(
                 "Community Chat",
@@ -193,7 +198,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   Widget _buildCategoryButton(String category) {
     final bool isSelected = selectedCategory == category;
-    
+
     return Expanded(
       child: GestureDetector(
         onTap: () => setState(() => selectedCategory = category),
@@ -202,15 +207,17 @@ class _ChatListScreenState extends State<ChatListScreen> {
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
             gradient: isSelected ? appGradient : null,
-            color: isSelected ? null : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Center(
             child: Text(
               category,
               style: TextStyle(
-                color: isSelected ? Colors.white : dark.withOpacity(0.6),
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected
+                    ? Colors.white
+                    : dark.withOpacity(0.6),
+                fontWeight:
+                    isSelected ? FontWeight.bold : FontWeight.w500,
                 fontSize: 14,
               ),
             ),
@@ -220,16 +227,19 @@ class _ChatListScreenState extends State<ChatListScreen> {
     );
   }
 
+  // ====================== Empty State ======================
   Widget _buildEmptyState() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.search_off, size: 48, color: mutedText.withOpacity(0.3)),
+          Icon(Icons.search_off,
+              size: 48, color: mutedText.withOpacity(0.3)),
           const SizedBox(height: 12),
           Text(
             "No results found for '$searchQuery'",
-            style: TextStyle(color: mutedText.withOpacity(0.5)),
+            style:
+                TextStyle(color: mutedText.withOpacity(0.5)),
           ),
         ],
       ),

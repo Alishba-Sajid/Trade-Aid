@@ -17,6 +17,7 @@ dependencies:
   change_app_package_name: ^1.5.0
   share_plus: ^12.0.1
   google_fonts: ^7.0.1
+  
 
 dev_dependencies:
   flutter_test:
@@ -33,10 +34,13 @@ flutter:
     - assets/candles.jpg
     - assets/diffuser.jpg
     - assets/soap.jpg
-    - assets/jacket.jpg
+    - assets/jacket1.png
+    - assets/jacket2.png
     - assets/scarf.jpg
-    - assets/tote.jpg
-    - assets/vase.jpg
+    - assets/tote.png
+    - assets/vase1.png
+    - assets/vase2.png
+    - assets/vase3.png
     - assets/yoga.jpg
     - assets/lawn.jpg
     - assets/washing_machine.jpg
@@ -51,6 +55,11 @@ flutter:
     - assets/whitelogo.png
     - assets/location.png
     - assets/logomain.png
+    - assets/forgot-password.png
+    - assets/verify_code.jpg
+    - assets/verify-code.png
+    - assets/reset_pass.png
+    
 
   fonts:
     - family: Pacifico
