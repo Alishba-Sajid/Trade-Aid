@@ -1,18 +1,12 @@
 import 'package:flutter/material.dart';
 import 'payment_option.dart';
 import '../widgets/time_picker.dart';
+import '../widgets/app_bar.dart'; // <-- Import the reusable AppBar
 
-// 🌿 Premium Color Constants
-const LinearGradient appGradient = LinearGradient(
-  colors: [Color(0xFF2E9499), Color(0xFF119E90)],
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
-);
 
-const Color dark = Color(0xFF004D40);
 const Color light = Color(0xFFF0F9F8);
-const Color accent = Color(0xFF119E90);
 
+// ================== Booking Model ==================
 class Booking {
   final String resourceId;
   final DateTime date;
@@ -27,13 +21,17 @@ class Booking {
   });
 }
 
+// ================== Booking Storage ==================
 final List<Booking> _bookings = [];
 
+// Check if two dates are the same day
 bool _isSameDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
 
+// Convert TimeOfDay to minutes for easier comparison
 int _toMinutes(TimeOfDay t) => t.hour * 60 + t.minute;
 
+// Check if a time slot is available
 bool isSlotAvailable(
   String resourceId,
   DateTime date,
@@ -48,6 +46,7 @@ bool isSlotAvailable(
       final existingStart = _toMinutes(b.start);
       final existingEnd = _toMinutes(b.end);
 
+      // Check for overlapping time slots
       if (newStart < existingEnd && newEnd > existingStart) {
         return false;
       }
@@ -56,10 +55,12 @@ bool isSlotAvailable(
   return true;
 }
 
+// Add a new booking
 void addBooking(Booking booking) {
   _bookings.add(booking);
 }
 
+// ================== Booking Screen ==================
 class BookingScreen extends StatefulWidget {
   final String resourceId;
   final String resourceName;
@@ -79,6 +80,7 @@ class _BookingScreenState extends State<BookingScreen> {
   TimeOfDay? startTime;
   TimeOfDay? endTime;
 
+  // UI Constants
   final Color _teal = const Color(0xFF008080);
   final double _radius = 12;
 
@@ -86,45 +88,24 @@ class _BookingScreenState extends State<BookingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: light,
+
+      // ================== Body ==================
       body: Column(
         children: [
-          // ================== Custom App Bar ==================
-          Container(
-            height: 130,
-            decoration: const BoxDecoration(gradient: appGradient),
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon:
-                          const Icon(Icons.arrow_back, color: Colors.white),
-                    ),
-                    const Text(
-                      "Reserve",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(width: 48),
-                  ],
-                ),
-              ),
-            ),
+          // ------------------ Reusable App Bar ------------------
+          AppBarWidget(
+            title: "Reserve",
+            onBack: () => Navigator.pop(context),
           ),
 
-          // ================== Body ==================
+          // ------------------ Booking Form ------------------
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Resource Name
                   Text(
                     widget.resourceName,
                     style: const TextStyle(
@@ -134,6 +115,7 @@ class _BookingScreenState extends State<BookingScreen> {
                   ),
                   const SizedBox(height: 12),
 
+                  // Date Selection
                   const Text(
                     'Select Date',
                     style: TextStyle(
@@ -145,8 +127,7 @@ class _BookingScreenState extends State<BookingScreen> {
 
                   _buildChoiceCard(
                     child: ListTile(
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 14),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14),
                       leading: Container(
                         width: 44,
                         height: 44,
@@ -165,47 +146,10 @@ class _BookingScreenState extends State<BookingScreen> {
                         selectedDate == null
                             ? 'Choose Date'
                             : '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
-                        style:
-                            const TextStyle(fontWeight: FontWeight.w600),
+                        style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       trailing: TextButton(
-                        onPressed: () async {
-                          final today = DateTime.now();
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: selectedDate ?? today,
-                            firstDate: today,
-                            lastDate:
-                                today.add(const Duration(days: 365)),
-                            builder: (ctx, child) => Theme(
-                              data: Theme.of(ctx).copyWith(
-                                colorScheme: ColorScheme.light(
-                                  primary: _teal,
-                                  onPrimary: Colors.white,
-                                  onSurface: Colors.black87,
-                                ),
-                                datePickerTheme: DatePickerThemeData(
-                                  backgroundColor: Colors.white,
-                                  todayBorder: BorderSide(
-                                    color: _teal,
-                                    width: 1.5,
-                                  ),
-                                  todayForegroundColor:
-                                      WidgetStateProperty.all(_teal),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(16),
-                                  ),
-                                ),
-                              ),
-                              child: child!,
-                            ),
-                          );
-
-                          if (picked != null) {
-                            setState(() => selectedDate = picked);
-                          }
-                        },
+                        onPressed: _pickDate,
                         child: Text(
                           'Pick',
                           style: TextStyle(
@@ -219,6 +163,7 @@ class _BookingScreenState extends State<BookingScreen> {
 
                   const SizedBox(height: 18),
 
+                  // Time Selection
                   const Text(
                     'Select Time (Start & End)',
                     style: TextStyle(
@@ -233,18 +178,7 @@ class _BookingScreenState extends State<BookingScreen> {
                       Expanded(
                         child: _buildChoiceCard(
                           child: TextButton(
-                            onPressed: () async {
-                              final picked =
-                                  await showTealTimePicker(
-                                context,
-                                initialTime:
-                                    startTime ?? TimeOfDay.now(),
-                                primary: _teal,
-                              );
-                              if (picked != null) {
-                                setState(() => startTime = picked);
-                              }
-                            },
+                            onPressed: _pickStartTime,
                             child: Text(
                               startTime == null
                                   ? 'Start Time'
@@ -261,19 +195,7 @@ class _BookingScreenState extends State<BookingScreen> {
                       Expanded(
                         child: _buildChoiceCard(
                           child: TextButton(
-                            onPressed: () async {
-                              final picked =
-                                  await showTealTimePicker(
-                                context,
-                                initialTime: endTime ??
-                                    startTime ??
-                                    TimeOfDay.now(),
-                                primary: _teal,
-                              );
-                              if (picked != null) {
-                                setState(() => endTime = picked);
-                              }
-                            },
+                            onPressed: _pickEndTime,
                             child: Text(
                               endTime == null
                                   ? 'End Time'
@@ -291,17 +213,16 @@ class _BookingScreenState extends State<BookingScreen> {
 
                   const Spacer(),
 
+                  // Book Button
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: _onBookPressed,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _teal,
-                        minimumSize:
-                            const Size.fromHeight(54),
+                        minimumSize: const Size.fromHeight(54),
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(_radius),
+                          borderRadius: BorderRadius.circular(_radius),
                         ),
                       ),
                       child: const Text(
@@ -323,6 +244,9 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
+  // ================== Helper Widgets ==================
+
+  /// Generic card for choices (date/time)
   Widget _buildChoiceCard({required Widget child}) {
     return Container(
       decoration: BoxDecoration(
@@ -340,28 +264,78 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
+  // ================== Pickers ==================
+
+  /// Show date picker
+  Future<void> _pickDate() async {
+    final today = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate ?? today,
+      firstDate: today,
+      lastDate: today.add(const Duration(days: 365)),
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: ColorScheme.light(
+            primary: _teal,
+            onPrimary: Colors.white,
+            onSurface: Colors.black87,
+          ),
+          datePickerTheme: DatePickerThemeData(
+            backgroundColor: Colors.white,
+            todayBorder: BorderSide(color: _teal, width: 1.5),
+            todayForegroundColor: MaterialStateProperty.all(_teal),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+        ),
+        child: child!,
+      ),
+    );
+
+    if (picked != null) {
+      setState(() => selectedDate = picked);
+    }
+  }
+
+  /// Show start time picker
+  Future<void> _pickStartTime() async {
+    final picked = await showTealTimePicker(
+      context,
+      initialTime: startTime ?? TimeOfDay.now(),
+      primary: _teal,
+    );
+    if (picked != null) setState(() => startTime = picked);
+  }
+
+  /// Show end time picker
+  Future<void> _pickEndTime() async {
+    final picked = await showTealTimePicker(
+      context,
+      initialTime: endTime ?? startTime ?? TimeOfDay.now(),
+      primary: _teal,
+    );
+    if (picked != null) setState(() => endTime = picked);
+  }
+
+  // ================== Booking Action ==================
   void _onBookPressed() {
-    if (selectedDate == null ||
-        startTime == null ||
-        endTime == null) {
+    if (selectedDate == null || startTime == null || endTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please choose date and time')),
       );
       return;
     }
 
-    if (!isSlotAvailable(
-      widget.resourceId,
-      selectedDate!,
-      startTime!,
-      endTime!,
-    )) {
+    if (!isSlotAvailable(widget.resourceId, selectedDate!, startTime!, endTime!)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Already booked')),
       );
       return;
     }
 
+    // Add booking
     addBooking(
       Booking(
         resourceId: widget.resourceId,
@@ -371,11 +345,10 @@ class _BookingScreenState extends State<BookingScreen> {
       ),
     );
 
+    // Navigate to payment
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => const PaymentSelectionScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => const PaymentSelectionScreen()),
     );
   }
 }

@@ -60,7 +60,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
             height: 260,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF00695C), Color(0xFF009688)],
+                colors: [Color.fromARGB(255, 15, 119, 124),
+              Color.fromARGB(255, 17, 158, 144),],
               ),
             ),
             child: Stack(

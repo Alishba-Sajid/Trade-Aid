@@ -157,7 +157,6 @@ class _EditUploadScreenState extends State<EditUploadScreen> {
   String _availableFrom = '';
   String _availableTo = '';
 
-  static const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   bool get isProduct => widget.item['type'] == 'product';
 

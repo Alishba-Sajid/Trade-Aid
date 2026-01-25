@@ -14,8 +14,8 @@ class AppColors {
 
   static const LinearGradient appGradient = LinearGradient(
     colors: [
-      Color.fromARGB(255, 15, 119, 124),
-      Color.fromARGB(255, 17, 158, 144),
+     Color.fromARGB(255, 15, 119, 124),
+     Color.fromARGB(255, 17, 158, 144),
     ],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
@@ -119,50 +119,53 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
 /// =======================
 Widget _buildHeader(BuildContext context) {
   return Container(
-    height: 130,
-    width: double.infinity,
-    decoration: const BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          Color.fromARGB(255, 15, 119, 124),
-          Color.fromARGB(255, 17, 158, 144),
-        ],
-      ),
-    ),
-    child: SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            // 🔙 Back Button
-            IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: const Icon(
-                Icons.arrow_back,
-                color: Colors.white,
+            width: double.infinity,
+            height: 260,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color.fromARGB(255, 15, 119, 124),
+                         Color.fromARGB(255, 17, 158, 144),],
               ),
             ),
-
-            // 🏷 Heading
-            const Text(
-              'Blocked Users',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-              ),
+            child: Stack(
+              children: [
+                Positioned(
+                  top: 60,
+                  left: 20,
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: const Icon(
+                      Icons.arrow_back,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                ),
+                Positioned.fill(
+                  top: 60,
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: const Text(
+                      "Blocked Users",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const Positioned(
+                  bottom: 30,
+                  left: 0,
+                  right: 0,
+                  child: Icon(Icons.block, color: Colors.white, size: 100),
+                ),
+              ],
             ),
+          );
 
-            // Placeholder for spacing (matches attached layout)
-            const SizedBox(width: 48),
-          ],
-        ),
-      ),
-    ),
-  );
+
 }
 
   /// =======================

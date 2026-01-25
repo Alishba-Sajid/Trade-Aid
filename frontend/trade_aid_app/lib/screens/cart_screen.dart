@@ -75,7 +75,7 @@ class _CartScreenState extends State<CartScreen> {
   /// =======================
  Widget _buildHeader(BuildContext context) {
   return Container(
-    padding: const EdgeInsets.only(top: 50, bottom: 16, left: 16, right: 16),
+    padding: const EdgeInsets.only(top: 50, bottom: 10, left: 16, right: 16),
     decoration: const BoxDecoration(gradient: appGradient),
     child: Row(
       children: [

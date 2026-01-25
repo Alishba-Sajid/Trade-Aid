@@ -1,29 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../widgets/app_bar.dart';
 
+/// =======================
+/// POST WISH REQUEST SCREEN
+/// =======================
 class PostWishRequestScreen extends StatefulWidget {
   const PostWishRequestScreen({super.key});
 
   @override
-  State<PostWishRequestScreen> createState() => _PostWishRequestScreenState();
+  State<PostWishRequestScreen> createState() =>
+      _PostWishRequestScreenState();
 }
 
 class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
-  // --- Palette ---
-  static const Color darkPrimary = Color(0xFF004D40);
-  static const Color backgroundLight = Color(0xFFF0F9F8);
-  static const Color accentTeal = Color(0xFF119E90);
-
-  static const LinearGradient appGradient = LinearGradient(
-    colors: [Color(0xFF0F777C), Color(0xFF119E90)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
+    /// STATE & CONTROLLERS
+ 
   bool isHighUrgency = false;
   final TextEditingController _itemController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
 
+  /// CONFIRMATION DIALOG
   void _showConfirmDialog() {
     if (_itemController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -34,57 +31,55 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
 
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          title: Center(
-            child: Text(
-              "Confirm Post",
-              style: GoogleFonts.poppins(
-                fontWeight: FontWeight.bold,
-                color: darkPrimary,
-              ),
+      builder: (_) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        title: Center(
+          child: Text(
+            "Confirm Post",
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.bold,
+              color: darkPrimary,
             ),
           ),
-          content: Text(
-            "Do you really want to post this wish to the community?",
-            textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(color: Colors.grey[700]),
-          ),
-          actionsPadding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-          actions: [
-            Row(
-              children: [
-                // CANCEL BUTTON
-                Expanded(
-                  child: Container(
-                    height: 48,
-                    decoration: BoxDecoration(
-                      gradient: appGradient,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    padding: const EdgeInsets.all(2),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Center(
-                          child: ShaderMask(
-                            shaderCallback: (bounds) =>
-                                appGradient.createShader(bounds),
-                            child: Text(
-                              "Cancel",
-                              style: GoogleFonts.poppins(
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
+        ),
+        content: Text(
+          "Do you really want to post this wish to the community?",
+          textAlign: TextAlign.center,
+          style: GoogleFonts.poppins(color: Colors.grey[700]),
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+        actions: [
+          Row(
+            children: [
+              /// CANCEL BUTTON
+              Expanded(
+                child: Container(
+                  height: 48,
+                  decoration: BoxDecoration(
+                    gradient: appGradient,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  padding: const EdgeInsets.all(2),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: ShaderMask(
+                          shaderCallback: (bounds) =>
+                              appGradient.createShader(bounds),
+                          child: Text(
+                            "Cancel",
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
                             ),
                           ),
                         ),
@@ -92,43 +87,50 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+              ),
+              const SizedBox(width: 12),
 
-                // YES POST BUTTON
-                Expanded(
-                  child: SizedBox(
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _handlePost();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: accentTeal,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
+              /// POST BUTTON
+              Expanded(
+                child: SizedBox(
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _handlePost();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: accentTeal,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
                       ),
-                      child: Text(
-                        "Yes, Post",
-                        style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
+                    ),
+                    child: Text(
+                      "Yes, Post",
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
                 ),
-              ],
-            ),
-          ],
-        );
-      },
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
+  /// BACKEND READY HANDLER
+
   void _handlePost() {
-    Navigator.pop(context);
+   
+    /// Send API request with:
+    /// - item: _itemController.text
+    /// - description: _descController.text
+    /// - urgent: isHighUrgency
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text("Wish posted successfully!"),
@@ -138,37 +140,52 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
     );
   }
 
+  /// UI
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Column(
         children: [
-          _buildAppBar(context),
+          /// ✅ REUSABLE APP BAR (UI SAME)
+          AppBarWidget(
+            title: "Create Wish",
+            onBack: () => Navigator.pop(context),
+          ),
+
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSectionHeader("What do you need?", Icons.lightbulb_outline),
+                  _buildSectionHeader(
+                      "What do you need?", Icons.lightbulb_outline),
                   const SizedBox(height: 16),
+
                   _buildCustomTextField(
                     controller: _itemController,
                     hint: "e.g. Iron, Ladder, Drill Machine",
                     label: "Item Name",
                   ),
+
                   const SizedBox(height: 24),
-                  _buildSectionHeader("Add some details", Icons.description_outlined),
+                  _buildSectionHeader(
+                      "Add some details", Icons.description_outlined),
                   const SizedBox(height: 16),
+
                   _buildCustomTextField(
                     controller: _descController,
-                    hint: "Describe why your need",
+                    hint: "Describe your need",
                     label: "Description",
                     maxLines: 4,
                     maxLength: 150,
                   ),
+
                   const SizedBox(height: 24),
+
+                  /// URGENCY TOGGLE
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -229,37 +246,7 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
     );
   }
 
-  Widget _buildAppBar(BuildContext context) {
-    return Container(
-      height: 130,
-      width: double.infinity,
-      decoration: const BoxDecoration(gradient: appGradient),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close, color: Colors.white),
-              ),
-              Text(
-                "Create Wish",
-                style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(width: 48),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
+  /// SECTION HEADER
   Widget _buildSectionHeader(String title, IconData icon) {
     return Row(
       children: [
@@ -277,6 +264,7 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
     );
   }
 
+  /// TEXT FIELD
   Widget _buildCustomTextField({
     required TextEditingController controller,
     required String hint,
@@ -302,10 +290,8 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
           maxLength: maxLength,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: GoogleFonts.poppins(
-              color: Colors.grey[400],
-              fontSize: 14,
-            ),
+            hintStyle:
+                GoogleFonts.poppins(color: Colors.grey[400]),
             filled: true,
             fillColor: backgroundLight.withOpacity(0.5),
             border: OutlineInputBorder(
@@ -319,6 +305,7 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
     );
   }
 
+  /// POST BUTTON
   Widget _buildPostButton() {
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
@@ -327,13 +314,6 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
         decoration: BoxDecoration(
           gradient: appGradient,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: accentTeal.withOpacity(0.3),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
-            ),
-          ],
         ),
         child: ElevatedButton(
           onPressed: _showConfirmDialog,
