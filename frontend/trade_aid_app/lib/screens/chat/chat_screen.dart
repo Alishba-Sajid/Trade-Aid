@@ -18,10 +18,7 @@ const LinearGradient appGradient = LinearGradient(
 class ChatScreen extends StatefulWidget {
   final String sellerName; // ✅ REQUIRED BY ProductDetailsScreen
 
-  const ChatScreen({
-    super.key,
-    required this.sellerName,
-  });
+  const ChatScreen({super.key, required this.sellerName});
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -46,9 +43,9 @@ class _ChatScreenState extends State<ChatScreen> {
         _showBlockConfirmation(context);
         break;
       case 'mute':
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Notifications Muted")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Notifications Muted")));
         break;
     }
   }
@@ -58,9 +55,7 @@ class _ChatScreenState extends State<ChatScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text("Block ${widget.sellerName}?"),
         content: const Text(
           "You will no longer receive messages or calls from this contact.",
@@ -68,8 +63,7 @@ class _ChatScreenState extends State<ChatScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child:
-                const Text("CANCEL", style: TextStyle(color: Colors.grey)),
+            child: const Text("CANCEL", style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -82,8 +76,7 @@ class _ChatScreenState extends State<ChatScreen> {
               Navigator.pop(context);
               _showBlockedSnackbar(context);
             },
-            child:
-                const Text("BLOCK", style: TextStyle(color: Colors.white)),
+            child: const Text("BLOCK", style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -96,8 +89,7 @@ class _ChatScreenState extends State<ChatScreen> {
       SnackBar(
         backgroundColor: Colors.black87,
         behavior: SnackBarBehavior.floating,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         content: Row(
           children: [
             const Icon(Icons.block, color: Colors.white, size: 20),
@@ -128,9 +120,7 @@ class _ChatScreenState extends State<ChatScreen> {
               stream: _chatService.getMessages(chatId),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
+                  return const Center(child: CircularProgressIndicator());
                 }
 
                 final messages = snapshot.data!;
@@ -143,10 +133,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     final msg = messages[index];
-                    return MessageBubble(
-                      isMe: msg.isMe,
-                      message: msg.text,
-                    );
+                    return MessageBubble(isMe: msg.isMe, message: msg.text);
                   },
                 );
               },
@@ -154,9 +141,7 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
 
           // ✅ SAME UI, BACKEND CONNECTED
-          ChatInputBar(
-            onSend: _sendMessage,
-          ),
+          ChatInputBar(onSend: _sendMessage),
         ],
       ),
     );
@@ -182,8 +167,9 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
               const CircleAvatar(
                 radius: 20,
-                backgroundImage:
-                    NetworkImage('https://i.pravatar.cc/150?img=11'),
+                backgroundImage: NetworkImage(
+                  'https://i.pravatar.cc/150?img=11',
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -201,8 +187,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                     const Text(
                       "Online",
-                      style:
-                          TextStyle(color: Colors.white70, fontSize: 12),
+                      style: TextStyle(color: Colors.white70, fontSize: 12),
                     ),
                   ],
                 ),
@@ -211,25 +196,19 @@ class _ChatScreenState extends State<ChatScreen> {
                 icon: const Icon(Icons.call_outlined, color: Colors.white),
                 onPressed: () => Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const VoiceCallScreen(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const VoiceCallScreen()),
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.videocam_outlined,
-                    color: Colors.white),
+                icon: const Icon(Icons.videocam_outlined, color: Colors.white),
                 onPressed: () => Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const VideoCallScreen(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const VideoCallScreen()),
                 ),
               ),
               PopupMenuButton<String>(
                 icon: const Icon(Icons.more_vert, color: Colors.white),
-                onSelected: (value) =>
-                    _handleMenuSelection(value, context),
+                onSelected: (value) => _handleMenuSelection(value, context),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15),
                 ),
@@ -237,24 +216,27 @@ class _ChatScreenState extends State<ChatScreen> {
                   PopupMenuItem(
                     value: 'view_profile',
                     child: ListTile(
-                      leading: Icon(Icons.person_outline,
-                          color: Color(0xFF119E90)),
+                      leading: Icon(
+                        Icons.person_outline,
+                        color: Color(0xFF119E90),
+                      ),
                       title: Text('View Profile'),
                     ),
                   ),
                   PopupMenuItem(
                     value: 'mute',
                     child: ListTile(
-                      leading: Icon(Icons.notifications_off_outlined,
-                          color: Color(0xFF119E90)),
+                      leading: Icon(
+                        Icons.notifications_off_outlined,
+                        color: Color(0xFF119E90),
+                      ),
                       title: Text('Mute'),
                     ),
                   ),
                   PopupMenuItem(
                     value: 'block',
                     child: ListTile(
-                      leading:
-                          Icon(Icons.block, color: Colors.redAccent),
+                      leading: Icon(Icons.block, color: Colors.redAccent),
                       title: Text(
                         'Block User',
                         style: TextStyle(color: Colors.redAccent),
