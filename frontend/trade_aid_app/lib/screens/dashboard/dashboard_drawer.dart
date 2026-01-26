@@ -2,9 +2,10 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../manage_upload/manage_uploads_screen.dart';
-import '../welcome_screen.dart'; // For logout navigation
+import '../welcome_screen.dart';
 import '../pending_request.dart';
 import '../help&support.dart';
+
 // 🌿 Color Palette
 const LinearGradient appGradient = LinearGradient(
   colors: [
@@ -62,7 +63,6 @@ class DashboardDrawer extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // 🔹 Circular Logout Icon
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
@@ -96,7 +96,6 @@ class DashboardDrawer extends StatelessWidget {
                   const SizedBox(height: 22),
                   Row(
                     children: [
-                      // Cancel Button
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () => Navigator.pop(context),
@@ -117,7 +116,6 @@ class DashboardDrawer extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      // Gradient Log Out Button
                       Expanded(
                         child: Container(
                           decoration: BoxDecoration(
@@ -126,7 +124,7 @@ class DashboardDrawer extends StatelessWidget {
                           ),
                           child: ElevatedButton(
                             onPressed: () {
-                              Navigator.pop(context); // Close dialog
+                              Navigator.pop(context);
                               Navigator.pushAndRemoveUntil(
                                 context,
                                 MaterialPageRoute(
@@ -184,29 +182,39 @@ class DashboardDrawer extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  height: 54,
-                  width: 54,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.location_city_rounded,
-                    color: Colors.white,
-                    size: 30,
-                  ),
+                // ✅ ICON + COMMUNITY NAME (SIDE BY SIDE)
+                Row(
+                  children: [
+                    Container(
+                      height: 54,
+                      width: 54,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.location_city_rounded,
+                        color: Colors.white,
+                        size: 30,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        communityName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 14),
-                Text(
-                  communityName,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 6),
+
+                const SizedBox(height: 10),
+
                 Text(
                   inviteLink,
                   style: TextStyle(
@@ -215,7 +223,9 @@ class DashboardDrawer extends StatelessWidget {
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
+
                 const SizedBox(height: 14),
+
                 GestureDetector(
                   onTap: () => onCopy(context),
                   child: Container(
@@ -255,39 +265,36 @@ class DashboardDrawer extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 12),
               children: [
                 _DrawerTile(
-  icon: Icons.person_add_alt_1_rounded,
-  title: 'Pending Requests',
-  onTap: () {
-    Navigator.pop(context);
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const PendingRequestsScreen(),
-      ),
-    );
-  },
-),
-
+                  icon: Icons.person_add_alt_1_rounded,
+                  title: 'Pending Requests',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const PendingRequestsScreen(),
+                      ),
+                    );
+                  },
+                ),
                 _DrawerTile(
-  icon: Icons.upload_rounded,
-  title: 'Manage Uploads',
-  onTap: () {
-    Navigator.pop(context);
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ManageUploadsScreen(currentUserName: 'Hania B.'), // <-- add the user name
-      ),
-    );
-  },
-),
-
-                
-              
+                  icon: Icons.upload_rounded,
+                  title: 'Manage Uploads',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            ManageUploadsScreen(currentUserName: 'Hania B.'),
+                      ),
+                    );
+                  },
+                ),
                 _DrawerTile(
                   icon: Icons.help_rounded,
                   title: 'Help & Support',
-                     onTap: () {
+                  onTap: () {
                     Navigator.pop(context);
                     Navigator.push(
                       context,
@@ -300,7 +307,6 @@ class DashboardDrawer extends StatelessWidget {
               ],
             ),
           ),
-          
 
           // 🚪 LOGOUT BUTTON
           Padding(

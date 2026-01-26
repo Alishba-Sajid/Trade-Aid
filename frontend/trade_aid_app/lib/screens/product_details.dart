@@ -15,7 +15,6 @@ const LinearGradient appGradient = LinearGradient(
 
 const Color dark = Color(0xFF004D40);
 const Color light = Color(0xFFF0F9F8);
-
 /* ===================== PRODUCT DETAILS SCREEN ===================== */
 
 class ProductDetailsScreen extends StatefulWidget {
