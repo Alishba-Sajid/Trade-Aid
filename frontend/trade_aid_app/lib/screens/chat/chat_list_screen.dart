@@ -45,8 +45,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentList =
-        selectedCategory == 'Recent Chats' ? recentChats : communityMembers;
+    final currentList = selectedCategory == 'Recent Chats'
+        ? recentChats
+        : communityMembers;
 
     final filteredList = currentList.where((name) {
       return name.toLowerCase().contains(searchQuery.toLowerCase());
@@ -76,9 +77,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   ? _buildEmptyState()
                   : ListView.separated(
                       key: ValueKey(
-                          '${selectedCategory}_${filteredList.length}'),
-                      padding:
-                          const EdgeInsets.only(top: 10, bottom: 20),
+                        '${selectedCategory}_${filteredList.length}',
+                      ),
+                      padding: const EdgeInsets.only(top: 10, bottom: 20),
                       itemCount: filteredList.length,
                       separatorBuilder: (_, __) => const Divider(
                         height: 1,
@@ -113,7 +114,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   // ====================== AppBar ======================
   Widget _buildPremiumAppBar(BuildContext context) {
     return Container(
-      height: 130,
+      height: 100,
       decoration: const BoxDecoration(gradient: appGradient),
       child: SafeArea(
         child: Padding(
@@ -123,8 +124,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
             children: [
               IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon:
-                    const Icon(Icons.arrow_back, color: Colors.white),
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
               ),
               const Text(
                 "Community Chat",
@@ -151,7 +151,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
             color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: TextField(
@@ -183,7 +183,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
             color: Colors.black.withOpacity(0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: Row(
@@ -213,11 +213,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
             child: Text(
               category,
               style: TextStyle(
-                color: isSelected
-                    ? Colors.white
-                    : dark.withOpacity(0.6),
-                fontWeight:
-                    isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected ? Colors.white : dark.withOpacity(0.6),
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                 fontSize: 14,
               ),
             ),
@@ -233,13 +230,11 @@ class _ChatListScreenState extends State<ChatListScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.search_off,
-              size: 48, color: mutedText.withOpacity(0.3)),
+          Icon(Icons.search_off, size: 48, color: mutedText.withOpacity(0.3)),
           const SizedBox(height: 12),
           Text(
             "No results found for '$searchQuery'",
-            style:
-                TextStyle(color: mutedText.withOpacity(0.5)),
+            style: TextStyle(color: mutedText.withOpacity(0.5)),
           ),
         ],
       ),
