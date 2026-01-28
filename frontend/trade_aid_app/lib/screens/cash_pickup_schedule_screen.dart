@@ -57,7 +57,7 @@ class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
     return Scaffold(
       backgroundColor: backgroundLight,
       appBar: AppBarWidget(
-        title: "Cash Pickup Schedule",
+        title: "Cash Payment Schedule",
         onBack: () => Navigator.pop(context),
       ),
       body: Padding(
