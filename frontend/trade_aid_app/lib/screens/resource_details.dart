@@ -3,6 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/resource.dart';
 import '../widgets/app_bar.dart';
+import 'chat/chat_screen.dart';
+const LinearGradient appGradient = LinearGradient(
+  colors: [Color(0xFF2E9499), Color(0xFF119E90)],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+);
 
 /* ===================== RESOURCE DETAILS SCREEN ===================== */
 class ResourceDetailsScreen extends StatefulWidget {
@@ -226,11 +232,11 @@ Widget _buildInfoGrid(String availableTime, String availability) {
 
   Widget _buildTermsAndConditions() {
     final terms = [
-      "Resource booked as per availability",
-      "Price is fixed",
-      "Verify resource before booking",
-      "Platform not liable post-booking",
-      "Availability subject to provider",
+      "This resource is shared by a community member, not the platform.",
+      "The provider may temporarily disable the resource if it is unavailable.",
+      "Please use the resource responsibly and return it in the same condition.",
+      "Once you leave the location, the beneficiar is not responsible for any damage or loss.",
+      "Booking must be confirmed by both the provider and user before use.",
     ];
 
     return Container(
@@ -465,12 +471,14 @@ class _SellerCardState extends State<_SellerCard> {
                   ],
                 ),
               ),
-              InkWell(
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Chat with ${widget.ownerName}')),
-                  );
-                },
+             InkWell(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        ChatScreen(sellerName: widget.ownerName),
+                  ),
+                ),
                 borderRadius: BorderRadius.circular(16),
                 child: Container(
                   padding: const EdgeInsets.all(12),
@@ -482,7 +490,8 @@ class _SellerCardState extends State<_SellerCard> {
                       width: 1.2,
                     ),
                   ),
-                  child: const Icon(Icons.chat_bubble_outline, color: accent, size: 20),
+                  child: const Icon(Icons.chat_bubble_outline,
+                      color: accent, size: 20),
                 ),
               ),
             ],

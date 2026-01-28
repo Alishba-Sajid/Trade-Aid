@@ -34,8 +34,8 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
       ownerName: 'Hania Bhatti',
       ownerAddress: 'H 256, Block C, Street 2, Gulberg Greens',
       pricePerHour: 2000,
-      availableDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-      availableTime: '24/7',
+      availableDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+      availableTime: '8:00am - 12:00pm',
     ),
     Resource(
       id: 'wash1',
