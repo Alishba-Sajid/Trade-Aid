@@ -187,6 +187,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       body: DashboardBody(userName: userName, communityName: communityName),
       bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: Colors.white,
         currentIndex: _currentIndex,
         onTap: _onBottomTap,
         selectedItemColor: appGradient.colors[1],

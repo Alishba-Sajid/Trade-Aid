@@ -51,7 +51,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
         price: 1200,
         description: 'Beautiful ceramic vase made by local artisans.',
         condition: 'Good',
-        usedTime: 'Used 1 month',
+        usedTime: '1 month',
         sellerName: 'Artisan Shop',
       ),
       Product(

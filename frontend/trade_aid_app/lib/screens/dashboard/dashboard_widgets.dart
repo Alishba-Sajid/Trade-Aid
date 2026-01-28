@@ -63,7 +63,7 @@ class CommunityCard extends StatelessWidget {
           width: 96,
           height: 84,
           decoration: BoxDecoration(
-            color: const Color(0xFFE0F2F1),
+            color: const Color(0xFFF5F5F5),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(icon, size: 42, color: const Color(0xFF004D40)),
