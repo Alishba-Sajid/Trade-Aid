@@ -1,8 +1,7 @@
-// lib/models/resource.dart
 class Resource {
   final String id;
   final String name;
-  final String image; // asset path or remote url
+  final List<String> images; // now supports multiple images
   final String description;
   final String ownerName;
   final String ownerAddress;
@@ -13,7 +12,7 @@ class Resource {
   Resource({
     required this.id,
     required this.name,
-    required this.image,
+    required this.images,
     required this.description,
     required this.ownerName,
     required this.ownerAddress,
@@ -22,33 +21,38 @@ class Resource {
     required this.availableTime,
   });
 
-  // Optional: convenience factory to create from a Map (useful for testing)
+  // Factory to create from Map
   factory Resource.fromMap(Map<String, dynamic> map) {
     return Resource(
       id: map['id'] ?? '',
       name: map['name'] ?? '',
-      image: map['image'] ?? '',
+      images: (map['images'] is List) ? List<String>.from(map['images']) : <String>[],
       description: map['description'] ?? '',
       ownerName: map['ownerName'] ?? '',
       ownerAddress: map['ownerAddress'] ?? '',
-      pricePerHour: (map['pricePerHour'] is num) ? (map['pricePerHour'] as num).toDouble() : double.tryParse('${map['pricePerHour']}') ?? 0.0,
-      availableDays: (map['availableDays'] is List) ? List<String>.from(map['availableDays']) : <String>[],
+      pricePerHour: (map['pricePerHour'] is num)
+          ? (map['pricePerHour'] as num).toDouble()
+          : double.tryParse('${map['pricePerHour']}') ?? 0.0,
+      availableDays: (map['availableDays'] is List)
+          ? List<String>.from(map['availableDays'])
+          : <String>[],
       availableTime: map['availableTime'] ?? '',
     );
   }
 
-  // Optional: toMap for serialization if needed later
+  // Convert back to Map
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'name': name,
-      'image': image,
+      'images': images,
       'description': description,
       'ownerName': ownerName,
       'ownerAddress': ownerAddress,
       'pricePerHour': pricePerHour,
       'availableDays': availableDays,
       'availableTime': availableTime,
+     
     };
   }
 }

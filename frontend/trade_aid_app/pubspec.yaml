@@ -59,6 +59,7 @@ flutter:
     - assets/verify_code.jpg
     - assets/verify-code.png
     - assets/reset_pass.png
+    - assets/machine2.png
     
 
   fonts:

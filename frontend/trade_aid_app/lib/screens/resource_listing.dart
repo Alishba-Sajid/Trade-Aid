@@ -28,7 +28,7 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
     Resource(
       id: 'lawn1',
       name: 'Spacious Lawn',
-      image: 'assets/lawn.jpg',
+      images: ['assets/lawn.jpg'],
       description:
           'A spacious, well-maintained lawn suited for family gatherings, weddings and corporate events.',
       ownerName: 'Hania Bhatti',
@@ -40,13 +40,13 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
     Resource(
       id: 'wash1',
       name: 'Washing Machine',
-      image: 'assets/washing_machine.jpg',
+      images: ['assets/washing_machine.jpg', 'assets/machine2.png'],
       description:
           'High efficiency washing machine available for hourly booking.',
       ownerName: 'Ali Khan',
       ownerAddress: 'House 12, Sector B, Bahria Town',
       pricePerHour: 300,
-      availableDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+      availableDays: ['Mon', 'Tue', 'Wed', 'Thu'],
       availableTime: '09:00 - 21:00',
     ),
   ];
@@ -93,7 +93,7 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
     );
   }
 
-  // 🔹 App Bar (unchanged)
+  // 🔹 App Bar
   Widget _buildPremiumAppBar(BuildContext context) {
     return Container(
       height: 100,
@@ -140,8 +140,10 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
     );
   }
 
-  // ⭐ MATCHES PRODUCT CARD UI
+  // ⭐ Resource Card with Image Slider
   Widget _buildPremiumResourceCard(BuildContext context, Resource r) {
+    int currentImageIndex = 0;
+
     return GestureDetector(
       onTap: () {
         Navigator.pushNamed(
@@ -150,154 +152,189 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
           arguments: {'resource': r},
         );
       },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 20),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: dark.withOpacity(0.08),
-              blurRadius: 14,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 8,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-                border: Border.all(
-                  color: accent.withOpacity(0.2), // 🌿 greenish border
-                  width: 1.2,
-                ),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: Image.asset(
-                  r.image,
-                  height: 220,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    height: 220,
-                    color: Colors.grey[200],
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.image_not_supported,
-                      size: 40,
-                      color: Colors.grey,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // NAME & PRICE
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    r.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: dark,
-                    ),
-                  ),
-                ),
-                Text(
-                  'Rs ${r.pricePerHour.toStringAsFixed(0)}/h',
-                  style: GoogleFonts.poppins(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: accent,
-                  ),
+      child: StatefulBuilder(
+        builder: (context, setState) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 20),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: dark.withOpacity(0.08),
+                  blurRadius: 14,
+                  offset: const Offset(0, 8),
                 ),
               ],
             ),
-
-            const SizedBox(height: 8),
-
-            // DESCRIPTION
-            Text(
-              r.description,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.poppins(fontSize: 12, color: Colors.black54),
-            ),
-
-            const SizedBox(height: 10),
-
-            _infoRow(Icons.calendar_today, "Days", r.availableDays.join(', ')),
-            _infoRow(Icons.access_time, "Time", r.availableTime),
-            _infoRow(Icons.person_outline, "Owner", r.ownerName),
-
-            const SizedBox(height: 12),
-
-            // ACTION BUTTONS (same alignment)
-            Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pushNamed(
-                        context,
-                        '/booking',
-                        arguments: {'resourceId': r.id, 'resourceName': r.name},
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF119E90),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    child: const Text(
-                      "Book",
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
+                // IMAGE SLIDER
                 Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFF119E90),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 8,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                    border: Border.all(
+                      color: accent.withOpacity(0.2),
+                      width: 1.2,
+                    ),
                   ),
-                  child: IconButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('${r.name} added to cart.')),
-                      );
-                    },
-                    icon: const Icon(
-                      Icons.shopping_cart_outlined,
-                      color: Colors.white,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: Stack(
+                      children: [
+                        SizedBox(
+                          height: 220,
+                          width: double.infinity,
+                          child: PageView.builder(
+                            itemCount: r.images.length,
+                            onPageChanged: (index) {
+                              setState(() {
+                                currentImageIndex = index;
+                              });
+                            },
+                            itemBuilder: (context, index) {
+                              return Image.asset(
+                                r.images[index],
+                                fit: BoxFit.cover,
+                                alignment: Alignment.center,
+                              );
+                            },
+                          ),
+                        ),
+                        if (r.images.length > 1)
+                          Positioned(
+                            bottom: 8,
+                            left: 0,
+                            right: 0,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: List.generate(
+                                r.images.length,
+                                (index) => Container(
+                                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                                  width: currentImageIndex == index ? 8 : 6,
+                                  height: currentImageIndex == index ? 8 : 6,
+                                  decoration: BoxDecoration(
+                                    color: currentImageIndex == index
+                                        ? accent
+                                        : Colors.grey[300],
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
+
+                const SizedBox(height: 12),
+
+                // NAME & PRICE
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        r.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: dark,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      'Rs ${r.pricePerHour.toStringAsFixed(0)}/h',
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: accent,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 8),
+
+                // DESCRIPTION
+                Text(
+                  r.description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.poppins(fontSize: 12, color: Colors.black54),
+                ),
+
+                const SizedBox(height: 10),
+
+                _infoRow(Icons.calendar_today, "Days", r.availableDays.join(', ')),
+                _infoRow(Icons.access_time, "Time", r.availableTime),
+                _infoRow(Icons.person_outline, "Owner", r.ownerName),
+
+                const SizedBox(height: 12),
+
+                // ACTION BUTTONS
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pushNamed(
+                            context,
+                            '/booking',
+                            arguments: {'resourceId': r.id, 'resourceName': r.name},
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: accent,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text(
+                          "Book",
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: accent,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: IconButton(
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('${r.name} added to cart.')),
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.shopping_cart_outlined,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

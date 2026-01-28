@@ -5,12 +5,7 @@ import '../models/product.dart';
 import 'payment_option.dart';
 import 'chat/chat_screen.dart';
 import '../widgets/app_bar.dart';
-
 /* ===================== COLORS ===================== */
-const Color dark = Color(0xFF0B2F2A);
-const Color light = Color(0xFFF4FAF9);
-const Color accent = Color(0xFF119E90);
-const Color surface = Color(0xFFFFFFFF);
 const LinearGradient appGradient = LinearGradient(
   colors: [
     Color.fromARGB(255, 15, 119, 124),

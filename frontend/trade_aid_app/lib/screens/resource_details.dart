@@ -2,345 +2,361 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/resource.dart';
+import '../widgets/app_bar.dart';
 
-/* ===================== COLORS & GRADIENT ===================== */
-
-const LinearGradient appGradient = LinearGradient(
-  colors: [Color(0xFF0F777C), Color(0xFF119E90)],
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
-);
-
-const Color dark = Color(0xFF004D40);
-const Color light = Color(0xFFF0F9F8);
-
-/* ===================== SCREEN ===================== */
-
-class ResourceDetailsScreen extends StatelessWidget {
+/* ===================== RESOURCE DETAILS SCREEN ===================== */
+class ResourceDetailsScreen extends StatefulWidget {
   final Resource resource;
   const ResourceDetailsScreen({super.key, required this.resource});
 
-  /* ---------- Full Screen Image Viewer ---------- */
-  void _openFullScreenImage(BuildContext context, String path, String heroTag) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => Scaffold(
-          backgroundColor: Colors.black,
-          appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.close, color: Colors.white),
-              onPressed: () => Navigator.pop(context),
-            ),
-          ),
-          body: Center(
-            child: Hero(
-              tag: heroTag,
-              child: InteractiveViewer(
-                child: Image.asset(path, fit: BoxFit.contain),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  @override
+  State<ResourceDetailsScreen> createState() => _ResourceDetailsScreenState();
+}
 
-  /* ---------- Custom Gradient AppBar ---------- */
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
-    return PreferredSize(
-      preferredSize: const Size.fromHeight(100),
-      child: Container(
-        decoration: const BoxDecoration(gradient: appGradient),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 18),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                ),
-                Text(
-                  'Resource Details',
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(width: 48),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+class _ResourceDetailsScreenState extends State<ResourceDetailsScreen> {
+  int currentImageIndex = 0;
 
   @override
   Widget build(BuildContext context) {
-    // Safe reader
-    String safeString(dynamic Function() getter) {
-      try {
-        final v = getter();
-        return (v == null || v.toString().isEmpty) ? 'N/A' : v.toString();
-      } catch (_) {
-        return 'N/A';
-      }
-    }
+    final resource = widget.resource;
 
-    /* ---------- Images (min 1, max 3) ---------- */
-    List<String> images = [];
-    try {
-      final dynamic res = resource;
-      if (res.images != null && res.images is List) {
-        images = List<String>.from(res.images);
-      } else if (res.image != null) {
-        images = [res.image.toString()];
-      }
-    } catch (_) {
-      images = ['assets/placeholder.png'];
-    }
+    String safe(String? value, [String defaultValue = 'N/A']) =>
+        (value == null || value.isEmpty) ? defaultValue : value;
 
-    if (images.length > 3) images = images.sublist(0, 3);
-    if (images.isEmpty) images = ['assets/placeholder.png'];
+    final images = resource.images.isNotEmpty ? resource.images.take(3).toList() : ['assets/placeholder.png'];
 
-    /* ---------- Data ---------- */
-    final name = safeString(() => resource.name);
-    final description = safeString(() => resource.description);
-    final priceText = 'Rs ${resource.pricePerHour.toStringAsFixed(0)}/h';
-    final days = resource.availableDays.join(', ');
-    final time = safeString(() => resource.availableTime);
-
-    final ownerName = safeString(() => resource.ownerName);
-    final ownerAddressFull = safeString(() => resource.ownerAddress);
-    final addressParts = ownerAddressFull.split(',');
-    final houseNumber = addressParts.isNotEmpty
-        ? addressParts[0].trim()
-        : 'N/A';
-    final addressRest = addressParts.length > 1
-        ? addressParts.sublist(1).join(',').trim()
-        : ownerAddressFull;
-
-    /* ---------- Bottom Bar Spacing ---------- */
-    const double bottomBarHeight = 90;
-    final double deviceInset = MediaQuery.of(context).padding.bottom;
-    final double scrollReserve = bottomBarHeight + deviceInset + 20;
+    final String name = safe(resource.name);
+    final String description = safe(resource.description);
+    final String priceText = 'Rs ${resource.pricePerHour.toStringAsFixed(0)}/h';
+    final String availableTime = safe(resource.availableTime, '09:00 AM - 05:00 PM');
+    final String availability = resource.availableDays.isNotEmpty ? resource.availableDays.join(', ') : 'Mon - Fri';
+    final String ownerName = safe(resource.ownerName);
+    final String ownerAddressFull = safe(resource.ownerAddress, 'Sample Address Line');
 
     return Scaffold(
-      extendBody: true,
-      backgroundColor: const Color(0xFFF8FBFB),
-      appBar: _buildAppBar(context),
-
-      /* ===================== BODY ===================== */
+      backgroundColor: light,
+      appBar: AppBarWidget(
+        title: 'Resource Details',
+        onBack: () => Navigator.pop(context),
+      ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(20, 20, 20, scrollReserve),
         physics: const BouncingScrollPhysics(),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildImageGallery(context, images),
-            const SizedBox(height: 28),
-
-            /// Name + Price
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    name,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      color: dark,
-                    ),
-                  ),
-                ),
-                Text(
-                  priceText,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF119E90),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-            Text(
-              description,
-              style: TextStyle(
-                fontSize: 15,
-                height: 1.6,
-                color: Colors.black.withOpacity(0.6),
-              ),
-            ),
-
-            const SizedBox(height: 24),
-            const Divider(thickness: 1.2),
-            const SizedBox(height: 24),
-
-            /// Availability
-            Row(
-              children: [
-                Expanded(
-                  child: _SpecTile(
-                    label: 'Available Days',
-                    value: days,
-                    icon: Icons.calendar_today_outlined,
-                  ),
-                ),
-                const SizedBox(width: 15),
-                Expanded(
-                  child: _SpecTile(
-                    label: 'Available Time',
-                    value: time,
-                    icon: Icons.access_time,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 20),
-
-            /// Provider Card
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: dark.withOpacity(0.05)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
+            _buildImageSlider(images),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 130),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const CircleAvatar(
-                    radius: 28,
-                    backgroundImage: AssetImage('assets/seller.jpg'),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          ownerName,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 16,
-                            color: dark,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'House $houseNumber • $addressRest',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.black.withOpacity(0.5),
-                          ),
-                        ),
-                      ],
+                  _buildTitlePrice(name, priceText),
+                  const SizedBox(height: 18),
+                  _sectionTitle('Description'),
+                  const SizedBox(height: 3),
+                  Text(
+                    description,
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      color: Colors.black54,
+                      height: 1.7,
+                      letterSpacing: 0.2,
                     ),
                   ),
-                  _ChatButton(
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Starting chat with $ownerName'),
-                        ),
-                      );
-                    },
+                  const SizedBox(height: 18),
+                  _buildInfoGrid(availableTime, availability),
+                  const SizedBox(height: 18),
+                  _SellerCard(
+                    ownerName: ownerName,
+                    address: ownerAddressFull,
                   ),
+                  const SizedBox(height: 18),
+                  _buildTermsAndConditions(),
                 ],
               ),
             ),
           ],
         ),
       ),
+      bottomSheet: _buildBottomAction(context),
+    );
+  }
 
-      /* ===================== BOTTOM BAR ===================== */
-      bottomNavigationBar: SafeArea(
-        child: Container(
-          margin: const EdgeInsets.fromLTRB(20, 0, 20, 15),
-          height: bottomBarHeight,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: dark.withOpacity(0.1),
-                blurRadius: 20,
-                offset: const Offset(0, -5),
-              ),
-            ],
+  /* ================= IMAGE SLIDER ================= */
+  Widget _buildImageSlider(List<String> images) {
+    return Stack(
+      children: [
+        Container(
+          height: 380,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF119E90), Color(0xFF00BFA5)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(40)),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: PageView.builder(
+            itemCount: images.length,
+            onPageChanged: (i) => setState(() => currentImageIndex = i),
+            itemBuilder: (_, i) => GestureDetector(
+              onTap: () => _openZoomViewer(images, i),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(40)),
+                child: Image.asset(
+                  images[i],
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                ),
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: 24,
+          left: 0,
+          right: 0,
           child: Row(
-            children: [
-              const SizedBox(width: 10),
-
-              /// Price
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Price',
-                    style: TextStyle(
-                      color: Colors.black.withOpacity(0.4),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Text(
-                    priceText,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      color: dark,
-                    ),
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              images.length,
+              (i) => AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                margin: const EdgeInsets.symmetric(horizontal: 5),
+                width: currentImageIndex == i ? 24 : 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: currentImageIndex == i
+                      ? Colors.white
+                      : Colors.white.withOpacity(0.5),
+                ),
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          top: 24,
+          right: 20,
+          child: GestureDetector(
+            onTap: () => _openZoomViewer(images, currentImageIndex),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.95),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
+              child: const Icon(Icons.zoom_out_map, size: 20, color: dark),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
-              const Spacer(),
+  Widget _buildTitlePrice(String name, String priceText) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Text(
+            name,
+            style: GoogleFonts.poppins(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: dark,
+              height: 1.3,
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Text(
+          priceText,
+          style: GoogleFonts.poppins(
+            fontSize: 19,
+            fontWeight: FontWeight.w700,
+            color: accent,
+          ),
+        ),
+      ],
+    );
+  }
 
-              /// Add to Cart
-              GestureDetector(
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('${resource.name} added to cart')),
-                  );
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: light,
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: const Icon(Icons.shopping_bag_outlined, color: dark),
+  Widget _sectionTitle(String title) {
+    return Text(
+      title,
+      style: GoogleFonts.poppins(
+        fontSize: 17,
+        fontWeight: FontWeight.w700,
+        color: dark,
+        letterSpacing: 0.3,
+      ),
+    );
+  }
+
+Widget _buildInfoGrid(String availableTime, String availability) {
+  return Row(
+    crossAxisAlignment: CrossAxisAlignment.start, // align cards at top
+    children: [
+      Expanded(
+        child: _InfoCard(
+          icon: Icons.access_time,
+          label: 'Time',
+          value: availableTime,
+        ),
+      ),
+      const SizedBox(width: 16),
+      Expanded(
+        child: _InfoCard(
+          icon: Icons.calendar_today,
+          label: 'Availability',
+          value: availability,
+        ),
+      ),
+    ],
+  );
+}
+
+
+  Widget _buildTermsAndConditions() {
+    final terms = [
+      "Resource booked as per availability",
+      "Price is fixed",
+      "Verify resource before booking",
+      "Platform not liable post-booking",
+      "Availability subject to provider",
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(26),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Terms & Conditions',
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: dark,
+              letterSpacing: 0.3,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: List.generate(
+              terms.length,
+              (index) => Padding(
+                padding: EdgeInsets.only(bottom: index < terms.length - 1 ? 12 : 0),
+                child: Row(
+                  children: [
+                    Icon(Icons.check_circle, color: accent.withOpacity(0.85), size: 18),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        terms[index],
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          color: Colors.black54,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-              const SizedBox(width: 12),
+  Widget _buildBottomAction(BuildContext context) {
+    final resource = widget.resource;
 
-              /// Book Now
-              Expanded(
-                flex: 2,
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 20),
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 24,
+            offset: const Offset(0, -8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Add to Cart Button
+          Container(
+            height: 54,
+            width: 54,
+            decoration: BoxDecoration(
+              color: accent.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: accent.withOpacity(0.2),
+                width: 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 12,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.shopping_cart_outlined),
+              color: accent,
+              iconSize: 22,
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('${resource.name} added to cart')),
+                );
+              },
+            ),
+          ),
+          const SizedBox(width: 14),
+          // Book Now Button with Gradient
+          Expanded(
+            child: Container(
+              height: 54,
+              decoration: BoxDecoration(
+                gradient: appGradient,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color.fromARGB(255, 17, 158, 144).withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
                 child: InkWell(
+                  borderRadius: BorderRadius.circular(18),
                   onTap: () {
                     Navigator.pushNamed(
                       context,
@@ -351,171 +367,152 @@ class ResourceDetailsScreen extends StatelessWidget {
                       },
                     );
                   },
-                  child: Container(
-                    height: 54,
-                    decoration: BoxDecoration(
-                      gradient: appGradient,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'Book Now',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 16,
-                        ),
+                  child: Center(
+                    child: Text(
+                      'Book Now',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        letterSpacing: 0.3,
                       ),
                     ),
                   ),
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /* ===================== IMAGE GALLERY ===================== */
-
-  Widget _buildImageGallery(BuildContext context, List<String> images) {
-    return AspectRatio(
-      aspectRatio: 1.2,
-      child: Row(
-        children: [
-          Expanded(
-            flex: 3,
-            child: _ImageCard(
-              path: images[0],
-              heroTag: 'res_img_0',
-              onTap: () =>
-                  _openFullScreenImage(context, images[0], 'res_img_0'),
             ),
           ),
-          if (images.length > 1) ...[
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 1,
-              child: Column(
-                children: [
-                  Expanded(
-                    child: _ImageCard(
-                      path: images[1],
-                      heroTag: 'res_img_1',
-                      onTap: () =>
-                          _openFullScreenImage(context, images[1], 'res_img_1'),
-                    ),
-                  ),
-                  if (images.length > 2) ...[
-                    const SizedBox(height: 12),
-                    Expanded(
-                      child: _ImageCard(
-                        path: images[2],
-                        heroTag: 'res_img_2',
-                        onTap: () => _openFullScreenImage(
-                          context,
-                          images[2],
-                          'res_img_2',
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
         ],
       ),
     );
   }
-}
 
-/* ===================== HELPER WIDGETS ===================== */
-
-class _ImageCard extends StatelessWidget {
-  final String path;
-  final String heroTag;
-  final VoidCallback onTap;
-
-  const _ImageCard({
-    required this.path,
-    required this.heroTag,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Hero(
-        tag: heroTag,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: dark.withOpacity(0.08),
-                blurRadius: 15,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Image.asset(
-              path,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) =>
-                  const Center(child: Icon(Icons.broken_image)),
-            ),
-          ),
-        ),
+  void _openZoomViewer(List<String> images, int index) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _ZoomImageViewer(images: images, initialIndex: index),
       ),
     );
   }
 }
 
-class _SpecTile extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
+/* ===================== SELLER CARD ===================== */
+class _SellerCard extends StatefulWidget {
+  final String ownerName;
+  final String address;
+  const _SellerCard({required this.ownerName, required this.address});
 
-  const _SpecTile({
-    required this.label,
-    required this.value,
-    required this.icon,
-  });
+  @override
+  State<_SellerCard> createState() => _SellerCardState();
+}
+
+class _SellerCardState extends State<_SellerCard> {
+  bool isExpanded = false;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: light.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: dark.withOpacity(0.05)),
+        color: surface,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: dark),
-          const SizedBox(height: 12),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.black.withOpacity(0.4),
-              fontWeight: FontWeight.w600,
-            ),
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 32,
+                backgroundColor: accent.withOpacity(.12),
+                child: const Icon(Icons.person, color: accent, size: 30),
+              ),
+              const SizedBox(width: 18),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.ownerName,
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: dark,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(Icons.verified, color: accent, size: 15),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Verified Provider',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: accent,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              InkWell(
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Chat with ${widget.ownerName}')),
+                  );
+                },
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: accent.withOpacity(.12),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: accent.withOpacity(.2),
+                      width: 1.2,
+                    ),
+                  ),
+                  child: const Icon(Icons.chat_bubble_outline, color: accent, size: 20),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: dark,
+          const SizedBox(height: 20),
+          GestureDetector(
+            onTap: () => setState(() => isExpanded = !isExpanded),
+            child: Row(
+              children: [
+                const Icon(Icons.location_on_outlined, size: 20, color: accent),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    isExpanded ? widget.address : widget.address.split(',').first,
+                    maxLines: isExpanded ? 3 : 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      color: Colors.black54,
+                      height: 1.6,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                AnimatedRotation(
+                  turns: isExpanded ? .5 : 0,
+                  duration: const Duration(milliseconds: 300),
+                  child: const Icon(Icons.expand_more, color: Colors.black38, size: 20),
+                ),
+              ],
             ),
           ),
         ],
@@ -524,22 +521,152 @@ class _SpecTile extends StatelessWidget {
   }
 }
 
-class _ChatButton extends StatelessWidget {
-  final VoidCallback onTap;
-  const _ChatButton({required this.onTap});
+/* ===================== INFO CARD ===================== */
+class _InfoCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _InfoCard({required this.icon, required this.label, required this.value});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start, // top align icon + text
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: accent.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, size: 20, color: accent),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: Colors.black38,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: dark,
+                  ),
+                  softWrap: true, // allow text to wrap
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+/* ===================== ZOOM VIEWER ===================== */
+class _ZoomImageViewer extends StatefulWidget {
+  final List<String> images;
+  final int initialIndex;
+  const _ZoomImageViewer({required this.images, required this.initialIndex});
+
+  @override
+  State<_ZoomImageViewer> createState() => _ZoomImageViewerState();
+}
+
+class _ZoomImageViewerState extends State<_ZoomImageViewer> {
+  late final PageController _pageController;
+  final TransformationController _controller = TransformationController();
+  TapDownDetails? _doubleTapDetails;
+  bool _showHint = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: widget.initialIndex);
+
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted) setState(() => _showHint = false);
+    });
+  }
+
+  void _handleDoubleTap() {
+    final position = _doubleTapDetails!.localPosition;
+    if (_controller.value != Matrix4.identity()) {
+      _controller.value = Matrix4.identity();
+    } else {
+      _controller.value = Matrix4.identity()
+        ..translate(-position.dx * 2, -position.dy * 2)
+        ..scale(3.0);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 48,
-        width: 48,
-        decoration: BoxDecoration(
-          gradient: appGradient,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
+      body: Stack(
+        children: [
+          PageView.builder(
+            controller: _pageController,
+            itemCount: widget.images.length,
+            itemBuilder: (_, index) => GestureDetector(
+              onDoubleTapDown: (details) => _doubleTapDetails = details,
+              onDoubleTap: _handleDoubleTap,
+              child: InteractiveViewer(
+                transformationController: _controller,
+                minScale: 1,
+                maxScale: 4,
+                child: Center(
+                  child: Image.asset(widget.images[index], fit: BoxFit.contain),
+                ),
+              ),
+            ),
+          ),
+          if (_showHint)
+            Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.search, color: Colors.white, size: 18),
+                    SizedBox(width: 8),
+                    Text(
+                      'Pinch to zoom',
+                      style: TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
