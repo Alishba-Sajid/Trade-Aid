@@ -2,45 +2,8 @@ import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import 'voice_call_screen.dart';
 import 'video_call_screen.dart';
-
-/* ===================== DUMMY BACKEND MODELS ===================== */
-
-class MemberProfile {
-  final String name;
-  final String address;
-  final String phone;
-  final String email;
-  final String joinedDate;
-  final String avatarUrl;
-
-  MemberProfile({
-    required this.name,
-    required this.address,
-    required this.phone,
-    required this.email,
-    required this.joinedDate,
-    required this.avatarUrl,
-  });
-}
-
-/* ===================== DUMMY BACKEND SERVICE ===================== */
-
-class MemberProfileService {
-  Future<MemberProfile> fetchMemberProfile() async {
-    // ⏳ Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 600));
-
-    // 🔹 Dummy backend response
-    return MemberProfile(
-      name: "Ahmed Khan",
-      address: "House #23, Block A • Active Member",
-      phone: "+92 300 1234567",
-      email: "ahmed.khan@community.com",
-      joinedDate: "12 Jan 2024",
-      avatarUrl: "https://i.pravatar.cc/150?img=11",
-    );
-  }
-}
+import '/models/member_profile.dart';
+import '/services/member_profile.dart';
 
 /* ===================== GRADIENT ===================== */
 
@@ -135,92 +98,124 @@ class _MemberProfileScreenState extends State<MemberProfileScreen> {
 
   /* ====================== HEADER ====================== */
 
- Widget _buildPremiumHeader(
-    BuildContext context, MemberProfile profile) {
-  return Stack(
-    alignment: Alignment.topCenter,
-    clipBehavior: Clip.none,
-    children: [
-      Container(
-        height: 220,
-        width: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: appGradient,
-          borderRadius:
-              BorderRadius.vertical(bottom: Radius.circular(50)),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Column(
-              children: [
-                const SizedBox(height: 8),
+  Widget _buildPremiumHeader(
+      BuildContext context, MemberProfile profile) {
+    return Stack(
+      alignment: Alignment.topCenter,
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          height: 220,
+          width: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: appGradient,
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(50)),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Column(
+                children: [
+                  const SizedBox(height: 8),
 
-                // 🔹 BACK BUTTON + TITLE ROW
-                Row(
-                  children: [
-                    IconButton(
-                      icon:
-                          const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    const Spacer(),
-                    const Text(
-                      "Member Profile",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
+                  // 🔹 BACK BUTTON + TITLE ROW
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
                       ),
-                    ),
-                    const Spacer(),
-                    const SizedBox(width: 48), // keeps symmetry
-                  ],
-                ),
-              ],
+                      const Spacer(),
+                      const Text(
+                        "Member Profile",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      const SizedBox(width: 48), // keeps symmetry
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-      ),
 
-      Positioned(
-        top: 130,
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
+        Positioned(
+          top: 130,
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: CircleAvatar(
+                  radius: 60,
+                  backgroundImage: NetworkImage(profile.avatarUrl),
+                ),
               ),
-              child: CircleAvatar(
-                radius: 60,
-                backgroundImage: NetworkImage(profile.avatarUrl),
+              const SizedBox(height: 12),
+              Text(
+                profile.name,
+                style: const TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1D1D1D),
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              profile.name,
-              style: const TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1D1D1D),
+              Text(
+                profile.address,
+                style: const TextStyle(
+                  color: Colors.grey,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
-            Text(
-              profile.address,
-              style: const TextStyle(
-                color: Colors.grey,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
+              const SizedBox(height: 6),
+
+              // ⭐ RATING ROW
+              _buildRatingRow(profile.rating),
+            ],
+          ),
         ),
-      ),
 
-      const SizedBox(height: 320),
+        const SizedBox(height: 345),
+      ],
+    );
+  }
+
+  // ⭐ RATING WIDGET
+
+Widget _buildRatingRow(double rating) {
+  return Column(
+    children: [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // 4 yellow stars
+          ...List.generate(4, (index) => const Icon(
+                Icons.star,
+                color: Colors.amber,
+                size: 18,
+              )),
+          const Icon(Icons.star_half, color: Colors.amber, size: 18),
+          const SizedBox(width: 6),
+          Text(
+            "$rating/5",
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 12), // ✅ Space below stars
     ],
   );
 }
@@ -231,8 +226,7 @@ class _MemberProfileScreenState extends State<MemberProfileScreen> {
   Widget _buildInfoSection(MemberProfile profile) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding:
-          const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -246,20 +240,11 @@ class _MemberProfileScreenState extends State<MemberProfileScreen> {
       ),
       child: Column(
         children: [
-          _infoTile(Icons.phone_iphone_rounded, "Phone",
-              profile.phone),
-          const Divider(
-              indent: 60,
-              height: 1,
-              color: Color(0xFFF1F1F1)),
-          _infoTile(Icons.email_outlined, "Email",
-              profile.email),
-          const Divider(
-              indent: 60,
-              height: 1,
-              color: Color(0xFFF1F1F1)),
-          _infoTile(Icons.calendar_today_rounded, "Joined",
-              profile.joinedDate),
+          _infoTile(Icons.phone_iphone_rounded, "Phone", profile.phone),
+          const Divider(indent: 60, height: 1, color: Color(0xFFF1F1F1)),
+          _infoTile(Icons.email_outlined, "Email", profile.email),
+          const Divider(indent: 60, height: 1, color: Color(0xFFF1F1F1)),
+          _infoTile(Icons.calendar_today_rounded, "Joined", profile.joinedDate),
         ],
       ),
     );
@@ -275,9 +260,7 @@ class _MemberProfileScreenState extends State<MemberProfileScreen> {
         ),
         child: Icon(icon, color: accent, size: 22),
       ),
-      title: Text(title,
-          style:
-              const TextStyle(color: Colors.grey, fontSize: 12)),
+      title: Text(title, style: const TextStyle(color: Colors.grey, fontSize: 12)),
       subtitle: Text(
         value,
         style: const TextStyle(
@@ -323,8 +306,7 @@ class _ActionButton extends StatelessWidget {
                 ),
               ],
             ),
-            child:
-                Icon(icon, color: Colors.white, size: 28),
+            child: Icon(icon, color: Colors.white, size: 28),
           ),
           const SizedBox(height: 8),
           Text(
