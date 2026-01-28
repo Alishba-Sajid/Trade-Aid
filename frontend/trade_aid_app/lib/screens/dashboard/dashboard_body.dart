@@ -39,7 +39,12 @@ class _DashboardBodyState extends State<DashboardBody> {
             // =========================
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(20, 25, 20, 25), // Adjusted bottom padding since search is gone
+              padding: const EdgeInsets.fromLTRB(
+                20,
+                25,
+                20,
+                25,
+              ), // Adjusted bottom padding since search is gone
               decoration: const BoxDecoration(
                 gradient: appGradient,
                 borderRadius: BorderRadius.only(
@@ -167,6 +172,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                   ),
                 ),
                 child: SingleChildScrollView(
+                  physics: const NeverScrollableScrollPhysics(),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -196,7 +202,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 10),
                       _buildSectionHeader('Services'),
                       const SizedBox(height: 13),
                       Row(
@@ -220,13 +226,15 @@ class _DashboardBodyState extends State<DashboardBody> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 10),
                       _buildSectionHeader('Wish Requests'),
                       const SizedBox(height: 13),
                       GestureDetector(
                         onTap: () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const WishRequestsScreen()),
+                          MaterialPageRoute(
+                            builder: (context) => const WishRequestsScreen(),
+                          ),
                         ),
                         child: _buildPremiumWishCard(),
                       ),

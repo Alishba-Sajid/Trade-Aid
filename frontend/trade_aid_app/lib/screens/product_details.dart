@@ -24,6 +24,7 @@ class _SellerCard extends StatefulWidget {
   final Product product;
   const _SellerCard({required this.product});
 
+
   @override
   State<_SellerCard> createState() => _SellerCardState();
 }

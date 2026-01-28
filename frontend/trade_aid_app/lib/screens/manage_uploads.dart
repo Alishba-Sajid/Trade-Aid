@@ -157,7 +157,6 @@ class _EditUploadScreenState extends State<EditUploadScreen> {
   String _availableFrom = '';
   String _availableTo = '';
 
-
   bool get isProduct => widget.item['type'] == 'product';
 
   @override

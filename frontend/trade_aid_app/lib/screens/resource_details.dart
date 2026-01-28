@@ -103,11 +103,11 @@ class ResourceDetailsScreen extends StatelessWidget {
         images = [res.image.toString()];
       }
     } catch (_) {
-      images = ['assets/images/placeholder.png'];
+      images = ['assets/placeholder.png'];
     }
 
     if (images.length > 3) images = images.sublist(0, 3);
-    if (images.isEmpty) images = ['assets/images/placeholder.png'];
+    if (images.isEmpty) images = ['assets/placeholder.png'];
 
     /* ---------- Data ---------- */
     final name = safeString(() => resource.name);
@@ -227,7 +227,7 @@ class ResourceDetailsScreen extends StatelessWidget {
                 children: [
                   const CircleAvatar(
                     radius: 28,
-                    backgroundImage: AssetImage('assets/images/seller.jpg'),
+                    backgroundImage: AssetImage('assets/seller.jpg'),
                   ),
                   const SizedBox(width: 16),
                   Expanded(

@@ -49,18 +49,6 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
       availableDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
       availableTime: '09:00 - 21:00',
     ),
-    Resource(
-      id: 'fridge1',
-      name: 'Refrigerator',
-      image: 'assets/fridge.jpg',
-      description:
-          'Large capacity refrigerator available for parties & events.',
-      ownerName: 'Sara Ahmed',
-      ownerAddress: 'Street 9, F-10, Islamabad',
-      pricePerHour: 500,
-      availableDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-      availableTime: '24/7',
-    ),
   ];
 
   List<Resource> get filteredResources {
@@ -83,34 +71,20 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
       body: Column(
         children: [
           _buildPremiumAppBar(context),
-          // Search bar
           Container(
             color: light,
             padding: const EdgeInsets.all(16),
             child: _buildSearchBar(),
           ),
-          // Resource list
           Expanded(
             child: items.isEmpty
                 ? _buildNoResourcesFound()
                 : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: items.length,
                     itemBuilder: (context, index) {
                       final r = items[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 20),
-                        child: GestureDetector(
-                          onTap: () {
-                            Navigator.pushNamed(
-                              context,
-                              '/resource_details',
-                              arguments: {'resource': r},
-                            );
-                          },
-                          child: _buildResourceCard(r),
-                        ),
-                      );
+                      return _buildPremiumResourceCard(context, r);
                     },
                   ),
           ),
@@ -119,9 +93,10 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
     );
   }
 
+  // 🔹 App Bar (unchanged)
   Widget _buildPremiumAppBar(BuildContext context) {
     return Container(
-      height: 130,
+      height: 100,
       decoration: const BoxDecoration(gradient: appGradient),
       child: SafeArea(
         child: Padding(
@@ -154,7 +129,7 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
       onChanged: (v) => setState(() => searchQuery = v),
       decoration: InputDecoration(
         hintText: 'Search resources',
-        prefixIcon: const Icon(Icons.search, color: Colors.grey),
+        prefixIcon: const Icon(Icons.search),
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
@@ -165,141 +140,164 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
     );
   }
 
-  Widget _buildResourceCard(Resource r) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: dark.withOpacity(0.08),
-            blurRadius: 14,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Image
-          ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: Image.asset(
-              r.image,
-              width: 120,
-              height: 150,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  width: 120,
-                  height: 150,
-                  color: Colors.grey[200],
-                  alignment: Alignment.center,
-                  child: const Icon(Icons.image_not_supported,
-                      size: 40, color: Colors.grey),
-                );
-              },
+  // ⭐ MATCHES PRODUCT CARD UI
+  Widget _buildPremiumResourceCard(BuildContext context, Resource r) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.pushNamed(
+          context,
+          '/resource_details',
+          arguments: {'resource': r},
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 20),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: dark.withOpacity(0.08),
+              blurRadius: 14,
+              offset: const Offset(0, 8),
             ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Name
-                Text(
-                  r.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: dark,
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 8,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+                border: Border.all(
+                  color: accent.withOpacity(0.2), // 🌿 greenish border
+                  width: 1.2,
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Image.asset(
+                  r.image,
+                  height: 220,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    height: 220,
+                    color: Colors.grey[200],
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.image_not_supported,
+                      size: 40,
+                      color: Colors.grey,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 6),
-                // Description
-                Text(
-                  r.description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.poppins(fontSize: 12, color: Colors.black54),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // NAME & PRICE
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    r.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: dark,
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 8),
-                // Available Days & Time
-                _infoRow(Icons.calendar_today, "Days", r.availableDays.join(', ')),
-                _infoRow(Icons.access_time, "Time", r.availableTime),
-                const SizedBox(height: 10),
-                // Price & Buttons
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Rs ${r.pricePerHour.toStringAsFixed(0)}/h',
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w700,
-                        color: dark,
-                        fontSize: 14,
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        // Book Button
-                        SizedBox(
-                          height: 36,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.pushNamed(context, '/booking', arguments: {
-                                'resourceId': r.id,
-                                'resourceName': r.name,
-                              });
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: accent,
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              elevation: 0,
-                            ),
-                            child: const Text(
-                              'Book',
-                              style: TextStyle(
-                                  color: Colors.white, fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        // Add to Cart
-                        SizedBox(
-                          height: 36,
-                          width: 44,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('${r.name} added to cart.')),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: dark,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              elevation: 0,
-                              padding: EdgeInsets.zero,
-                            ),
-                            child: const Icon(Icons.shopping_cart, color: Colors.white),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                Text(
+                  'Rs ${r.pricePerHour.toStringAsFixed(0)}/h',
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: accent,
+                  ),
                 ),
               ],
             ),
-          ),
-        ],
+
+            const SizedBox(height: 8),
+
+            // DESCRIPTION
+            Text(
+              r.description,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.poppins(fontSize: 12, color: Colors.black54),
+            ),
+
+            const SizedBox(height: 10),
+
+            _infoRow(Icons.calendar_today, "Days", r.availableDays.join(', ')),
+            _infoRow(Icons.access_time, "Time", r.availableTime),
+            _infoRow(Icons.person_outline, "Owner", r.ownerName),
+
+            const SizedBox(height: 12),
+
+            // ACTION BUTTONS (same alignment)
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pushNamed(
+                        context,
+                        '/booking',
+                        arguments: {'resourceId': r.id, 'resourceName': r.name},
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF119E90),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text(
+                      "Book",
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF119E90),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: IconButton(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('${r.name} added to cart.')),
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.shopping_cart_outlined,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -337,8 +335,6 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.search_off, size: 64, color: Colors.grey),
-            const SizedBox(height: 12),
             Text(
               "No resources found for \"$searchQuery\"",
               textAlign: TextAlign.center,
@@ -353,14 +349,21 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const PostWishRequestScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const PostWishRequestScreen(),
+                  ),
                 );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: accent,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
               child: const Text(
                 "Create Wish Request",
