@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/app_bar.dart';
+import 'cash_pickup_schedule_screen.dart'; // ✅ Import your pickup screen
 
 /// Screen for selecting payment method before checkout
 class PaymentSelectionScreen extends StatefulWidget {
@@ -22,14 +23,36 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
   PaymentMethod? _selected = PaymentMethod.jazzCash;
 
   /// Handles "Next" button click
-  /// This is backend-ready and can later trigger:
-  /// - API call
-  /// - Order confirmation
-  /// - Payment gateway flow
-  void _onNext() {
+  void _onNext() async {
     if (_selected == null) return;
 
-    // TEMP feedback (replace with API call later)
+    // ✅ If Cash Payment → Navigate to Pickup Scheduling Screen
+    if (_selected == PaymentMethod.cashOnDelivery) {
+      final pickupDateTime = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const CashPickupScheduleScreen(),
+        ),
+      );
+
+      // Optional: Show selected pickup time
+      if (pickupDateTime != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "Pickup Scheduled: $pickupDateTime",
+              style: const TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.teal,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+
+      return;
+    }
+
+    // ✅ For JazzCash / EasyPaisa → Normal Flow
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -51,7 +74,6 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
   }
 
   /// Builds a single payment option card
-  /// Reusable and scalable for API-driven payment methods
   Widget _paymentOption({
     required String title,
     required String subtitle,
@@ -136,7 +158,7 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F8F8),
 
-      /// ✅ Custom reusable AppBar (UI identical across app)
+      /// ✅ Custom reusable AppBar
       appBar: AppBarWidget(
         title: 'Payments',
         onBack: () => Navigator.pop(context),
@@ -176,8 +198,8 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
 
             // Cash on Delivery option
             _paymentOption(
-              title: 'Cash on Delivery',
-              subtitle: 'Pay in cash when your order arrives.',
+              title: 'Cash Payment',
+              subtitle: 'Pay in cash.',
               imagePath: 'assets/cashondelivery.png',
               value: PaymentMethod.cashOnDelivery,
             ),
