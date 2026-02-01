@@ -16,10 +16,7 @@ const Color kPrimaryTeal = Color(0xFF004D40);
 class ManageUploadsScreen extends StatefulWidget {
   final String currentUserName;
 
-  const ManageUploadsScreen({
-    super.key,
-    required this.currentUserName,
-  });
+  const ManageUploadsScreen({super.key, required this.currentUserName});
 
   @override
   State<ManageUploadsScreen> createState() => _ManageUploadsScreenState();
@@ -85,27 +82,21 @@ class _ManageUploadsScreenState extends State<ManageUploadsScreen>
       backgroundColor: Colors.white,
       body: Column(
         children: [
-          // ================== Custom AppBar ==================
+          // ================== Header ==================
           Container(
-            height: 130,
+            height: 100,
             width: double.infinity,
-            decoration: BoxDecoration(gradient: appGradient),
+            decoration: const BoxDecoration(gradient: appGradient),
             child: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // 🔙 Back Button
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: const Icon(
-                        Icons.arrow_back,
-                        color: Colors.white,
-                      ),
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
                     ),
-
-                    // 🏷 Heading
                     const Text(
                       'Manage My Uploads',
                       style: TextStyle(
@@ -114,8 +105,6 @@ class _ManageUploadsScreenState extends State<ManageUploadsScreen>
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-
-                    // Placeholder for spacing
                     const SizedBox(width: 48),
                   ],
                 ),
@@ -123,25 +112,16 @@ class _ManageUploadsScreenState extends State<ManageUploadsScreen>
             ),
           ),
 
-          // ================== Tabs ==================
-          Container(
-            color: Colors.white,
-            child: TabBar(
-              controller: _tabController,
-              labelColor: kPrimaryTeal,
-              unselectedLabelColor: Colors.grey,
-              indicatorColor: kPrimaryTeal,
-              tabs: const [
-                Tab(
-                  icon: Icon(Icons.shopping_bag_outlined),
-                  text: 'Products',
-                ),
-                Tab(
-                  icon: Icon(Icons.folder_open),
-                  text: 'Resources',
-                ),
-              ],
-            ),
+          // ================== TabBar ==================
+          TabBar(
+            controller: _tabController,
+            labelColor: kPrimaryTeal,
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: kPrimaryTeal,
+            tabs: const [
+              Tab(icon: Icon(Icons.shopping_bag_outlined), text: 'Products'),
+              Tab(icon: Icon(Icons.folder_open), text: 'Resources'),
+            ],
           ),
 
           // ================== Tab Content ==================
@@ -150,25 +130,19 @@ class _ManageUploadsScreenState extends State<ManageUploadsScreen>
               controller: _tabController,
               children: [
                 // Products Tab
-                Container(
-                  color: Colors.white,
-                  child: ProductUploadCard(
-                    products: products,
-                    currentUserName: widget.currentUserName,
-                    onUpdate: _updateProduct,
-                    onDelete: _deleteProduct,
-                  ),
+                ProductUploadCard(
+                  products: products,
+                  currentUserName: widget.currentUserName,
+                  onUpdate: _updateProduct,
+                  onDelete: _deleteProduct,
                 ),
 
                 // Resources Tab
-                Container(
-                  color: Colors.white,
-                  child: ResourceUploadCard(
-                    resources: resources,
-                    currentUserName: widget.currentUserName,
-                    onUpdate: _updateResource,
-                    onDelete: _deleteResource,
-                  ),
+                ResourceUploadCard(
+                  resources: resources,
+                  currentUserName: widget.currentUserName,
+                  onUpdate: _updateResource,
+                  onDelete: _deleteResource,
                 ),
               ],
             ),
