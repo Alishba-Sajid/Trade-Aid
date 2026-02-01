@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../models/resource.dart';
 import '../widgets/app_bar.dart';
 import 'chat/chat_screen.dart';
+
 const LinearGradient appGradient = LinearGradient(
   colors: [Color(0xFF2E9499), Color(0xFF119E90)],
   begin: Alignment.topLeft,
@@ -29,15 +30,25 @@ class _ResourceDetailsScreenState extends State<ResourceDetailsScreen> {
     String safe(String? value, [String defaultValue = 'N/A']) =>
         (value == null || value.isEmpty) ? defaultValue : value;
 
-    final images = resource.images.isNotEmpty ? resource.images.take(3).toList() : ['assets/placeholder.png'];
+    final images = resource.images.isNotEmpty
+        ? resource.images.take(3).toList()
+        : ['assets/placeholder.png'];
 
     final String name = safe(resource.name);
     final String description = safe(resource.description);
     final String priceText = 'Rs ${resource.pricePerHour.toStringAsFixed(0)}/h';
-    final String availableTime = safe(resource.availableTime, '09:00 AM - 05:00 PM');
-    final String availability = resource.availableDays.isNotEmpty ? resource.availableDays.join(', ') : 'Mon - Fri';
+    final String availableTime = safe(
+      resource.availableTime,
+      '09:00 AM - 05:00 PM',
+    );
+    final String availability = resource.availableDays.isNotEmpty
+        ? resource.availableDays.join(', ')
+        : 'Mon - Fri';
     final String ownerName = safe(resource.ownerName);
-    final String ownerAddressFull = safe(resource.ownerAddress, 'Sample Address Line');
+    final String ownerAddressFull = safe(
+      resource.ownerAddress,
+      'Sample Address Line',
+    );
 
     return Scaffold(
       backgroundColor: light,
@@ -71,10 +82,7 @@ class _ResourceDetailsScreenState extends State<ResourceDetailsScreen> {
                   const SizedBox(height: 18),
                   _buildInfoGrid(availableTime, availability),
                   const SizedBox(height: 18),
-                  _SellerCard(
-                    ownerName: ownerName,
-                    address: ownerAddressFull,
-                  ),
+                  _SellerCard(ownerName: ownerName, address: ownerAddressFull),
                   const SizedBox(height: 18),
                   _buildTermsAndConditions(),
                 ],
@@ -107,7 +115,9 @@ class _ResourceDetailsScreenState extends State<ResourceDetailsScreen> {
             itemBuilder: (_, i) => GestureDetector(
               onTap: () => _openZoomViewer(images, i),
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(40)),
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(40),
+                ),
                 child: Image.asset(
                   images[i],
                   fit: BoxFit.cover,
@@ -206,29 +216,19 @@ class _ResourceDetailsScreenState extends State<ResourceDetailsScreen> {
     );
   }
 
-Widget _buildInfoGrid(String availableTime, String availability) {
-  return Row(
-    crossAxisAlignment: CrossAxisAlignment.start, // align cards at top
-    children: [
-      Expanded(
-        child: _InfoCard(
-          icon: Icons.access_time,
-          label: 'Time',
-          value: availableTime,
-        ),
-      ),
-      const SizedBox(width: 16),
-      Expanded(
-        child: _InfoCard(
+  Widget _buildInfoGrid(String availableTime, String availability) {
+    return Column(
+      children: [
+        _InfoCard(icon: Icons.access_time, label: 'Time', value: availableTime),
+        const SizedBox(height: 14),
+        _InfoCard(
           icon: Icons.calendar_today,
           label: 'Availability',
           value: availability,
         ),
-      ),
-    ],
-  );
-}
-
+      ],
+    );
+  }
 
   Widget _buildTermsAndConditions() {
     final terms = [
@@ -270,10 +270,16 @@ Widget _buildInfoGrid(String availableTime, String availability) {
             children: List.generate(
               terms.length,
               (index) => Padding(
-                padding: EdgeInsets.only(bottom: index < terms.length - 1 ? 12 : 0),
+                padding: EdgeInsets.only(
+                  bottom: index < terms.length - 1 ? 12 : 0,
+                ),
                 child: Row(
                   children: [
-                    Icon(Icons.check_circle, color: accent.withOpacity(0.85), size: 18),
+                    Icon(
+                      Icons.check_circle,
+                      color: accent.withOpacity(0.85),
+                      size: 18,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -320,10 +326,7 @@ Widget _buildInfoGrid(String availableTime, String availability) {
             decoration: BoxDecoration(
               color: accent.withOpacity(0.08),
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: accent.withOpacity(0.2),
-                width: 1.2,
-              ),
+              border: Border.all(color: accent.withOpacity(0.2), width: 1.2),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.04),
@@ -353,7 +356,12 @@ Widget _buildInfoGrid(String availableTime, String availability) {
                 borderRadius: BorderRadius.circular(18),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color.fromARGB(255, 17, 158, 144).withOpacity(0.3),
+                    color: const Color.fromARGB(
+                      255,
+                      17,
+                      158,
+                      144,
+                    ).withOpacity(0.3),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
@@ -471,12 +479,11 @@ class _SellerCardState extends State<_SellerCard> {
                   ],
                 ),
               ),
-             InkWell(
+              InkWell(
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) =>
-                        ChatScreen(sellerName: widget.ownerName),
+                    builder: (_) => ChatScreen(sellerName: widget.ownerName),
                   ),
                 ),
                 borderRadius: BorderRadius.circular(16),
@@ -490,8 +497,11 @@ class _SellerCardState extends State<_SellerCard> {
                       width: 1.2,
                     ),
                   ),
-                  child: const Icon(Icons.chat_bubble_outline,
-                      color: accent, size: 20),
+                  child: const Icon(
+                    Icons.chat_bubble_outline,
+                    color: accent,
+                    size: 20,
+                  ),
                 ),
               ),
             ],
@@ -505,7 +515,9 @@ class _SellerCardState extends State<_SellerCard> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    isExpanded ? widget.address : widget.address.split(',').first,
+                    isExpanded
+                        ? widget.address
+                        : widget.address.split(',').first,
                     maxLines: isExpanded ? 3 : 1,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.poppins(
@@ -519,7 +531,11 @@ class _SellerCardState extends State<_SellerCard> {
                 AnimatedRotation(
                   turns: isExpanded ? .5 : 0,
                   duration: const Duration(milliseconds: 300),
-                  child: const Icon(Icons.expand_more, color: Colors.black38, size: 20),
+                  child: const Icon(
+                    Icons.expand_more,
+                    color: Colors.black38,
+                    size: 20,
+                  ),
                 ),
               ],
             ),
@@ -536,7 +552,11 @@ class _InfoCard extends StatelessWidget {
   final String label;
   final String value;
 
-  const _InfoCard({required this.icon, required this.label, required this.value});
+  const _InfoCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -594,6 +614,7 @@ class _InfoCard extends StatelessWidget {
     );
   }
 }
+
 /* ===================== ZOOM VIEWER ===================== */
 class _ZoomImageViewer extends StatefulWidget {
   final List<String> images;
@@ -657,7 +678,10 @@ class _ZoomImageViewerState extends State<_ZoomImageViewer> {
           if (_showHint)
             Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(0.6),
                   borderRadius: BorderRadius.circular(30),
