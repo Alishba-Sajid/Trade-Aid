@@ -30,13 +30,14 @@ class ProductUploadCard extends StatelessWidget {
     required this.onDelete,
   });
 
-  void _openEditScreen(BuildContext context, Map<String, dynamic> product) async {
+  void _openEditScreen(
+    BuildContext context,
+    Map<String, dynamic> product,
+  ) async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => EditUploadProductScreen(
-          product: Map.from(product),
-        ),
+        builder: (_) => EditUploadProductScreen(product: Map.from(product)),
       ),
     );
 
@@ -95,12 +96,15 @@ class ProductUploadCard extends StatelessWidget {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(11),
                       child: Image.network(
-                        item['image'] ?? '', 
+                        item['image'] ?? '',
                         fit: BoxFit.cover,
                         // Professional error handling for missing/broken links
                         errorBuilder: (context, error, stackTrace) => Container(
                           color: kSubtleGrey,
-                          child: const Icon(Icons.broken_image_outlined, color: Colors.grey),
+                          child: const Icon(
+                            Icons.broken_image_outlined,
+                            color: Colors.grey,
+                          ),
                         ),
                         // Loading placeholder
                         loadingBuilder: (context, child, loadingProgress) {
@@ -111,7 +115,10 @@ class ProductUploadCard extends StatelessWidget {
                               child: SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: kAccentTeal),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: kAccentTeal,
+                                ),
                               ),
                             ),
                           );

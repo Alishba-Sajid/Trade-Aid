@@ -14,26 +14,49 @@ class _CartScreenState extends State<CartScreen> {
   static const Color backgroundLight = Color(0xFFF8FAFA);
   static const Color accentTeal = Color(0xFF119E90);
   static const Color subtleGrey = Color(0xFFF2F2F2);
-  
+
   static const LinearGradient appGradient = LinearGradient(
-    colors: [Color.fromARGB(255, 15, 119, 124),
-      Color.fromARGB(255, 17, 158, 144),],
+    colors: [
+      Color.fromARGB(255, 15, 119, 124),
+      Color.fromARGB(255, 17, 158, 144),
+    ],
     begin: Alignment.bottomLeft,
     end: Alignment.topRight,
   );
 
   List<Map<String, dynamic>> cartItems = [
-    {'name': 'Spacious Lawn', 'price': 2000.0, 'image': 'assets/lawn.jpg', 'description': 'Lawn booking for 3 hours', 'seller': 'Hania B.'},
-    {'name': 'Washing Machine', 'price': 300.0, 'image': 'assets/washing_machine.jpg', 'description': 'High efficiency hourly use', 'seller': 'Ali K.'},
-    {'name': 'Refrigerator', 'price': 500.0, 'image': 'assets/fridge.jpg', 'description': 'Large capacity, party rental', 'seller': 'Sara A.'},
+    {
+      'name': 'Spacious Lawn',
+      'price': 2000.0,
+      'image': 'assets/lawn.jpg',
+      'description': 'Lawn booking for 3 hours',
+      'seller': 'Hania B.',
+    },
+    {
+      'name': 'Washing Machine',
+      'price': 300.0,
+      'image': 'assets/washing_machine.jpg',
+      'description': 'High efficiency hourly use',
+      'seller': 'Ali K.',
+    },
+    {
+      'name': 'Refrigerator',
+      'price': 500.0,
+      'image': 'assets/fridge.jpg',
+      'description': 'Large capacity, party rental',
+      'seller': 'Sara A.',
+    },
   ];
 
   Set<int> selectedIndexes = {};
   bool get selectionMode => selectedIndexes.isNotEmpty;
-  
+
   double get currentTotal {
     if (selectionMode) {
-      return selectedIndexes.fold(0, (sum, i) => sum + (cartItems[i]['price'] as double));
+      return selectedIndexes.fold(
+        0,
+        (sum, i) => sum + (cartItems[i]['price'] as double),
+      );
     }
     return cartItems.fold(0, (sum, item) => sum + (item['price'] as double));
   }
@@ -73,30 +96,29 @@ class _CartScreenState extends State<CartScreen> {
   /// =======================
   /// APP BAR (Pending Requests Style)
   /// =======================
- Widget _buildHeader(BuildContext context) {
-  return Container(
-    padding: const EdgeInsets.only(top: 50, bottom: 10, left: 16, right: 16),
-    decoration: const BoxDecoration(gradient: appGradient),
-    child: Row(
-      children: [
-        IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        const SizedBox(width: 100), // <-- Add spacing here
-        const Text(
-          'My Cart',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
+  Widget _buildHeader(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.only(top: 50, bottom: 10, left: 16, right: 16),
+      decoration: const BoxDecoration(gradient: appGradient),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
           ),
-        ),
-      ],
-    ),
-  );
-}
-
+          const SizedBox(width: 100), // <-- Add spacing here
+          const Text(
+            'My Cart',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildPremiumCard(int index) {
     final item = cartItems[index];
@@ -113,13 +135,21 @@ class _CartScreenState extends State<CartScreen> {
           color: Colors.redAccent.withOpacity(0.1),
           borderRadius: BorderRadius.circular(24),
         ),
-        child: const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent, size: 30),
+        child: const Icon(
+          Icons.delete_sweep_rounded,
+          color: Colors.redAccent,
+          size: 30,
+        ),
       ),
       child: GestureDetector(
         onLongPress: () => setState(() => selectedIndexes.add(index)),
         onTap: () {
           if (selectionMode) {
-            setState(() => isSelected ? selectedIndexes.remove(index) : selectedIndexes.add(index));
+            setState(
+              () => isSelected
+                  ? selectedIndexes.remove(index)
+                  : selectedIndexes.add(index),
+            );
           }
         },
         child: Container(
@@ -133,7 +163,11 @@ class _CartScreenState extends State<CartScreen> {
               width: 2,
             ),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 8)),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
+              ),
             ],
           ),
           child: Row(
@@ -146,8 +180,14 @@ class _CartScreenState extends State<CartScreen> {
                       width: 85,
                       height: 85,
                       color: subtleGrey,
-                      child: Image.asset(item['image'], fit: BoxFit.cover, 
-                        errorBuilder: (c, e, s) => const Icon(Icons.inventory_2_outlined, color: accentTeal)),
+                      child: Image.asset(
+                        item['image'],
+                        fit: BoxFit.cover,
+                        errorBuilder: (c, e, s) => const Icon(
+                          Icons.inventory_2_outlined,
+                          color: accentTeal,
+                        ),
+                      ),
                     ),
                   ),
                   if (isSelected)
@@ -157,7 +197,10 @@ class _CartScreenState extends State<CartScreen> {
                           color: darkPrimary.withOpacity(0.4),
                           borderRadius: BorderRadius.circular(18),
                         ),
-                        child: const Icon(Icons.check_rounded, color: Colors.white),
+                        child: const Icon(
+                          Icons.check_rounded,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                 ],
@@ -167,15 +210,40 @@ class _CartScreenState extends State<CartScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(item['name'], style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 16, color: darkPrimary)),
-                    Text(item['description'], style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[500]), maxLines: 1),
+                    Text(
+                      item['name'],
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                        color: darkPrimary,
+                      ),
+                    ),
+                    Text(
+                      item['description'],
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.grey[500],
+                      ),
+                      maxLines: 1,
+                    ),
                     const SizedBox(height: 8),
-                    Text('Rs ${item['price'].toStringAsFixed(0)}', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 17, color: accentTeal)),
+                    Text(
+                      'Rs ${item['price'].toStringAsFixed(0)}',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 17,
+                        color: accentTeal,
+                      ),
+                    ),
                   ],
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 22),
+                icon: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: Colors.redAccent,
+                  size: 22,
+                ),
                 onPressed: () => _removeItem(index),
               ),
             ],
@@ -193,7 +261,11 @@ class _CartScreenState extends State<CartScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
-          BoxShadow(color: darkPrimary.withOpacity(0.1), blurRadius: 30, offset: const Offset(0, 10)),
+          BoxShadow(
+            color: darkPrimary.withOpacity(0.1),
+            blurRadius: 30,
+            offset: const Offset(0, 10),
+          ),
         ],
       ),
       child: Row(
@@ -202,10 +274,22 @@ class _CartScreenState extends State<CartScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(selectionMode ? 'Selected Total' : 'Total Price', 
-                style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600], fontWeight: FontWeight.w500)),
-              Text('Rs ${currentTotal.toStringAsFixed(0)}', 
-                style: GoogleFonts.poppins(fontSize: 20, color: darkPrimary, fontWeight: FontWeight.w800)),
+              Text(
+                selectionMode ? 'Selected Total' : 'Total Price',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                'Rs ${currentTotal.toStringAsFixed(0)}',
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  color: darkPrimary,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ],
           ),
           const SizedBox(width: 24),
@@ -216,7 +300,11 @@ class _CartScreenState extends State<CartScreen> {
                 gradient: appGradient,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
-                  BoxShadow(color: accentTeal.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4)),
+                  BoxShadow(
+                    color: accentTeal.withOpacity(0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
                 ],
               ),
               child: ElevatedButton(
@@ -224,11 +312,19 @@ class _CartScreenState extends State<CartScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                 ),
                 child: Text(
-                  selectionMode ? 'Checkout (${selectedIndexes.length})' : 'Checkout',
-                  style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
+                  selectionMode
+                      ? 'Checkout (${selectedIndexes.length})'
+                      : 'Checkout',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
                 ),
               ),
             ),
@@ -245,12 +341,29 @@ class _CartScreenState extends State<CartScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(30),
-            decoration: const BoxDecoration(color: subtleGrey, shape: BoxShape.circle),
-            child: const Icon(Icons.shopping_cart_outlined, size: 60, color: accentTeal),
+            decoration: const BoxDecoration(
+              color: subtleGrey,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.shopping_cart_outlined,
+              size: 60,
+              color: accentTeal,
+            ),
           ),
           const SizedBox(height: 20),
-          Text('Your cart is empty', style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w700, color: darkPrimary)),
-          Text('Items you add will appear here', style: GoogleFonts.poppins(color: Colors.grey)),
+          Text(
+            'Your cart is empty',
+            style: GoogleFonts.poppins(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: darkPrimary,
+            ),
+          ),
+          Text(
+            'Items you add will appear here',
+            style: GoogleFonts.poppins(color: Colors.grey),
+          ),
         ],
       ),
     );
