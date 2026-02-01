@@ -71,7 +71,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen>
             children: [
               // 🌈 Small Gradient Header
               Container(
-                height: 130,
+                height: 100,
                 width: double.infinity,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
