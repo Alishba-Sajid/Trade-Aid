@@ -37,11 +37,46 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
     },
   ];
 
-  // ───────── POST DIALOG ─────────
+  // ───────── MAIN BUILD ─────────
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: backgroundLight,
+      appBar: AppBarWidget(
+        title: 'Wish Requests',
+        onBack: () => Navigator.pop(context),
+      ),
+      body: ListView.builder(
+        padding: const EdgeInsets.fromLTRB(20, 30, 20, 100),
+        itemCount: requests.length,
+        itemBuilder: (context, index) => _buildRequestCard(requests[index]),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const PostWishRequestScreen()),
+          );
+        },
+        label: Text(
+          'Post Request',
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        icon: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: accentTeal,
+      ),
+    );
+  }
+
+  // ───────── "I Can Help" DIALOG ─────────
   void _showPostDialog() {
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
+      barrierLabel: 'Post',
       barrierColor: Colors.black45,
       transitionDuration: const Duration(milliseconds: 200),
       pageBuilder: (_, __, ___) {
@@ -86,6 +121,7 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
                         ),
                       ),
                       const SizedBox(height: 24),
+                      // Option: Post Product
                       _PremiumPostCard(
                         icon: Icons.shopping_bag_outlined,
                         title: 'Post Product',
@@ -98,6 +134,7 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
                       const SizedBox(height: 16),
                       Divider(color: Colors.grey[300], thickness: 1),
                       const SizedBox(height: 16),
+                      // Option: Post Resource
                       _PremiumPostCard(
                         icon: Icons.groups_outlined,
                         title: 'Post Resource',
@@ -118,7 +155,7 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
     );
   }
 
-  // ───────── POST DIALOG CARD ─────────
+  // ───────── PREMIUM POST CARD ─────────
   Widget _PremiumPostCard({
     required IconData icon,
     required String title,
@@ -131,19 +168,25 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          border: Border.all(color: accentTeal.withOpacity(0.1)),
+          color: const Color.fromARGB(255, 22, 150, 129),
           borderRadius: BorderRadius.circular(16),
-          color: backgroundLight.withOpacity(0.4),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: accentTeal.withOpacity(0.1),
+                color: Colors.white.withOpacity(0.2), // subtle contrast
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: accentTeal),
+              child: Icon(icon, color: Colors.white),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -155,56 +198,26 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
                     style: GoogleFonts.poppins(
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
-                      color: darkPrimary,
+                      color: Colors.white,
                     ),
                   ),
                   Text(
                     subtitle,
                     style: GoogleFonts.poppins(
                       fontSize: 12,
-                      color: Colors.grey[600],
+                      color: Colors.white70,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+            const Icon(
+              Icons.arrow_forward_ios,
+              size: 14,
+              color: Colors.white70,
+            ),
           ],
         ),
-      ),
-    );
-  }
-
-  // ───────── MAIN BUILD ─────────
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: backgroundLight,
-      appBar: AppBarWidget(
-        title: 'Wish Requests',
-        onBack: () => Navigator.pop(context),
-      ),
-      body: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(20, 30, 20, 100),
-        itemCount: requests.length,
-        itemBuilder: (context, index) => _buildRequestCard(requests[index]),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const PostWishRequestScreen()),
-          );
-        },
-        label: Text(
-          'Post Request',
-          style: GoogleFonts.poppins(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        icon: const Icon(Icons.add, color: Colors.white),
-        backgroundColor: accentTeal,
       ),
     );
   }
@@ -325,7 +338,7 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          // ← Updated Chat Icon
+                          // ← Chat Icon
                           _buildSmallIconButton(Icons.chat_bubble_outline, () {
                             Navigator.push(
                               context,
