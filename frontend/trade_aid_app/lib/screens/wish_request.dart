@@ -6,9 +6,14 @@ import '../widgets/app_bar.dart';
 import '../screens/chat/chat_screen.dart'; // Import ChatScreen
 
 // 🎨 COLORS
-const Color darkPrimary = Color(0xFF004D40);
-const Color accentTeal = Color(0xFF119E90);
-const Color backgroundLight = Color(0xFFF0F9F8);
+const LinearGradient appGradient = LinearGradient(
+  colors: [
+    Color.fromARGB(255, 15, 119, 124),
+    Color.fromARGB(255, 17, 158, 144),
+  ],
+  begin: Alignment.bottomLeft,
+  end: Alignment.topRight,
+);
 
 class WishRequestsScreen extends StatefulWidget {
   const WishRequestsScreen({super.key});
@@ -51,22 +56,47 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
         itemCount: requests.length,
         itemBuilder: (context, index) => _buildRequestCard(requests[index]),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const PostWishRequestScreen()),
-          );
-        },
-        label: Text(
-          'Post Request',
-          style: GoogleFonts.poppins(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          gradient: appGradient,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PostWishRequestScreen()),
+              );
+            },
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.add, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Post Request',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
-        icon: const Icon(Icons.add, color: Colors.white),
-        backgroundColor: accentTeal,
       ),
     );
   }
@@ -168,7 +198,7 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color.fromARGB(255, 22, 150, 129),
+          gradient: appGradient,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
