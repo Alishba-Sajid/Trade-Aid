@@ -5,6 +5,7 @@ import '../manage_upload/manage_uploads_screen.dart';
 import '../welcome_screen.dart';
 import '../pending_request.dart';
 import '../help&support.dart';
+import 'Voting.dart';
 
 // 🌿 Color Palette
 const LinearGradient appGradient = LinearGradient(
@@ -21,8 +22,13 @@ const Color light = Color(0xFFE0F2F1);
 
 class DashboardDrawer extends StatelessWidget {
   final String communityName;
+  final bool isAdmin; // added for role-based
 
-  const DashboardDrawer({super.key, required this.communityName});
+  const DashboardDrawer({
+    super.key,
+    required this.communityName,
+    this.isAdmin = false,
+  });
 
   final String inviteLink = 'https://tradeaid.app/invite/eco123';
 
@@ -168,7 +174,7 @@ class DashboardDrawer extends StatelessWidget {
       backgroundColor: const Color(0xFFF6F9FB),
       child: Column(
         children: [
-          // 🔥 HEADER
+          // 🔹 HEADER
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(20, 50, 20, 24),
@@ -182,7 +188,6 @@ class DashboardDrawer extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ✅ ICON + COMMUNITY NAME (SIDE BY SIDE)
                 Row(
                   children: [
                     Container(
@@ -212,9 +217,7 @@ class DashboardDrawer extends StatelessWidget {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 10),
-
                 Text(
                   inviteLink,
                   style: TextStyle(
@@ -223,9 +226,7 @@ class DashboardDrawer extends StatelessWidget {
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
-
                 const SizedBox(height: 14),
-
                 GestureDetector(
                   onTap: () => onCopy(context),
                   child: Container(
@@ -291,6 +292,38 @@ class DashboardDrawer extends StatelessWidget {
                     );
                   },
                 ),
+
+                // 🔹 Admin Only Options
+                if (isAdmin) ...[
+                  _DrawerTile(
+                    icon: Icons.people_alt_outlined,
+                    title: 'Manage Community',
+                    onTap: () {},
+                  ),
+                  _DrawerTile(
+                    icon: Icons.receipt_long_outlined,
+                    title: 'Total Orders',
+                    onTap: () {},
+                  ),
+                  _DrawerTile(
+                    icon: Icons.report_problem_outlined,
+                    title: 'Complaints',
+                    onTap: () {},
+                  ),
+                
+                ],
+                _DrawerTile(
+                  icon: Icons.how_to_vote_rounded,
+                  title: 'Cast Your Vote',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const VotingScreen()),
+                    );
+                  },
+                ),
                 _DrawerTile(
                   icon: Icons.help_rounded,
                   title: 'Help & Support',
@@ -299,8 +332,7 @@ class DashboardDrawer extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const HelpSupportScreen(),
-                      ),
+                          builder: (_) => const HelpSupportScreen()),
                     );
                   },
                 ),

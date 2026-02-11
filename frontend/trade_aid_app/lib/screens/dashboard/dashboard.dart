@@ -21,7 +21,9 @@ const Color dark = Color(0xFF004D40);
 const Color light = Color(0xFFE0F2F1);
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final bool isAdmin; // added for role-based
+
+  const DashboardScreen({super.key, this.isAdmin = true}); // default to true for testing
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -163,7 +165,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      drawer: DashboardDrawer(communityName: communityName),
+      drawer: DashboardDrawer(
+        communityName: communityName,
+        isAdmin: widget.isAdmin, // pass admin role to drawer
+      ),
       appBar: AppBar(
         backgroundColor: const Color(0xFFF5F5F5),
         elevation: 0,
@@ -185,7 +190,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-      body: DashboardBody(userName: userName, communityName: communityName),
+      body: DashboardBody(
+        userName: userName,
+        communityName: communityName,
+        isAdmin: widget.isAdmin, // pass admin role to body
+      ),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.white,
         currentIndex: _currentIndex,
@@ -197,10 +206,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Chat'),
           BottomNavigationBarItem(icon: Icon(Icons.add_box), label: 'Post'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_cart),
-            label: 'Cart',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: 'Cart'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),

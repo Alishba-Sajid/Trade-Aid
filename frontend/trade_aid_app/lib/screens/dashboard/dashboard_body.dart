@@ -13,14 +13,19 @@ const Color dark = Color(0xFF004D40);
 const Color light = Color(0xFFF0F9F8);
 const Color accent = Color(0xFF119E90);
 
-/// DashboardBody displays the main content of the dashboard without the search bar.
+// =========================
+// Dashboard Body
+// =========================
 class DashboardBody extends StatefulWidget {
-  final String userName, communityName;
+  final String userName;
+  final String communityName;
+  final bool isAdmin;
 
   const DashboardBody({
     super.key,
     required this.userName,
     required this.communityName,
+    required this.isAdmin,
   });
 
   @override
@@ -30,223 +35,201 @@ class DashboardBody extends StatefulWidget {
 class _DashboardBodyState extends State<DashboardBody> {
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Column(
-          children: [
-            // =========================
-            // Gradient Top Section
-            // =========================
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(
-                20,
-                25,
-                20,
-                25,
-              ), // Adjusted bottom padding since search is gone
-              decoration: const BoxDecoration(
-                gradient: appGradient,
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(18),
-                  bottomRight: Radius.circular(18),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      children: [
+        // Gradient Top Section
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(20, 25, 20, 25),
+          decoration: const BoxDecoration(
+            gradient: appGradient,
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(18),
+              bottomRight: Radius.circular(18),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // --- Greeting Row ---
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Hello, ${widget.userName} 👋',
-                        style: const TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          CommunityDialog.show(
-                            context,
-                            Community(
-                              name: widget.communityName,
-                              description:
-                                  "This is your current community. All your posts, resources, and activity will appear here.",
-                              isCurrent: true,
-                            ),
-                          );
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
-                              width: 2,
-                            ),
-                          ),
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                colors: [Colors.white70, Colors.white],
-                              ),
-                            ),
-                            child: const Icon(
-                              Icons.location_city_rounded,
-                              color: dark,
-                              size: 20,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                  Text(
+                    widget.isAdmin
+                        ? 'Hello Admin 👋'
+                        : 'Hello, ${widget.userName} 👋',
+                    style: const TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: -0.5,
+                    ),
                   ),
-
-                  const SizedBox(height: 4),
-
-                  // --- Sub-greeting and Community Name ---
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Transform.translate(
-                        offset: const Offset(0, -2),
-                        child: Text(
-                          'Good to see you today',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.85),
-                            fontStyle: FontStyle.italic,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
+                  GestureDetector(
+                    onTap: () {
+                      CommunityDialog.show(
+                        context,
+                        Community(
+                          name: widget.communityName,
+                          description:
+                              "This is your current community. All your posts, resources, and activity will appear here.",
+                          isCurrent: true,
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 2,
                         ),
                       ),
-                      GestureDetector(
-                        onTap: () {
-                          CommunityDialog.show(
-                            context,
-                            Community(
-                              name: widget.communityName,
-                              description:
-                                  "This is your current community. All your posts, resources, and activity will appear here.",
-                              isCurrent: true,
-                            ),
-                          );
-                        },
-                        child: Text(
-                          widget.communityName,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [Colors.white70, Colors.white],
                           ),
                         ),
+                        child: const Icon(
+                          Icons.location_city_rounded,
+                          color: dark,
+                          size: 20,
+                        ),
                       ),
-                    ],
+                    ),
                   ),
                 ],
               ),
-            ),
-
-            // =========================
-            // Main White Section
-            // =========================
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 18,
-                ),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    topRight: Radius.circular(20),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Transform.translate(
+                    offset: const Offset(0, -2),
+                    child: Text(
+                      'Good to see you today',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.85),
+                        fontStyle: FontStyle.italic,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
-                ),
-                child: SingleChildScrollView(
-                  physics: const NeverScrollableScrollPhysics(),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildSectionHeader('Nearby Communities'),
-                      const SizedBox(height: 13),
-                      SizedBox(
-                        height: 130,
-                        child: ListView(
-                          scrollDirection: Axis.horizontal,
-                          clipBehavior: Clip.none,
-                          children: const [
-                            _CommunityTile(
-                              'GG-12',
-                              description:
-                                  'GG-12 is a premium community for resource sharing, skill development, and community support.',
-                            ),
-                            _CommunityTile(
-                              'GG-13',
-                              description:
-                                  'GG-13 focuses on sustainability, eco-friendly projects, and collaboration among members.',
-                            ),
-                            _CommunityTile(
-                              'GG-14',
-                              description:
-                                  'GG-14 is a tech-oriented community where members share knowledge and products.',
-                            ),
-                          ],
+                  GestureDetector(
+                    onTap: () {
+                      CommunityDialog.show(
+                        context,
+                        Community(
+                          name: widget.communityName,
+                          description:
+                              "This is your current community. All your posts, resources, and activity will appear here.",
+                          isCurrent: true,
                         ),
+                      );
+                    },
+                    child: Text(
+                      widget.communityName,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
-                      const SizedBox(height: 10),
-                      _buildSectionHeader('Services'),
-                      const SizedBox(height: 13),
-                      Row(
-                        children: const [
-                          Expanded(
-                            child: _ServiceCard(
-                              title: 'Products',
-                              subtitle: 'Browse items',
-                              icon: Icons.shopping_cart_outlined,
-                              route: '/products',
-                            ),
-                          ),
-                          SizedBox(width: 10),
-                          Expanded(
-                            child: _ServiceCard(
-                              title: 'Resources',
-                              subtitle: 'Available resources',
-                              icon: Icons.group,
-                              route: '/resources',
-                            ),
-                          ),
-                        ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        // Main White Section
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            child: ListView(
+              children: [
+                _buildSectionHeader('Nearby Communities'),
+                const SizedBox(height: 13),
+                SizedBox(
+                  height: 130,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    clipBehavior: Clip.none,
+                    children: const [
+                      _CommunityTile(
+                        'GG-12',
+                        description:
+                            'GG-12 is a premium community for resource sharing, skill development, and community support.',
                       ),
-                      const SizedBox(height: 10),
-                      _buildSectionHeader('Wish Requests'),
-                      const SizedBox(height: 13),
-                      GestureDetector(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const WishRequestsScreen(),
-                          ),
-                        ),
-                        child: _buildPremiumWishCard(),
+                      _CommunityTile(
+                        'GG-13',
+                        description:
+                            'GG-13 focuses on sustainability, eco-friendly projects, and collaboration among members.',
                       ),
-                      const SizedBox(height: 20),
+                      _CommunityTile(
+                        'GG-14',
+                        description:
+                            'GG-14 is a tech-oriented community where members share knowledge and products.',
+                      ),
                     ],
                   ),
                 ),
-              ),
+                const SizedBox(height: 10),
+                _buildSectionHeader('Services'),
+                const SizedBox(height: 13),
+                Row(
+                  children: const [
+                    Expanded(
+                      child: _ServiceCard(
+                        title: 'Products',
+                        subtitle: 'Browse items',
+                        icon: Icons.shopping_cart_outlined,
+                        route: '/products',
+                      ),
+                    ),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: _ServiceCard(
+                        title: 'Resources',
+                        subtitle: 'Available resources',
+                        icon: Icons.group,
+                        route: '/resources',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                _buildSectionHeader('Wish Requests'),
+                const SizedBox(height: 13),
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const WishRequestsScreen(),
+                    ),
+                  ),
+                  child: _buildPremiumWishCard(),
+                ),
+                const SizedBox(height: 20),
+              ],
             ),
-          ],
-        );
-      },
+          ),
+        ),
+      ],
     );
   }
 
@@ -336,7 +319,7 @@ class _DashboardBodyState extends State<DashboardBody> {
 }
 
 // =========================
-// Community Tile Widget
+// Community Tile
 // =========================
 class _CommunityTile extends StatelessWidget {
   final String name;
@@ -413,7 +396,7 @@ class _CommunityTile extends StatelessWidget {
 }
 
 // =========================
-// Service Card Widget
+// Service Card
 // =========================
 class _ServiceCard extends StatelessWidget {
   final String title, subtitle, route;
