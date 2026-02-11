@@ -5,7 +5,8 @@ class MemberProfile {
   final String email;
   final String joinedDate;
   final String avatarUrl;
-  final double rating; // ⭐ Added rating field
+  final double buyerRating; // ⭐ Buyer rating
+  final double sellerRating; // ⭐ Seller rating
 
   MemberProfile({
     required this.name,
@@ -14,6 +15,7 @@ class MemberProfile {
     required this.email,
     required this.joinedDate,
     required this.avatarUrl,
-    required this.rating, // ⭐
+    required this.buyerRating,
+    required this.sellerRating,
   });
 }

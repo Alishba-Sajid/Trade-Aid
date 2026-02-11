@@ -14,6 +14,10 @@ class _ProfileScreenState extends State<ProfileScreen>
   late AnimationController _starController;
   late Animation<double> _starAnimation;
 
+  // Dynamic ratings
+  double buyerRating = 4.5;
+  double sellerRating = 3.5;
+
   @override
   void initState() {
     super.initState();
@@ -57,33 +61,117 @@ class _ProfileScreenState extends State<ProfileScreen>
         leading: Icon(icon, color: const Color(0xFF009688)),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
         trailing:
-            trailing ?? const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+            trailing ??
+            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
         onTap: onTap,
       ),
     );
   }
 
-  Widget _animatedStars() {
-    return ScaleTransition(
-      scale: _starAnimation,
-      child: Row(
-        children: const [
-          Icon(Icons.star, color: Colors.amber, size: 18),
-          Icon(Icons.star, color: Colors.amber, size: 18),
-          Icon(Icons.star, color: Colors.amber, size: 18),
-          Icon(Icons.star, color: Colors.amber, size: 18),
-          Icon(Icons.star_half, color: Colors.amber, size: 18),
-          SizedBox(width: 6),
-          Text(
-            "4.5",
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
+  Widget _dualRatings() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Buyer rating
+        Row(
+          children: [
+            const Text(
+              "Buyer: ",
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
             ),
-          ),
-        ],
-      ),
+            ScaleTransition(
+              scale: _starAnimation,
+              child: Row(
+                children: List.generate(5, (index) {
+                  if (buyerRating >= index + 1) {
+                    return const Icon(
+                      Icons.star,
+                      color: Colors.amber,
+                      size: 16,
+                    );
+                  } else if (buyerRating > index && buyerRating < index + 1) {
+                    return const Icon(
+                      Icons.star_half,
+                      color: Colors.amber,
+                      size: 16,
+                    );
+                  } else {
+                    return const Icon(
+                      Icons.star_outline,
+                      color: Colors.amber,
+                      size: 16,
+                    );
+                  }
+                }),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              "$buyerRating",
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 4),
+
+        // Seller rating
+        Row(
+          children: [
+            const Text(
+              "Seller: ",
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            ScaleTransition(
+              scale: _starAnimation,
+              child: Row(
+                children: List.generate(5, (index) {
+                  if (sellerRating >= index + 1) {
+                    return const Icon(
+                      Icons.star,
+                      color: Colors.amber,
+                      size: 16,
+                    );
+                  } else if (sellerRating > index && sellerRating < index + 1) {
+                    return const Icon(
+                      Icons.star_half,
+                      color: Colors.amber,
+                      size: 16,
+                    );
+                  } else {
+                    return const Icon(
+                      Icons.star_outline,
+                      color: Colors.amber,
+                      size: 16,
+                    );
+                  }
+                }),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              "$sellerRating",
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -173,7 +261,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                         );
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromARGB(255, 30, 149, 125),
+                        backgroundColor: const Color.fromARGB(
+                          255,
+                          30,
+                          149,
+                          125,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -210,8 +303,8 @@ class _ProfileScreenState extends State<ProfileScreen>
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-               Color.fromARGB(255, 15, 119, 124),
-              Color.fromARGB(255, 17, 158, 144),
+                  Color.fromARGB(255, 15, 119, 124),
+                  Color.fromARGB(255, 17, 158, 144),
                 ],
               ),
             ),
@@ -269,12 +362,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                               ),
                             ),
                             const SizedBox(height: 4),
-                            _animatedStars(),
+                            _dualRatings(),
                             const SizedBox(height: 4),
-                            const Text(
-                              "alishba@email.com",
-                              style: TextStyle(color: Colors.grey),
-                            ),
                           ],
                         ),
                       ],
@@ -292,13 +381,15 @@ class _ProfileScreenState extends State<ProfileScreen>
                           context,
                           icon: Icons.person,
                           title: "Personal Details",
-                          onTap: () => Navigator.pushNamed(context, "/personal_details"),
+                          onTap: () =>
+                              Navigator.pushNamed(context, "/personal_details"),
                         ),
                         _menuTile(
                           context,
                           icon: Icons.lock,
                           title: "Change Password",
-                          onTap: () => Navigator.pushNamed(context, "/change_password"),
+                          onTap: () =>
+                              Navigator.pushNamed(context, "/change_password"),
                         ),
                         _menuTile(
                           context,
@@ -330,13 +421,15 @@ class _ProfileScreenState extends State<ProfileScreen>
                           context,
                           icon: Icons.block,
                           title: "Blocked Users",
-                          onTap: () => Navigator.pushNamed(context, "/blocked_users"),
-                        ),                       
+                          onTap: () =>
+                              Navigator.pushNamed(context, "/blocked_users"),
+                        ),
                         _menuTile(
                           context,
                           icon: Icons.description_outlined,
                           title: "Terms & Conditions",
-                          onTap: () => Navigator.pushNamed(context, "/terms_conditions"),
+                          onTap: () =>
+                              Navigator.pushNamed(context, "/terms_conditions"),
                         ),
                       ],
                     ),

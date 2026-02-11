@@ -6,7 +6,6 @@ import '/models/member_profile.dart';
 import '/services/member_profile.dart';
 
 /* ===================== GRADIENT ===================== */
-
 const LinearGradient appGradient = LinearGradient(
   colors: [Color(0xFF2E9499), Color(0xFF119E90)],
   begin: Alignment.topLeft,
@@ -14,7 +13,6 @@ const LinearGradient appGradient = LinearGradient(
 );
 
 /* ===================== MEMBER PROFILE SCREEN ===================== */
-
 class MemberProfileScreen extends StatefulWidget {
   const MemberProfileScreen({super.key});
 
@@ -24,7 +22,6 @@ class MemberProfileScreen extends StatefulWidget {
 
 class _MemberProfileScreenState extends State<MemberProfileScreen> {
   final MemberProfileService _service = MemberProfileService();
-
   late Future<MemberProfile> _profileFuture;
 
   @override
@@ -97,15 +94,13 @@ class _MemberProfileScreenState extends State<MemberProfileScreen> {
   }
 
   /* ====================== HEADER ====================== */
-
-  Widget _buildPremiumHeader(
-      BuildContext context, MemberProfile profile) {
+  Widget _buildPremiumHeader(BuildContext context, MemberProfile profile) {
     return Stack(
       alignment: Alignment.topCenter,
       clipBehavior: Clip.none,
       children: [
         Container(
-          height: 220,
+          height: 210,
           width: double.infinity,
           decoration: const BoxDecoration(
             gradient: appGradient,
@@ -116,7 +111,7 @@ class _MemberProfileScreenState extends State<MemberProfileScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Column(
                 children: [
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 5),
 
                   // 🔹 BACK BUTTON + TITLE ROW
                   Row(
@@ -146,7 +141,7 @@ class _MemberProfileScreenState extends State<MemberProfileScreen> {
         ),
 
         Positioned(
-          top: 130,
+          top: 120,
           child: Column(
             children: [
               Container(
@@ -160,7 +155,7 @@ class _MemberProfileScreenState extends State<MemberProfileScreen> {
                   backgroundImage: NetworkImage(profile.avatarUrl),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 13),
               Text(
                 profile.name,
                 style: const TextStyle(
@@ -179,50 +174,106 @@ class _MemberProfileScreenState extends State<MemberProfileScreen> {
               ),
               const SizedBox(height: 6),
 
-              // ⭐ RATING ROW
-              _buildRatingRow(profile.rating),
+              // ⭐ NEW RATING ROW (Buyer & Seller)
+              _buildRatingRow(profile.buyerRating, profile.sellerRating),
             ],
           ),
         ),
 
-        const SizedBox(height: 345),
+        const SizedBox(height: 374),
       ],
     );
   }
 
-  // ⭐ RATING WIDGET
-
-Widget _buildRatingRow(double rating) {
-  return Column(
-    children: [
-      Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // 4 yellow stars
-          ...List.generate(4, (index) => const Icon(
-                Icons.star,
-                color: Colors.amber,
-                size: 18,
-              )),
-          const Icon(Icons.star_half, color: Colors.amber, size: 18),
-          const SizedBox(width: 6),
-          Text(
-            "$rating/5",
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
+  Widget _buildRatingRow(double buyerRating, double sellerRating) {
+    return Column(
+      children: [
+        // Buyer
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              "Buyer: ",
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
             ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 12), // ✅ Space below stars
-    ],
-  );
-}
+            Row(
+              children: List.generate(5, (index) {
+                if (buyerRating >= index + 1)
+                  return const Icon(Icons.star, color: Colors.amber, size: 18);
+                if (buyerRating > index && buyerRating < index + 1)
+                  return const Icon(
+                    Icons.star_half,
+                    color: Colors.amber,
+                    size: 18,
+                  );
+                return const Icon(
+                  Icons.star_outline,
+                  color: Colors.amber,
+                  size: 18,
+                );
+              }),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              "$buyerRating/5",
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
 
+        const SizedBox(height: 10),
+
+        // Seller
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              "Seller: ",
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            Row(
+              children: List.generate(5, (index) {
+                if (sellerRating >= index + 1)
+                  return const Icon(Icons.star, color: Colors.amber, size: 18);
+                if (sellerRating > index && sellerRating < index + 1)
+                  return const Icon(
+                    Icons.star_half,
+                    color: Colors.amber,
+                    size: 18,
+                  );
+                return const Icon(
+                  Icons.star_outline,
+                  color: Colors.amber,
+                  size: 18,
+                );
+              }),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              "$sellerRating/5",
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 50),
+      ],
+    );
+  }
 
   /* ====================== INFO SECTION ====================== */
-
   Widget _buildInfoSection(MemberProfile profile) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -260,7 +311,10 @@ Widget _buildRatingRow(double rating) {
         ),
         child: Icon(icon, color: accent, size: 22),
       ),
-      title: Text(title, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+      title: Text(
+        title,
+        style: const TextStyle(color: Colors.grey, fontSize: 12),
+      ),
       subtitle: Text(
         value,
         style: const TextStyle(
@@ -274,7 +328,6 @@ Widget _buildRatingRow(double rating) {
 }
 
 /* ===================== ACTION BUTTON ===================== */
-
 class _ActionButton extends StatelessWidget {
   final IconData icon;
   final String label;

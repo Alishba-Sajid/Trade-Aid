@@ -74,7 +74,9 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const PostWishRequestScreen()),
+                MaterialPageRoute(
+                  builder: (_) => const PostWishRequestScreen(),
+                ),
               );
             },
             borderRadius: BorderRadius.circular(16),
