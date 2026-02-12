@@ -46,6 +46,103 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
     return true;
   }
 
+  // Delete account confirmation dialog
+  void _confirmDeleteAccount() async {
+    await showDialog<bool>(
+      context: context,
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        backgroundColor: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Delete Account",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF004D40), // dark primary
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                "Do you really want to delete your account?",
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFF004D40)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: Color(0xFF004D40),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            Color.fromARGB(255, 164, 10, 10),
+                            Color.fromARGB(255, 220, 50, 50),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context, true);
+                          Navigator.of(context).pushNamedAndRemoveUntil(
+                            '/welcome',
+                            (route) => false,
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text(
+                          'Delete',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _field(String label, TextEditingController controller, IconData icon) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -98,8 +195,8 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                   Color.fromARGB(255, 15, 119, 124),
-              Color.fromARGB(255, 17, 158, 144),
+                    Color.fromARGB(255, 15, 119, 124),
+                    Color.fromARGB(255, 17, 158, 144),
                   ],
                 ),
               ),
@@ -184,7 +281,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
               ),
             ),
 
-            // Form + button
+            // Form + buttons
             Expanded(
               child: Stack(
                 children: [
@@ -195,9 +292,9 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                       right: 16,
                       top: 20,
                       bottom: _isEditing
-                          ? keyboardHeight +
-                                0 // button height + margin
-                          : keyboardHeight + 0,
+                          ? keyboardHeight + 80
+                          : keyboardHeight +
+                                80, // leave space for delete button
                     ),
                     child: Column(
                       children: [
@@ -212,7 +309,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                   // Save Changes button pinned at bottom
                   if (_isEditing)
                     Positioned(
-                      bottom: 15,
+                      bottom: 80, // leave space for delete button
                       left: 20,
                       right: 20,
                       child: SizedBox(
@@ -232,6 +329,36 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                         ),
                       ),
                     ),
+
+                  // Delete Account button
+                  Positioned(
+                    bottom: 15,
+                    left: 20,
+                    right: 20,
+                    child: SizedBox(
+                      height: 52,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          side: const BorderSide(
+                            color: const Color.fromARGB(255, 164, 10, 10),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        onPressed: _confirmDeleteAccount,
+                        child: const Text(
+                          "Delete Account",
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: const Color.fromARGB(255, 164, 10, 10),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),

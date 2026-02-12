@@ -191,7 +191,6 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
                         ),
                       ),
                       const SizedBox(height: 20),
-
                       Row(
                         children: [
                           Expanded(
@@ -201,86 +200,105 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
                                   context: context,
                                   builder: (context) => Dialog(
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
+                                      borderRadius: BorderRadius.circular(18),
                                     ),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(24),
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
+                                    backgroundColor: Colors.white,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(20),
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Text(
                                             "Make Product Public?",
-                                            style: GoogleFonts.poppins(
+                                            style: const TextStyle(
                                               fontSize: 18,
-                                              fontWeight: FontWeight.bold,
+                                              fontWeight: FontWeight.w700,
                                               color: darkPrimary,
                                             ),
                                           ),
-                                          const SizedBox(height: 16),
+                                          const SizedBox(height: 10),
                                           Text(
                                             "Do you want to make this product public after 48 hours?",
                                             textAlign: TextAlign.center,
-                                            style: GoogleFonts.poppins(
+                                            style: const TextStyle(
                                               fontSize: 14,
-                                              color: Colors.grey[700],
+                                              color: Colors.grey,
                                             ),
                                           ),
                                           const SizedBox(height: 24),
                                           Row(
                                             children: [
                                               Expanded(
-                                                child: ElevatedButton(
-                                                  style: ElevatedButton.styleFrom(
-                                                    backgroundColor:
-                                                        Colors.grey[200],
-                                                    foregroundColor:
-                                                        darkPrimary,
-                                                    shape: RoundedRectangleBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            12,
-                                                          ),
-                                                    ),
-                                                  ),
+                                                child: OutlinedButton(
                                                   onPressed: () =>
                                                       Navigator.pop(
                                                         context,
                                                         false,
                                                       ),
-                                                  child: Text(
+                                                  style: OutlinedButton.styleFrom(
+                                                    side: const BorderSide(
+                                                      color: darkPrimary,
+                                                    ),
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            10,
+                                                          ),
+                                                    ),
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          vertical: 12,
+                                                        ),
+                                                  ),
+                                                  child: const Text(
                                                     "No",
-                                                    style: GoogleFonts.poppins(
-                                                      fontSize: 14,
+                                                    style: TextStyle(
+                                                      color: darkPrimary,
+                                                      fontWeight:
+                                                          FontWeight.w600,
                                                     ),
                                                   ),
                                                 ),
                                               ),
-                                              const SizedBox(width: 16),
+                                              const SizedBox(width: 12),
                                               Expanded(
-                                                child: ElevatedButton(
-                                                  style: ElevatedButton.styleFrom(
-                                                    backgroundColor: accentTeal,
-                                                    foregroundColor:
-                                                        Colors.white,
-                                                    shape: RoundedRectangleBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            12,
-                                                          ),
-                                                    ),
+                                                child: Container(
+                                                  decoration: BoxDecoration(
+                                                    gradient: appGradient,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          10,
+                                                        ),
                                                   ),
-                                                  onPressed: () =>
-                                                      Navigator.pop(
-                                                        context,
-                                                        true,
+                                                  child: ElevatedButton(
+                                                    onPressed: () =>
+                                                        Navigator.pop(
+                                                          context,
+                                                          true,
+                                                        ),
+                                                    style: ElevatedButton.styleFrom(
+                                                      backgroundColor:
+                                                          Colors.transparent,
+                                                      shadowColor:
+                                                          Colors.transparent,
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            vertical: 12,
+                                                          ),
+                                                      shape: RoundedRectangleBorder(
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              10,
+                                                            ),
                                                       ),
-                                                  child: Text(
-                                                    "Yes",
-                                                    style: GoogleFonts.poppins(
-                                                      fontSize: 14,
+                                                    ),
+                                                    child: const Text(
+                                                      "Yes",
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                      ),
                                                     ),
                                                   ),
                                                 ),
