@@ -1,9 +1,8 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../screens/post_wish_request.dart';
 import '../widgets/app_bar.dart';
-import '../screens/chat/chat_screen.dart'; // Import ChatScreen
+import '../screens/chat/chat_screen.dart';
 
 // 🎨 COLORS
 const LinearGradient appGradient = LinearGradient(
@@ -15,6 +14,10 @@ const LinearGradient appGradient = LinearGradient(
   end: Alignment.topRight,
 );
 
+const Color backgroundLight = Color(0xFFF4F6F9);
+const Color darkPrimary = Color(0xFF0F777C);
+const Color accentTeal = Color(0xFF119E90);
+
 class WishRequestsScreen extends StatefulWidget {
   const WishRequestsScreen({super.key});
 
@@ -23,7 +26,6 @@ class WishRequestsScreen extends StatefulWidget {
 }
 
 class _WishRequestsScreenState extends State<WishRequestsScreen> {
-  // ───────── SAMPLE DATA ─────────
   final List<Map<String, dynamic>> requests = [
     {
       'requester': 'Ali Khan',
@@ -42,7 +44,6 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
     },
   ];
 
-  // ───────── MAIN BUILD ─────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -103,158 +104,6 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
     );
   }
 
-  // ───────── "I Can Help" DIALOG ─────────
-  void _showPostDialog() {
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: 'Post',
-      barrierColor: Colors.black45,
-      transitionDuration: const Duration(milliseconds: 200),
-      pageBuilder: (_, __, ___) {
-        return BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-          child: Center(
-            child: Material(
-              color: Colors.transparent,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.25),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Create a Post',
-                        style: GoogleFonts.poppins(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: darkPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Choose what you want to share with your community',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          color: Colors.black.withOpacity(0.6),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      // Option: Post Product
-                      _PremiumPostCard(
-                        icon: Icons.shopping_bag_outlined,
-                        title: 'Post Product',
-                        subtitle: 'Sell Items',
-                        onTap: () {
-                          Navigator.pop(context);
-                          Navigator.pushNamed(context, '/product_post');
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      Divider(color: Colors.grey[300], thickness: 1),
-                      const SizedBox(height: 16),
-                      // Option: Post Resource
-                      _PremiumPostCard(
-                        icon: Icons.groups_outlined,
-                        title: 'Post Resource',
-                        subtitle: 'Resource Availability',
-                        onTap: () {
-                          Navigator.pop(context);
-                          Navigator.pushNamed(context, '/resource_post');
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // ───────── PREMIUM POST CARD ─────────
-  Widget _PremiumPostCard({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: appGradient,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2), // subtle contrast
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: Colors.white),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      color: Colors.white,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: Colors.white70,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.arrow_forward_ios,
-              size: 14,
-              color: Colors.white70,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ───────── REQUEST CARD ─────────
   Widget _buildRequestCard(Map<String, dynamic> request) {
     bool isHighUrgency = request['urgency'] == 'High';
 
@@ -277,7 +126,6 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ← Vertical urgency line
               Container(
                 width: 6,
                 color: isHighUrgency ? Colors.orangeAccent : accentTeal,
@@ -288,7 +136,6 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Requester info
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -344,11 +191,118 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
                         ),
                       ),
                       const SizedBox(height: 20),
+
                       Row(
                         children: [
                           Expanded(
                             child: ElevatedButton(
-                              onPressed: _showPostDialog,
+                              onPressed: () async {
+                                bool? makePublic = await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => Dialog(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(24),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            "Make Product Public?",
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                              color: darkPrimary,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          Text(
+                                            "Do you want to make this product public after 48 hours?",
+                                            textAlign: TextAlign.center,
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 14,
+                                              color: Colors.grey[700],
+                                            ),
+                                          ),
+                                          const SizedBox(height: 24),
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: ElevatedButton(
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor:
+                                                        Colors.grey[200],
+                                                    foregroundColor:
+                                                        darkPrimary,
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            12,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                  onPressed: () =>
+                                                      Navigator.pop(
+                                                        context,
+                                                        false,
+                                                      ),
+                                                  child: Text(
+                                                    "No",
+                                                    style: GoogleFonts.poppins(
+                                                      fontSize: 14,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 16),
+                                              Expanded(
+                                                child: ElevatedButton(
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: accentTeal,
+                                                    foregroundColor:
+                                                        Colors.white,
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            12,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                  onPressed: () =>
+                                                      Navigator.pop(
+                                                        context,
+                                                        true,
+                                                      ),
+                                                  child: Text(
+                                                    "Yes",
+                                                    style: GoogleFonts.poppins(
+                                                      fontSize: 14,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+
+                                if (makePublic == null) return;
+
+                                Navigator.pushNamed(
+                                  context,
+                                  '/product_post',
+                                  arguments: {
+                                    'makePublicAfter48Hours': makePublic,
+                                  },
+                                );
+                              },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: accentTeal.withOpacity(0.1),
                                 foregroundColor: accentTeal,
@@ -361,7 +315,7 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
                                 ),
                               ),
                               child: Text(
-                                "I Can Help",
+                                "Upload Product",
                                 style: GoogleFonts.poppins(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 13,
@@ -370,7 +324,6 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          // ← Chat Icon
                           _buildSmallIconButton(Icons.chat_bubble_outline, () {
                             Navigator.push(
                               context,
@@ -394,7 +347,6 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
     );
   }
 
-  // ───────── SMALL ICON BUTTON ─────────
   Widget _buildSmallIconButton(IconData icon, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,

@@ -68,7 +68,7 @@ class TradeAidApp extends StatelessWidget {
         '/dashboard': (_) => const DashboardScreen(),
         '/products': (_) => const ProductListingScreen(),
         '/resources': (_) => const ResourceListingScreen(),
-         '/cart': (_) => const CartScreen(),
+        '/cart': (_) => const CartScreen(),
         '/profile': (_) => const ProfileScreen(),
         '/personal_details': (_) => const PersonalDetailsScreen(),
         '/change_password': (_) => const ChangePasswordScreen(),
@@ -85,7 +85,7 @@ class TradeAidApp extends StatelessWidget {
         '/help_support': (_) => const HelpSupportScreen(),
         '/wish_request': (_) => const WishRequestsScreen(),
         '/chat_list': (_) => const ChatListScreen(),
-        '/chat_screen': (_) => const ChatScreen( sellerName: 'Seller'),
+        '/chat_screen': (_) => const ChatScreen(sellerName: 'Seller'),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/product_details') {
