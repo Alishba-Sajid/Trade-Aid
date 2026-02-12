@@ -14,8 +14,8 @@ class AppColors {
 
   static const LinearGradient appGradient = LinearGradient(
     colors: [
-     Color.fromARGB(255, 15, 119, 124),
-     Color.fromARGB(255, 17, 158, 144),
+      Color.fromARGB(255, 15, 119, 124),
+      Color.fromARGB(255, 17, 158, 144),
     ],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
@@ -97,13 +97,8 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
                     confirmText: 'Unblock',
                     isUnblock: true,
                   ),
-                  onKeepBlocked: () => _showConfirmDialog(
-                    context,
-                    title: 'Keep Blocked',
-                    message: 'Do you want to keep ${user.name} blocked?',
-                    confirmText: 'Keep Blocked',
-                    isUnblock: false,
-                  ),
+                  onKeepBlocked:
+                      () {}, // can be removed entirely if you update _BlockedUserCard constructor
                   onProfileTap: () => _showProfileDialog(context, user),
                 );
               },
@@ -115,58 +110,58 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
   }
 
   /// =======================
-/// HEADER
-/// =======================
-Widget _buildHeader(BuildContext context) {
-  return Container(
-            width: double.infinity,
-            height: 260,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color.fromARGB(255, 15, 119, 124),
-                         Color.fromARGB(255, 17, 158, 144),],
+  /// HEADER
+  /// =======================
+  Widget _buildHeader(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      height: 260,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color.fromARGB(255, 15, 119, 124),
+            Color.fromARGB(255, 17, 158, 144),
+          ],
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: 60,
+            left: 20,
+            child: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: const Icon(
+                Icons.arrow_back,
+                color: Colors.white,
+                size: 28,
               ),
             ),
-            child: Stack(
-              children: [
-                Positioned(
-                  top: 60,
-                  left: 20,
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: const Icon(
-                      Icons.arrow_back,
-                      color: Colors.white,
-                      size: 28,
-                    ),
-                  ),
+          ),
+          Positioned.fill(
+            top: 60,
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: const Text(
+                "Blocked Users",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
                 ),
-                Positioned.fill(
-                  top: 60,
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    child: const Text(
-                      "Blocked Users",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                const Positioned(
-                  bottom: 30,
-                  left: 0,
-                  right: 0,
-                  child: Icon(Icons.block, color: Colors.white, size: 100),
-                ),
-              ],
+              ),
             ),
-          );
-
-
-}
+          ),
+          const Positioned(
+            bottom: 30,
+            left: 0,
+            right: 0,
+            child: Icon(Icons.block, color: Colors.white, size: 100),
+          ),
+        ],
+      ),
+    );
+  }
 
   /// =======================
   /// CONFIRM DIALOG (DITTO)
@@ -211,7 +206,8 @@ Widget _buildHeader(BuildContext context) {
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: AppColors.darkPrimary),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                       child: const Text(
@@ -227,8 +223,7 @@ Widget _buildHeader(BuildContext context) {
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        gradient:
-                            isUnblock ? AppColors.appGradient : null,
+                        gradient: isUnblock ? AppColors.appGradient : null,
                         color: isUnblock
                             ? null
                             : const Color.fromARGB(255, 164, 10, 10),
@@ -241,7 +236,7 @@ Widget _buildHeader(BuildContext context) {
                             SnackBar(
                               content: Text(
                                 isUnblock
-                                    ?  'Unblocked successfully'
+                                    ? 'Unblocked successfully'
                                     : 'Remains blocked',
                               ),
                               backgroundColor: isUnblock
@@ -253,10 +248,10 @@ Widget _buildHeader(BuildContext context) {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
                         child: Text(
                           confirmText,
@@ -314,9 +309,11 @@ Widget _buildHeader(BuildContext context) {
                         child: CircleAvatar(
                           radius: 40,
                           backgroundColor: Colors.white,
-                          child: Icon(Icons.person,
-                              size: 45,
-                              color: AppColors.accentTeal),
+                          child: Icon(
+                            Icons.person,
+                            size: 45,
+                            color: AppColors.accentTeal,
+                          ),
                         ),
                       ),
                     ),
@@ -350,15 +347,16 @@ Widget _buildHeader(BuildContext context) {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.location_on,
-                                  size: 16,
-                                  color: AppColors.darkPrimary),
+                              const Icon(
+                                Icons.location_on,
+                                size: 16,
+                                color: AppColors.darkPrimary,
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 data.location,
                                 style: TextStyle(
-                                  color: AppColors.darkPrimary
-                                      .withOpacity(0.7),
+                                  color: AppColors.darkPrimary.withOpacity(0.7),
                                 ),
                               ),
                             ],
@@ -373,14 +371,17 @@ Widget _buildHeader(BuildContext context) {
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               padding: const EdgeInsets.symmetric(
-                                  vertical: 10, horizontal: 50),
+                                vertical: 10,
+                                horizontal: 50,
+                              ),
                             ),
                             child: const Text(
                               'Close',
                               style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold),
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
@@ -439,8 +440,7 @@ class _BlockedUserCard extends StatelessWidget {
                   const CircleAvatar(
                     radius: 26,
                     backgroundColor: AppColors.subtleGrey,
-                    child: Icon(Icons.person,
-                        color: AppColors.accentTeal),
+                    child: Icon(Icons.person, color: AppColors.accentTeal),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -450,18 +450,21 @@ class _BlockedUserCard extends StatelessWidget {
                         Text(
                           data.name,
                           style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.darkPrimary),
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.darkPrimary,
+                          ),
                         ),
                         Row(
                           children: [
-                            const Icon(Icons.location_on,
-                                size: 14, color: Colors.grey),
+                            const Icon(
+                              Icons.location_on,
+                              size: 14,
+                              color: Colors.grey,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               data.location,
-                              style:
-                                  TextStyle(color: Colors.grey[600]),
+                              style: TextStyle(color: Colors.grey[600]),
                             ),
                           ],
                         ),
@@ -474,26 +477,7 @@ class _BlockedUserCard extends StatelessWidget {
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: onKeepBlocked,
-                    style: OutlinedButton.styleFrom(
-                      side:
-                          const BorderSide(color: Colors.redAccent),
-                      shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(10)),
-                      padding:
-                          const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: const Text(
-                      'Keep Blocked',
-                      style:
-                          TextStyle(color: Colors.redAccent),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 200),
                 Expanded(
                   child: Container(
                     decoration: BoxDecoration(
@@ -505,17 +489,17 @@ class _BlockedUserCard extends StatelessWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(10)),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                       child: const Text(
                         'Unblock',
                         style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold),
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
