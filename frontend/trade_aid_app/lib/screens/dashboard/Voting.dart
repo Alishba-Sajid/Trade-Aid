@@ -26,11 +26,24 @@ class _VotingScreenState extends State<VotingScreen> {
 
     setState(() {
       candidates = [
-        Candidate(name: 'Hania B.', location: 'Gulberg Greens', trustScore: 4.8),
-        Candidate(name: 'Ahmed R.', location: 'Bahria Town', trustScore: 4.5),
-        Candidate(name: 'Fatima K.', location: 'DHA Phase 2', trustScore: 4.9),
-         Candidate(name: 'Hala R.', location: 'Bahria Town', trustScore: 4.5),
-        Candidate(name: 'Hameed K.', location: 'DHA Phase 2', trustScore: 4.9),
+        Candidate(
+          name: 'Hania B.',
+          location: 'Gulberg Greens',
+          sellerRating: 4.7,
+          buyerRating: 4.5,
+        ),
+        Candidate(
+          name: 'Ahmed R.',
+          location: 'Bahria Town',
+          sellerRating: 4.2,
+          buyerRating: 4.4,
+        ),
+        Candidate(
+          name: 'Fatima K.',
+          location: 'DHA Phase 2',
+          sellerRating: 4.9,
+          buyerRating: 4.8,
+        ),
       ];
       isLoading = false;
     });
@@ -49,7 +62,6 @@ class _VotingScreenState extends State<VotingScreen> {
     );
   }
 
-  // HEADER 
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.all(15),
@@ -58,8 +70,8 @@ class _VotingScreenState extends State<VotingScreen> {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-      "Select one trusted nominee to be the Admin of your community.\n"
-      "Once you vote, your vote cannot be changed.",
+        "Select one trusted nominee to be the Admin of your community.\n"
+        "Once you vote, your vote cannot be changed.",
         style: GoogleFonts.poppins(
           color: Colors.white,
           fontSize: 14,
@@ -82,20 +94,14 @@ class _VotingScreenState extends State<VotingScreen> {
   }
 
   Widget _buildBody() {
-    if (isLoading) {
-      return _LoadingSkeleton();
-    }
-
-    if (candidates.isEmpty) {
-      return _EmptyState();
-    }
+    if (isLoading) return _LoadingSkeleton();
+    if (candidates.isEmpty) return _EmptyState();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(25, 14, 25, 14),
       children: [
         _buildHeader(),
         const SizedBox(height: 14),
-
         ...List.generate(candidates.length, (index) {
           return _CandidateCard(
             candidate: candidates[index],
@@ -164,33 +170,34 @@ class _CandidateCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          candidate.name,
-                          style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 17,
-                            color: dark,
-                          ),
-                        ),
+                        Text(candidate.name,
+                            style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 17,
+                                color: dark)),
                         const SizedBox(height: 4),
                         Row(
                           children: [
                             const Icon(Icons.location_on_outlined,
                                 size: 14, color: Colors.grey),
                             const SizedBox(width: 4),
-                            Text(
-                              candidate.location,
-                              style: GoogleFonts.poppins(
-                                fontSize: 13,
-                                color: Colors.black45,
-                              ),
-                            ),
+                            Text(candidate.location,
+                                style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    color: Colors.black45)),
                           ],
                         ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            _RatingMini("Seller", candidate.sellerRating),
+                            const SizedBox(width: 10),
+                            _RatingMini("Buyer", candidate.buyerRating),
+                          ],
+                        )
                       ],
                     ),
                   ),
-                  _ScoreBadge(score: candidate.trustScore),
                 ],
               ),
             ),
@@ -207,7 +214,47 @@ class _CandidateCard extends StatelessWidget {
 }
 
 /* =========================
-   SUB COMPONENTS
+   MINI RATING TAG
+========================= */
+
+class _RatingMini extends StatelessWidget {
+  final String label;
+  final double rating;
+
+  const _RatingMini(this.label, this.rating);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: light,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Text(label,
+              style: GoogleFonts.poppins(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: darkPrimary)),
+          const SizedBox(width: 4),
+          const Icon(Icons.star_rounded,
+              size: 12, color: Color(0xFFFFA000)),
+          const SizedBox(width: 2),
+          Text(rating.toString(),
+              style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: dark)),
+        ],
+      ),
+    );
+  }
+}
+
+/* =========================
+   COMMON WIDGETS
 ========================= */
 
 class _Avatar extends StatelessWidget {
@@ -222,38 +269,6 @@ class _Avatar extends StatelessWidget {
       ),
       child: const Icon(Icons.person_outline,
           color: Colors.white, size: 30),
-    );
-  }
-}
-
-class _ScoreBadge extends StatelessWidget {
-  final double score;
-
-  const _ScoreBadge({required this.score});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: light,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.star_rounded,
-              color: Color(0xFFFFA000), size: 18),
-          const SizedBox(width: 4),
-          Text(
-            score.toString(),
-            style: GoogleFonts.poppins(
-              fontWeight: FontWeight.w700,
-              fontSize: 13,
-              color: darkPrimary,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -315,17 +330,12 @@ class _VoteButton extends StatelessWidget {
   }
 }
 
-/* =========================
-   STATES
-========================= */
-
 class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Text("No candidates available",
-          style: GoogleFonts.poppins()),
-    );
+        child: Text("No candidates available",
+            style: GoogleFonts.poppins()));
   }
 }
 

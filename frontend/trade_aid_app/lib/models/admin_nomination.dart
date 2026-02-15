@@ -1,11 +1,13 @@
 class Candidate {
   final String name;
   final String location;
-  final double trustScore;
+  final double sellerRating;
+  final double buyerRating;
 
-  Candidate({
+  const Candidate({
     required this.name,
     required this.location,
-    required this.trustScore,
+    required this.sellerRating,
+    required this.buyerRating,
   });
 }

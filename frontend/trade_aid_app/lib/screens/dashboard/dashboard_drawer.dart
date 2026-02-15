@@ -6,7 +6,9 @@ import '../welcome_screen.dart';
 import '../pending_request.dart';
 import '../help&support.dart';
 import 'Voting.dart';
-
+import 'member_management.dart';
+import 'view_complaints.dart';
+import 'roundtable.dart';
 // 🌿 Color Palette
 const LinearGradient appGradient = LinearGradient(
   colors: [
@@ -292,26 +294,30 @@ class DashboardDrawer extends StatelessWidget {
                     );
                   },
                 ),
-
-                // 🔹 Admin Only Options
-                if (isAdmin) ...[
-                  _DrawerTile(
-                    icon: Icons.people_alt_outlined,
-                    title: 'Manage Community',
-                    onTap: () {},
+   _DrawerTile(
+                    icon: Icons.table_bar,
+                    title: 'Community Roundtable',
+                    onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const CommunityRoundtableScreen( isAdmin: true,)),
+                    );
+                  },
                   ),
                   _DrawerTile(
-                    icon: Icons.receipt_long_outlined,
-                    title: 'Total Orders',
-                    onTap: () {},
-                  ),
-                  _DrawerTile(
-                    icon: Icons.report_problem_outlined,
-                    title: 'Complaints',
-                    onTap: () {},
-                  ),
-                
-                ],
+                  icon: Icons.help_rounded,
+                  title: 'Help & Support',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const HelpSupportScreen()),
+                    );
+                  },
+                ),
                 _DrawerTile(
                   icon: Icons.how_to_vote_rounded,
                   title: 'Cast Your Vote',
@@ -324,18 +330,36 @@ class DashboardDrawer extends StatelessWidget {
                     );
                   },
                 ),
-                _DrawerTile(
-                  icon: Icons.help_rounded,
-                  title: 'Help & Support',
-                  onTap: () {
+                // 🔹 Admin Only Options
+                if (isAdmin) ...[
+                  _DrawerTile(
+                    icon: Icons.people_alt_outlined,
+                    title: 'Community Members',
+                    onTap: () {
                     Navigator.pop(context);
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (_) => const HelpSupportScreen()),
+                        builder: (_) => const MemberManagementScreen(),
+                      ),
                     );
                   },
-                ),
+                  ),
+               
+                  _DrawerTile(
+                    icon: Icons.report_problem_outlined,
+                    title: 'Users Complaints',
+                    onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const AdminComplaintsScreen()),
+                    );
+                  },
+                  ),
+                                    ],
+                             
               ],
             ),
           ),

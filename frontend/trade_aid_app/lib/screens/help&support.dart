@@ -31,7 +31,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
 
   String? _selectedCategory;
   File? _attachedImage;
-  final List<String> _categories = ['Products', 'Resources'];
+  final List<String> _categories = ['Products', 'Resources','Others'];
 
   final HelpSupportService _service = HelpSupportService();
 
