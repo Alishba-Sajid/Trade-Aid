@@ -23,7 +23,7 @@ const Color light = Color(0xFFE0F2F1);
 class DashboardScreen extends StatefulWidget {
   final bool isAdmin; // added for role-based
 
-  const DashboardScreen({super.key, this.isAdmin = true}); // default to true for testing
+  const DashboardScreen({super.key, this.isAdmin = false}); // default to true for testing
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();

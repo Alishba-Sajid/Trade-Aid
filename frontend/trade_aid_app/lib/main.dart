@@ -1,6 +1,6 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
-
+import 'package:supabase_flutter/supabase_flutter.dart';
 // screens
 import 'screens/splash_screen.dart';
 import 'screens/welcome_screen.dart';
@@ -38,7 +38,15 @@ import 'screens/chat/chat_screen.dart';
 import 'models/product.dart';
 import 'models/resource.dart';
 
-void main() {
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized(); // important!
+  
+  await Supabase.initialize(
+    url: 'https://azmwepnrdramuwabecvq.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF6bXdlcG5yZHJhbXV3YWJlY3ZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzNTY2MDYsImV4cCI6MjA4NjkzMjYwNn0.QFjRa-MsVzGLuS2iyu7SQNi4hO62qURQVcD38lRBm28',
+  );
+
   runApp(const TradeAidApp());
 }
 
