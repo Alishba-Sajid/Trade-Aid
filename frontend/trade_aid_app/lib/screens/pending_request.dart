@@ -1,16 +1,14 @@
-import 'dart:convert'; //ignore: unused_import
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http; //ignore: unused_import
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// =======================
-/// PREMIUM COLOR PALETTE
+/// COLORS
 /// =======================
 class AppColors {
   static const Color darkPrimary = Color(0xFF004D40);
   static const Color backgroundLight = Color(0xFFF0F9F8);
   static const Color accentTeal = Color(0xFF119E90);
-  static const Color subtleGrey = Color(0xFFE0E0E0);
 
   static const LinearGradient appGradient = LinearGradient(
     colors: [
@@ -23,26 +21,20 @@ class AppColors {
 }
 
 /// =======================
-/// MODEL FOR USER REQUEST
+/// MODEL
 /// =======================
 class UserRequest {
+  final String id;
   final String name;
   final String location;
   final double rating;
 
   UserRequest({
+    required this.id,
     required this.name,
     required this.location,
     required this.rating,
   });
-
-  factory UserRequest.fromJson(Map<String, dynamic> json) {
-    return UserRequest(
-      name: json['name'] ?? '',
-      location: json['location'] ?? '',
-      rating: (json['rating'] ?? 0).toDouble(),
-    );
-  }
 }
 
 /// =======================
@@ -57,31 +49,129 @@ class PendingRequestsScreen extends StatefulWidget {
 
 class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
   List<UserRequest> requests = [];
+  bool loading = true;
 
   @override
   void initState() {
     super.initState();
-    // Dummy data for now
-    requests = [
-      UserRequest(name: 'Ahmed Khan', location: 'House245, Gulberg, Lahore', rating: 4.5),
-      UserRequest(name: 'Sara Ali', location: 'House246, Gulberg, Lahore', rating: 5.0),
-    ];
-    // fetchRequests(); // Uncomment when backend is ready
+    fetchRequests();
   }
 
-  // Example API fetch (uncomment when ready)
-  /*
+  /// =======================
+  /// FETCH PENDING REQUESTS (JOINED)
+  /// =======================
   Future<void> fetchRequests() async {
-    final response = await http.get(Uri.parse('https://yourapi.com/requests'));
-    if (response.statusCode == 200) {
-      final List data = jsonDecode(response.body);
+    setState(() => loading = true);
+
+    try {
+      final supabase = Supabase.instance.client;
+      final user = supabase.auth.currentUser;
+
+      if (user == null) {
+        setState(() {
+          requests = [];
+          loading = false;
+        });
+        return;
+      }
+
+      final userId = user.id;
+
+      // 1️⃣ Get communities owned by this user
+      final ownedCommunities = await supabase
+          .from('communities')
+          .select('id')
+          .eq('creator_id', userId);
+
+      final communityIds = (ownedCommunities as List)
+          .map((e) => e['id'].toString())
+          .toList();
+
+      debugPrint('Owned community IDs: $communityIds');
+
+      if (communityIds.isEmpty) {
+        setState(() {
+          requests = [];
+          loading = false;
+        });
+        return;
+      }
+
+      // 2️⃣ Fetch pending requests with profile info
+      final pendingRequests = await supabase
+          .from('community_requests')
+          .select(
+            'id, status, created_at, user_id, profiles!inner(full_name, address)',
+          )
+          .filter(
+            'community_id',
+            'in',
+            communityIds,
+          ) // ✅ pass List<String> directly
+          .eq('status', 'pending');
+
+      debugPrint('Pending requests raw: $pendingRequests');
+
+      final List<UserRequest> tempRequests = [];
+
+      for (var req in pendingRequests) {
+        tempRequests.add(
+          UserRequest(
+            id: req['id'].toString(),
+            name: req['profiles']['full_name'] ?? 'Unknown',
+            location: req['profiles']['address'] ?? '',
+            rating: 0,
+          ),
+        );
+      }
+
       setState(() {
-        requests = data.map((e) => UserRequest.fromJson(e)).toList();
+        requests = tempRequests;
+        loading = false;
+      });
+    } catch (e, st) {
+      debugPrint('Error fetching requests: $e\n$st');
+      setState(() {
+        requests = [];
+        loading = false;
       });
     }
   }
-  */
 
+  /// =======================
+  /// UPDATE REQUEST STATUS
+  /// =======================
+  Future<void> updateRequestStatus(String requestId, bool accept) async {
+    try {
+      await Supabase.instance.client
+          .from('community_requests')
+          .update({'status': accept ? 'approved' : 'rejected'})
+          .eq('id', requestId);
+
+      fetchRequests();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(accept ? 'Request accepted' : 'Request rejected'),
+          backgroundColor: accept
+              ? AppColors.accentTeal
+              : const Color.fromARGB(255, 164, 10, 10),
+        ),
+      );
+    } catch (e) {
+      debugPrint('Error updating request status: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to update request'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
+  }
+
+  /// =======================
+  /// UI
+  /// =======================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -89,62 +179,51 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
       body: Column(
         children: [
           _buildHeader(context),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-              itemCount: requests.length,
-              itemBuilder: (context, index) {
-                final request = requests[index];
-                return _RequestCard(
-                  data: request,
-                  onAccept: () => _showConfirmDialog(
-                    context,
-                    title: 'Accept Request',
-                    message: 'Do you really want to accept ${request.name} request?',
-                    confirmText: 'Accept',
-                    isAccept: true,
-                  ),
-                  onReject: () => _showConfirmDialog(
-                    context,
-                    title: 'Reject Request',
-                    message: 'Do you really want to reject ${request.name} request?',
-                    confirmText: 'Reject',
-                    isAccept: false,
-                  ),
-                  onProfileTap: () => _showProfileDialog(context, request),
-                );
-              },
-            ),
-          ),
+          loading
+              ? const Expanded(
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              : Expanded(
+                  child: requests.isEmpty
+                      ? const Center(child: Text('No pending requests'))
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 20,
+                          ),
+                          itemCount: requests.length,
+                          itemBuilder: (context, index) {
+                            final request = requests[index];
+                            return _RequestCard(
+                              data: request,
+                              onAccept: () =>
+                                  updateRequestStatus(request.id, true),
+                              onReject: () =>
+                                  updateRequestStatus(request.id, false),
+                              onProfileTap: () =>
+                                  _showProfileDialog(context, request),
+                            );
+                          },
+                        ),
+                ),
         ],
       ),
     );
   }
 
-  /// =======================
-  /// HEADER (GRADIENT APP BAR)
-  /// =======================
   Widget _buildHeader(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        gradient: AppColors.appGradient,
-      ),
+      decoration: const BoxDecoration(gradient: AppColors.appGradient),
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // 🔙 Back Button
               IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(
-                  Icons.arrow_back,
-                  color: Colors.white,
-                ),
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
               ),
-
-              // 🏷 Heading
               const Text(
                 'Pending Requests',
                 style: TextStyle(
@@ -153,111 +232,7 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-
-              // Placeholder for spacing to keep title centered
               const SizedBox(width: 48),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showConfirmDialog(
-    BuildContext context, {
-    required String title,
-    required String message,
-    required String confirmText,
-    required bool isAccept,
-  }) {
-    showDialog(
-      context: context,
-      builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        backgroundColor: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.darkPrimary,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 14),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.darkPrimary),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: const Text(
-                        'Cancel',
-                        style: TextStyle(
-                          color: AppColors.darkPrimary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: isAccept ? null : const Color.fromARGB(255, 164, 10, 10),
-                        gradient: isAccept ? AppColors.appGradient : null,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                isAccept
-                                    ? 'Request accepted successfully'
-                                    : 'Request rejected successfully',
-                              ),
-                              backgroundColor: isAccept
-                                  ? AppColors.accentTeal
-                                  : const Color.fromARGB(255, 164, 10, 10),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                        ),
-                        child: Text(
-                          confirmText,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
             ],
           ),
         ),
@@ -273,22 +248,15 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
         backgroundColor: Colors.transparent,
         child: Stack(
           children: [
-            // Blur background
             BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
               child: Container(color: Colors.transparent),
             ),
-            // Centered dialog
             Center(
               child: Container(
                 decoration: const BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    topRight: Radius.circular(20),
-                    bottomLeft: Radius.circular(20),
-                    bottomRight: Radius.circular(20),
-                  ),
+                  borderRadius: BorderRadius.all(Radius.circular(20)),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -306,8 +274,11 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
                         child: CircleAvatar(
                           radius: 40,
                           backgroundColor: Colors.white,
-                          child: Icon(Icons.person,
-                              size: 45, color: AppColors.accentTeal),
+                          child: Icon(
+                            Icons.person,
+                            size: 45,
+                            color: AppColors.accentTeal,
+                          ),
                         ),
                       ),
                     ),
@@ -341,8 +312,11 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.location_on,
-                                  size: 16, color: AppColors.darkPrimary),
+                              const Icon(
+                                Icons.location_on,
+                                size: 16,
+                                color: AppColors.darkPrimary,
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 data.location,
@@ -356,19 +330,23 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
                           ElevatedButton(
                             onPressed: () => Navigator.pop(context),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.appGradient.colors.first,
+                              backgroundColor:
+                                  AppColors.appGradient.colors.first,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               padding: const EdgeInsets.symmetric(
-                                  vertical: 10, horizontal: 50),
+                                vertical: 10,
+                                horizontal: 50,
+                              ),
                             ),
                             child: const Text(
                               'Close',
                               style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold),
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
@@ -426,7 +404,7 @@ class _RequestCard extends StatelessWidget {
                 children: [
                   const CircleAvatar(
                     radius: 26,
-                    backgroundColor: AppColors.subtleGrey,
+                    backgroundColor: Color(0xFFE0E0E0),
                     child: Icon(Icons.person, color: AppColors.accentTeal),
                   ),
                   const SizedBox(width: 12),
@@ -437,13 +415,17 @@ class _RequestCard extends StatelessWidget {
                         Text(
                           data.name,
                           style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.darkPrimary),
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.darkPrimary,
+                          ),
                         ),
                         Row(
                           children: [
-                            const Icon(Icons.location_on,
-                                size: 14, color: Colors.grey),
+                            const Icon(
+                              Icons.location_on,
+                              size: 14,
+                              color: Colors.grey,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               data.location,
@@ -462,15 +444,28 @@ class _RequestCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: onReject,
+                    onPressed: () {
+                      _showConfirmDialog(
+                        context,
+                        title: 'Reject Request',
+                        message:
+                            'Do you really want to reject ${data.name} request?',
+                        confirmText: 'Reject',
+                        isAccept: false,
+                        onConfirm: onReject,
+                      );
+                    },
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Colors.redAccent),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: const Text('Decline',
-                        style: TextStyle(color: Colors.redAccent)),
+                    child: const Text(
+                      'Decline',
+                      style: TextStyle(color: Colors.redAccent),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -481,18 +476,31 @@ class _RequestCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: ElevatedButton(
-                      onPressed: onAccept,
+                      onPressed: () {
+                        _showConfirmDialog(
+                          context,
+                          title: 'Accept Request',
+                          message:
+                              'Do you really want to accept ${data.name} request?',
+                          confirmText: 'Accept',
+                          isAccept: true,
+                          onConfirm: onAccept,
+                        );
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                       child: const Text(
                         'Accept',
                         style: TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.bold),
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
@@ -500,6 +508,102 @@ class _RequestCard extends StatelessWidget {
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showConfirmDialog(
+    BuildContext context, {
+    required String title,
+    required String message,
+    required String confirmText,
+    required bool isAccept,
+    required VoidCallback onConfirm,
+  }) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        backgroundColor: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.darkPrimary,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppColors.darkPrimary),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: AppColors.darkPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isAccept
+                            ? null
+                            : const Color.fromARGB(255, 164, 10, 10),
+                        gradient: isAccept ? AppColors.appGradient : null,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          onConfirm();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: Text(
+                          confirmText,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

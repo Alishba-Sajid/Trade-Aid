@@ -1,6 +1,8 @@
-import 'package:flutter/material.dart';
+// lib/screens/create_profile.dart
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CreateProfileScreen extends StatefulWidget {
   const CreateProfileScreen({super.key});
@@ -18,11 +20,14 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
 
   String? _selectedGender;
   File? _profileImage;
+  String? imageUrl;
   bool _loading = false;
 
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
+
+  final supabase = Supabase.instance.client;
 
   @override
   void initState() {
@@ -54,11 +59,70 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final pickedImage = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedImage != null) {
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
       setState(() {
-        _profileImage = File(pickedImage.path);
+        _profileImage = File(pickedFile.path);
       });
+    }
+  }
+
+  Future<void> _saveProfile() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _loading = true);
+
+    try {
+      final userId = supabase.auth.currentUser!.id;
+      String? uploadedImageUrl;
+
+      // 🔹 Upload profile image if selected
+      if (_profileImage != null) {
+        final bucket = 'profile-images'; // your Supabase bucket name
+        final filePath = 'users/$userId-profile.jpg';
+
+        // Upload the file
+        await supabase.storage
+            .from(bucket)
+            .upload(
+              filePath,
+              _profileImage!,
+              fileOptions: const FileOptions(upsert: true),
+            );
+
+        // Get public URL
+        uploadedImageUrl = supabase.storage.from(bucket).getPublicUrl(filePath);
+      }
+
+      // 🔹 Insert profile data into 'profiles' table
+      await supabase.from('profiles').insert({
+        'id': userId, // usually the same as auth user id
+        'full_name': _nameController.text.trim(),
+        'gender': _selectedGender,
+        'phone': _phoneController.text.trim(),
+        'address': _addressController.text.trim(),
+        'profile_image_url': uploadedImageUrl ?? '',
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Profile created successfully 🎉"),
+          backgroundColor: Colors.teal,
+        ),
+      );
+
+      // Navigate to the next screen
+      Navigator.pushNamed(context, '/location_permission');
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error saving profile: $e"),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      setState(() => _loading = false);
     }
   }
 
@@ -84,20 +148,16 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
               ),
             ),
           ),
-
           SingleChildScrollView(
             child: Column(
               children: [
                 const SizedBox(height: 40),
-
                 Image.asset(
                   'assets/whitenamelogo.png',
                   height: 130,
                   width: 130,
                 ),
-
                 const SizedBox(height: 20),
-
                 FadeTransition(
                   opacity: _fadeAnim,
                   child: SlideTransition(
@@ -105,7 +165,6 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
                     child: _buildFormCard(context),
                   ),
                 ),
-
                 const SizedBox(height: 40),
               ],
             ),
@@ -145,7 +204,6 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
               style: TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 16),
-
             Center(
               child: GestureDetector(
                 onTap: _pickImage,
@@ -161,9 +219,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
                 ),
               ),
             ),
-
             const SizedBox(height: 16),
-
             _buildField(
               controller: _nameController,
               label: "Full Name",
@@ -171,9 +227,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
               validator: (value) =>
                   value!.isEmpty ? "Please enter your name" : null,
             ),
-
             const SizedBox(height: 16),
-
             DropdownButtonFormField<String>(
               value: _selectedGender,
               items: const [
@@ -193,9 +247,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
               validator: (value) =>
                   value == null ? "Please select your gender" : null,
             ),
-
             const SizedBox(height: 16),
-
             _buildField(
               controller: _phoneController,
               label: "Phone Number",
@@ -211,9 +263,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
                 return null;
               },
             ),
-
             const SizedBox(height: 16),
-
             _buildField(
               controller: _addressController,
               label: "Address",
@@ -221,20 +271,12 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
               validator: (value) =>
                   value!.isEmpty ? "Please enter your address" : null,
             ),
-
             const SizedBox(height: 24),
-
             SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: _loading
-                    ? null
-                    : () {
-                        if (_formKey.currentState!.validate()) {
-                          Navigator.pushNamed(context, '/location_permission');
-                        }
-                      },
+                onPressed: _loading ? null : _saveProfile,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color.fromARGB(255, 17, 158, 144),
                   shape: RoundedRectangleBorder(

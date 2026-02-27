@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'create_community.dart';
+import 'create_community.dart'; // Your community creation screen
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SelectCommunityScreen extends StatefulWidget {
   const SelectCommunityScreen({super.key});
@@ -9,33 +10,58 @@ class SelectCommunityScreen extends StatefulWidget {
 }
 
 class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
-  bool noCommunitiesNearby = true; // Change dynamically
-  bool fromChangeLocation = false;
+  final supabase = Supabase.instance.client;
+  List<Map<String, dynamic>> nearbyCommunities = [];
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final args =
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    if (args != null) {
-      final double distance = args['distance'] ?? 0.0;
-      fromChangeLocation = args['fromChangeLocation'] ?? false;
 
-      // Logic: if changing location, check distance to previous
-      if (fromChangeLocation && distance <= 2000) {
-        noCommunitiesNearby = false; // keep previous communities accessible
-      } else if (!fromChangeLocation) {
-        // first-time registration: check nearby communities
-        noCommunitiesNearby = true; // default: no nearby communities
-      } else {
-        // changing location and > 2 km
-        noCommunitiesNearby = true;
-      }
+    if (args != null) {
+      nearbyCommunities = List<Map<String, dynamic>>.from(
+        args['nearbyCommunities'] ?? [],
+      );
     }
+  }
+
+  Future<void> joinCommunity(Map<String, dynamic> community) async {
+    final userId = supabase.auth.currentUser!.id;
+
+    // Check if user already has a request
+    final existingRequest = await supabase
+        .from('community_requests')
+        .select()
+        .eq('community_id', community['id'])
+        .eq('user_id', userId)
+        .maybeSingle();
+
+    if (existingRequest != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You already requested to join this community'),
+        ),
+      );
+      return;
+    }
+
+    // Insert join request with status 'pending'
+    await supabase.from('community_requests').insert({
+      'community_id': community['id'],
+      'user_id': userId,
+      'status': 'pending',
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Request sent to join ${community['name']}')),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    bool noCommunitiesNearby = nearbyCommunities.isEmpty;
+
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -55,12 +81,15 @@ class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
               const SizedBox(height: 150),
+
               const Icon(
                 Icons.location_city_rounded,
                 size: 120,
                 color: Colors.white,
               ),
+
               const SizedBox(height: 20),
+
               const Text(
                 'Select Your Community',
                 style: TextStyle(
@@ -72,7 +101,9 @@ class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
                 ),
                 textAlign: TextAlign.center,
               ),
+
               const SizedBox(height: 8),
+
               Text(
                 noCommunitiesNearby
                     ? 'No communities found near your location.'
@@ -86,10 +117,71 @@ class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 60),
+
+              const SizedBox(height: 40),
+
+              // Show communities if exist
+              if (!noCommunitiesNearby)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    elevation: 3,
+                    color: Colors.white,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: nearbyCommunities.map((community) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  community['name'],
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () => joinCommunity(community),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.teal,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'Join',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                ),
+
+              // Show Create Community button only if no communities nearby
               if (noCommunitiesNearby)
                 SizedBox(
-                  width: 260,
+                  width: 220,
                   child: ElevatedButton.icon(
                     onPressed: () {
                       Navigator.push(
@@ -106,7 +198,7 @@ class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
                     label: const Text(
                       'Create Community',
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -119,39 +211,6 @@ class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
                         borderRadius: BorderRadius.circular(15),
                       ),
                     ),
-                  ),
-                )
-              else
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: 5, // Replace with actual community list
-                    itemBuilder: (context, index) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 40,
-                          vertical: 8,
-                        ),
-                        child: ElevatedButton(
-                          onPressed: () {},
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Colors.teal,
-                            elevation: 3,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                          ),
-                          child: Text(
-                            'Community ${index + 1}',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
                   ),
                 ),
             ],

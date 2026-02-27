@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LocationPermissionScreen extends StatefulWidget {
   const LocationPermissionScreen({super.key});
@@ -18,6 +19,7 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen>
   late final Animation<Offset> _slideAnim;
 
   bool fromChangeLocation = false;
+  final supabase = Supabase.instance.client;
 
   @override
   void initState() {
@@ -54,10 +56,8 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen>
     super.dispose();
   }
 
-  /// Custom SnackBar
   void _showSnackBar(String message, {Color backgroundColor = Colors.teal}) {
     if (!mounted) return;
-
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -85,10 +85,7 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen>
 
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      _showSnackBar(
-        'Please turn on GPS location of your device',
-        backgroundColor: Colors.redAccent,
-      );
+      _showSnackBar('Please turn on GPS', backgroundColor: Colors.redAccent);
       setState(() => _isLoading = false);
       return;
     }
@@ -105,81 +102,48 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen>
 
     if (permission == LocationPermission.deniedForever) {
       _showSnackBar(
-        'Permission permanently denied. Enable in settings.',
-        backgroundColor: const Color.fromARGB(255, 80, 188, 173),
+        'Permission permanently denied',
+        backgroundColor: Colors.amber,
       );
       setState(() => _isLoading = false);
       return;
     }
 
-    // Get new location
-    Position newLocation = await Geolocator.getCurrentPosition(
+    Position userLocation = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high,
     );
 
-    double distanceInMeters = 0.0;
+    // Fetch communities from Supabase
+    await supabase.from('communities').select().maybeSingle();
 
-    if (fromChangeLocation) {
-      // Only calculate distance if changing location
-      final double prevLat = 33.6844; // replace with saved previous location
-      final double prevLon = 73.0479;
+    // Manually filter by distance (Haversine formula)
+    final communitiesResponse = await supabase.from('communities').select();
+    final List<Map<String, dynamic>> communities =
+        List<Map<String, dynamic>>.from(communitiesResponse);
 
-      distanceInMeters = Geolocator.distanceBetween(
-        prevLat,
-        prevLon,
-        newLocation.latitude,
-        newLocation.longitude,
+    // Filter communities within 1 km
+    List<Map<String, dynamic>> nearbyCommunities = communities.where((
+      community,
+    ) {
+      final double lat = community['latitude'];
+      final double lon = community['longitude'];
+      final distance = Geolocator.distanceBetween(
+        userLocation.latitude,
+        userLocation.longitude,
+        lat,
+        lon,
       );
-
-      // Determine message and color
-      final bool within2km = distanceInMeters <= 2000;
-      final String distanceMessage = within2km
-          ? 'You are within 2 km of your previous location. Previous communities are accessible.'
-          : 'You are more than 2 km away from your previous location. Previous communities may not be accessible.';
-
-      final Color snackBarColor = within2km ? Colors.teal : Colors.amber[700]!;
-
-      // Show beautiful SnackBar
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(
-                  within2km ? Icons.check_circle : Icons.warning_amber_rounded,
-                  color: Colors.white,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    distanceMessage,
-                    style: const TextStyle(fontSize: 16, color: Colors.white),
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: snackBarColor,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            elevation: 6,
-            duration: const Duration(seconds: 4),
-          ),
-        );
-      }
-    }
+      return distance <= 1000; // 1 km
+    }).toList();
 
     setState(() => _isLoading = false);
 
-    // Navigate to SelectCommunityScreen
     Navigator.pushReplacementNamed(
       context,
       '/select_community',
       arguments: {
-        'distance': distanceInMeters,
-        'newLocation': newLocation,
-        'fromChangeLocation': fromChangeLocation,
+        'newLocation': userLocation,
+        'nearbyCommunities': nearbyCommunities,
       },
     );
   }
@@ -191,6 +155,7 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen>
       body: SingleChildScrollView(
         child: Column(
           children: [
+            // Your UI stays exactly the same
             Container(
               height: 290,
               width: double.infinity,

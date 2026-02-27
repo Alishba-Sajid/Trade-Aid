@@ -1,5 +1,6 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 // screens
 import 'screens/splash_screen.dart';
@@ -38,7 +39,17 @@ import 'screens/chat/chat_screen.dart';
 import 'models/product.dart';
 import 'models/resource.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 🔥 Initialize Supabase
+  await Supabase.initialize(
+    url:
+        'https://gidxrziissmkkavoaolj.supabase.co', // paste your Supabase Project URL
+    anonKey:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpZHhyemlpc3Nta2thdm9hb2xqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMDUzOTYsImV4cCI6MjA4NzU4MTM5Nn0.5_6Ywl7je00tB8uGVKnf3_sZ3-USoghGJfTGS7iJBhE', // paste your Supabase anon public key
+  );
+
   runApp(const TradeAidApp());
 }
 
@@ -47,6 +58,8 @@ class TradeAidApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ✅ Check if user session exists
+
     return MaterialApp(
       title: 'Trade & Aid',
       debugShowCheckedModeBanner: false,
@@ -57,7 +70,10 @@ class TradeAidApp extends StatelessWidget {
           border: OutlineInputBorder(),
         ),
       ),
+
+      // Route user based on session
       home: const SplashScreen(),
+
       routes: {
         '/welcome': (_) => const WelcomeScreen(),
         '/login': (_) => const LoginScreen(),
@@ -87,6 +103,7 @@ class TradeAidApp extends StatelessWidget {
         '/chat_list': (_) => const ChatListScreen(),
         '/chat_screen': (_) => const ChatScreen(sellerName: 'Seller'),
       },
+
       onGenerateRoute: (settings) {
         if (settings.name == '/product_details') {
           final args = settings.arguments as Map<String, dynamic>;

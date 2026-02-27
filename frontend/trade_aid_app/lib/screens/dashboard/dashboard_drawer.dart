@@ -9,6 +9,7 @@ import 'Voting.dart';
 import 'member_management.dart';
 import 'view_complaints.dart';
 import 'roundtable.dart';
+
 // 🌿 Color Palette
 const LinearGradient appGradient = LinearGradient(
   colors: [
@@ -267,6 +268,7 @@ class DashboardDrawer extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               children: [
+                // ✅ Pending Requests - Fixed
                 _DrawerTile(
                   icon: Icons.person_add_alt_1_rounded,
                   title: 'Pending Requests',
@@ -294,19 +296,21 @@ class DashboardDrawer extends StatelessWidget {
                     );
                   },
                 ),
-   _DrawerTile(
-                    icon: Icons.table_bar,
-                    title: 'Community Roundtable',
-                    onTap: () {
+                _DrawerTile(
+                  icon: Icons.table_bar,
+                  title: 'Community Roundtable',
+                  onTap: () {
                     Navigator.pop(context);
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (_) => const CommunityRoundtableScreen( isAdmin: true,)),
+                        builder: (_) =>
+                            const CommunityRoundtableScreen(isAdmin: true),
+                      ),
                     );
                   },
-                  ),
-                  _DrawerTile(
+                ),
+                _DrawerTile(
                   icon: Icons.help_rounded,
                   title: 'Help & Support',
                   onTap: () {
@@ -314,7 +318,8 @@ class DashboardDrawer extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (_) => const HelpSupportScreen()),
+                        builder: (_) => const HelpSupportScreen(),
+                      ),
                     );
                   },
                 ),
@@ -325,8 +330,7 @@ class DashboardDrawer extends StatelessWidget {
                     Navigator.pop(context);
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                          builder: (_) => const VotingScreen()),
+                      MaterialPageRoute(builder: (_) => const VotingScreen()),
                     );
                   },
                 ),
@@ -336,30 +340,29 @@ class DashboardDrawer extends StatelessWidget {
                     icon: Icons.people_alt_outlined,
                     title: 'Community Members',
                     onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const MemberManagementScreen(),
-                      ),
-                    );
-                  },
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const MemberManagementScreen(),
+                        ),
+                      );
+                    },
                   ),
-               
                   _DrawerTile(
                     icon: Icons.report_problem_outlined,
                     title: 'Users Complaints',
                     onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const AdminComplaintsScreen()),
-                    );
-                  },
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AdminComplaintsScreen(),
+                        ),
+                      );
+                    },
                   ),
-                                    ],
-                             
+                ],
               ],
             ),
           ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/social_auth_section.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -72,13 +73,32 @@ class _LoginScreenState extends State<LoginScreen>
 
     setState(() => _loading = true);
 
-    await Future.delayed(const Duration(milliseconds: 900));
+    try {
+      final response = await Supabase.instance.client.auth.signInWithPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
 
-    if (!mounted) return;
-    setState(() => _loading = false);
+      final user = response.user;
 
-    if (!mounted) return;
-    Navigator.pushReplacementNamed(context, '/dashboard');
+      if (user != null) {
+        if (!mounted) return;
+
+        Navigator.pushReplacementNamed(context, '/dashboard');
+      }
+    } on AuthException catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Login failed")));
+    }
+
+    if (mounted) {
+      setState(() => _loading = false);
+    }
   }
 
   @override

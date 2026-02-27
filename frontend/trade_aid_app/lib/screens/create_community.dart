@@ -1,6 +1,7 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:geolocator/geolocator.dart';
 
 class CreateCommunityScreen extends StatefulWidget {
   const CreateCommunityScreen({super.key});
@@ -12,8 +13,11 @@ class CreateCommunityScreen extends StatefulWidget {
 class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
+  final supabase = Supabase.instance.client;
 
-  void _createCommunity() {
+  bool _isLoading = false;
+
+  Future<void> _createCommunity() async {
     final name = _nameController.text.trim();
     final desc = _descController.text.trim();
 
@@ -27,148 +31,166 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
       return;
     }
 
-    // Generate random 6-digit community ID
-    final randomId = Random().nextInt(900000) + 100000;
-    final inviteLink = "https://tradeaid.app/community/$randomId";
+    setState(() => _isLoading = true);
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Top icon
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.teal.withOpacity(0.1),
-                  shape: BoxShape.circle,
+    try {
+      // Get user location
+      Position userLocation = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      // Insert community into Supabase
+      final response = await supabase
+          .from('communities')
+          .insert({
+            'name': name,
+            'description': desc,
+            'latitude': userLocation.latitude,
+            'longitude': userLocation.longitude,
+            'creator_id': supabase.auth.currentUser!.id,
+            'created_at': DateTime.now().toIso8601String(),
+          })
+          .select()
+          .single();
+
+      final communityId = response['id'];
+      final inviteLink = "https://tradeaid.app/community/$communityId";
+
+      // Show success dialog with invite link
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.teal.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check_circle_outline,
+                    color: Colors.teal,
+                    size: 50,
+                  ),
                 ),
-                child: const Icon(
-                  Icons.check_circle_outline,
-                  color: Colors.teal,
-                  size: 50,
+                const SizedBox(height: 20),
+                const Text(
+                  "Community Created!",
+                  style: TextStyle(
+                    color: Colors.teal,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Title
-              const Text(
-                "Community Created!",
-                style: TextStyle(
-                  color: Colors.teal,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
+                const SizedBox(height: 12),
+                const Text(
+                  "Your community has been created successfully.",
+                  style: TextStyle(fontSize: 16, color: Colors.black87),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 12),
-
-              // Description
-              const Text(
-                "Your community has been created successfully.",
-                style: TextStyle(fontSize: 16, color: Colors.black87),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 20),
-
-              // Invite Link Container
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.teal.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: SelectableText(
-                        inviteLink,
-                        style: const TextStyle(
-                          color: Colors.teal,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.teal.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: SelectableText(
+                          inviteLink,
+                          style: const TextStyle(
+                            color: Colors.teal,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                          ),
                         ),
                       ),
-                    ),
-                    IconButton(
-                      onPressed: () {
-                        Clipboard.setData(ClipboardData(text: inviteLink));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Row(
-                              children: const [
-                                Icon(Icons.copy, color: Colors.white),
-                                SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    "Link copied to clipboard",
-                                    style: TextStyle(color: Colors.white),
+                      IconButton(
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: inviteLink));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Row(
+                                children: const [
+                                  Icon(Icons.copy, color: Colors.white),
+                                  SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      "Link copied to clipboard",
+                                      style: TextStyle(color: Colors.white),
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
+                              backgroundColor: Colors.teal,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              duration: Duration(seconds: 2),
                             ),
-                            backgroundColor: Colors.teal,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.copy, color: Colors.teal),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 25),
-
-              // Go to Dashboard Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    Navigator.pushReplacementNamed(
-                      context,
-                      '/dashboard',
-                      arguments: {'communityName': name},
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                          );
+                        },
+                        icon: const Icon(Icons.copy, color: Colors.teal),
+                      ),
+                    ],
                   ),
-                  child: const Text(
-                    "Go to Dashboard",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                ),
+                const SizedBox(height: 25),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      Navigator.pushReplacementNamed(
+                        context,
+                        '/dashboard',
+                        arguments: {'communityName': name},
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      "Go to Dashboard",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to create community: $e')));
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -182,10 +204,8 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 35),
-
               Image.asset('assets/logomain.png', height: 100),
               const SizedBox(height: 70),
-
               const Text(
                 "Create Your Community",
                 style: TextStyle(
@@ -200,7 +220,6 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
                 style: TextStyle(color: Colors.black54),
               ),
               const SizedBox(height: 40),
-
               TextField(
                 controller: _nameController,
                 decoration: InputDecoration(
@@ -211,7 +230,6 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-
               TextField(
                 controller: _descController,
                 maxLines: 3,
@@ -223,11 +241,10 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
                 ),
               ),
               const SizedBox(height: 30),
-
               SizedBox(
                 width: 260,
                 child: ElevatedButton(
-                  onPressed: _createCommunity,
+                  onPressed: _isLoading ? null : _createCommunity,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.teal,
                     foregroundColor: Colors.white,
@@ -236,10 +253,12 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    "Create Community",
-                    style: TextStyle(fontSize: 16),
-                  ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          "Create Community",
+                          style: TextStyle(fontSize: 16),
+                        ),
                 ),
               ),
             ],
