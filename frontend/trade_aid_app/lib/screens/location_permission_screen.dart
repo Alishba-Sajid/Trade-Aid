@@ -83,69 +83,73 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen>
   Future<void> _requestLocationPermission() async {
     setState(() => _isLoading = true);
 
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      _showSnackBar('Please turn on GPS', backgroundColor: Colors.redAccent);
-      setState(() => _isLoading = false);
-      return;
-    }
+    try {
+      // 1️⃣ Check if GPS is enabled
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        _showSnackBar('Please turn on GPS', backgroundColor: Colors.redAccent);
+        return;
+      }
 
-    LocationPermission permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.denied) {
+      // 2️⃣ Request permission
+      LocationPermission permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        _showSnackBar(
+          'Location permission denied',
+          backgroundColor: Colors.redAccent,
+        );
+        return;
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        _showSnackBar(
+          'Permission permanently denied',
+          backgroundColor: Colors.amber,
+        );
+        return;
+      }
+
+      // 3️⃣ Get current user location
+      Position userLocation = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      // 4️⃣ Fetch all communities
+      final response = await supabase.from('communities').select();
+      final List<Map<String, dynamic>> communities =
+          List<Map<String, dynamic>>.from(response);
+
+      // 5️⃣ Filter communities within 1 km radius
+      List<Map<String, dynamic>> nearbyCommunities = communities.where((c) {
+        final double lat = c['latitude'];
+        final double lon = c['longitude'];
+        final distance = Geolocator.distanceBetween(
+          userLocation.latitude,
+          userLocation.longitude,
+          lat,
+          lon,
+        );
+        return distance <= 1000; // 1 km
+      }).toList();
+
+      // 6️⃣ Navigate to select community screen
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(
+        context,
+        '/select_community',
+        arguments: {
+          'newLocation': userLocation,
+          'nearbyCommunities': nearbyCommunities,
+        },
+      );
+    } catch (e) {
       _showSnackBar(
-        'Location permission denied',
+        'Failed to get location or communities: $e',
         backgroundColor: Colors.redAccent,
       );
+    } finally {
       setState(() => _isLoading = false);
-      return;
     }
-
-    if (permission == LocationPermission.deniedForever) {
-      _showSnackBar(
-        'Permission permanently denied',
-        backgroundColor: Colors.amber,
-      );
-      setState(() => _isLoading = false);
-      return;
-    }
-
-    Position userLocation = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
-
-    // Fetch communities from Supabase
-    await supabase.from('communities').select().maybeSingle();
-
-    // Manually filter by distance (Haversine formula)
-    final communitiesResponse = await supabase.from('communities').select();
-    final List<Map<String, dynamic>> communities =
-        List<Map<String, dynamic>>.from(communitiesResponse);
-
-    // Filter communities within 1 km
-    List<Map<String, dynamic>> nearbyCommunities = communities.where((
-      community,
-    ) {
-      final double lat = community['latitude'];
-      final double lon = community['longitude'];
-      final distance = Geolocator.distanceBetween(
-        userLocation.latitude,
-        userLocation.longitude,
-        lat,
-        lon,
-      );
-      return distance <= 1000; // 1 km
-    }).toList();
-
-    setState(() => _isLoading = false);
-
-    Navigator.pushReplacementNamed(
-      context,
-      '/select_community',
-      arguments: {
-        'newLocation': userLocation,
-        'nearbyCommunities': nearbyCommunities,
-      },
-    );
   }
 
   @override
@@ -155,7 +159,6 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen>
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Your UI stays exactly the same
             Container(
               height: 290,
               width: double.infinity,

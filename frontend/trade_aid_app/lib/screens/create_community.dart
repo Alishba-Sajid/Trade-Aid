@@ -34,12 +34,41 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Get user location
+      final user = supabase.auth.currentUser;
+
+      if (user == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("You must be logged in to create a community"),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // 🔹 Ensure profile exists
+      final profile = await supabase
+          .from('profiles')
+          .select()
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+      if (profile == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Please create your profile first"),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
+      // 🔹 Get user location
       Position userLocation = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
 
-      // Insert community into Supabase
+      // 🔹 Insert community
       final response = await supabase
           .from('communities')
           .insert({
@@ -47,16 +76,25 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
             'description': desc,
             'latitude': userLocation.latitude,
             'longitude': userLocation.longitude,
-            'creator_id': supabase.auth.currentUser!.id,
+            'creator_id': user.id, // MUST match profiles.user_id
             'created_at': DateTime.now().toIso8601String(),
           })
           .select()
           .single();
 
       final communityId = response['id'];
+
+      // 🔹 Add creator to community_members
+      await supabase.from('community_members').insert({
+        'community_id': communityId,
+        'user_id': user.id, // MUST match profiles.user_id
+        'role': 'creator',
+        'joined_at': DateTime.now().toIso8601String(),
+      });
+
       final inviteLink = "https://tradeaid.app/community/$communityId";
 
-      // Show success dialog with invite link
+      // 🔹 Show success dialog
       showDialog(
         context: context,
         barrierDismissible: false,
