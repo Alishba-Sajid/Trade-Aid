@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'dashboard_body.dart';
 import 'dashboard_drawer.dart';
@@ -22,15 +23,29 @@ const Color light = Color(0xFFE0F2F1);
 
 class DashboardScreen extends StatefulWidget {
   final bool isAdmin; // added for role-based
-
   const DashboardScreen({super.key, this.isAdmin = false}); // default to true for testing
-
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkLoggedInUser();
+  }
+
+  void _checkLoggedInUser() {
+    final user = Supabase.instance.client.auth.currentUser;
+
+    if (user != null) {
+      print("✅ Logged in as: ${user.id}");
+    } else {
+      print("❌ No user logged in");
+    }
+  }
 
   void _onBottomTap(int index) {
     if (index == 1 || index == 2 || index == 3 || index == 4) {
@@ -206,7 +221,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Chat'),
           BottomNavigationBarItem(icon: Icon(Icons.add_box), label: 'Post'),
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: 'Cart'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.shopping_cart),
+            label: 'Cart',
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),

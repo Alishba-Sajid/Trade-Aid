@@ -1,4 +1,6 @@
+// lib/screens/create_account.dart
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/social_auth_section.dart';
 
 class CreateAccountScreen extends StatefulWidget {
@@ -22,10 +24,13 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isLoading = false;
 
   late AnimationController _animController;
-  late Animation<double> _fadeAnim;
-  late Animation<Offset> _slideAnim;
+  Animation<double>? _fadeAnim;
+  Animation<Offset>? _slideAnim;
+
+  final supabase = Supabase.instance.client; // ✅ Supabase client
 
   @override
   void initState() {
@@ -68,9 +73,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
 
   String? _validatePassword(String? v) {
     if (v == null || v.trim().isEmpty) return 'Password is required';
-    if (v.trim().length < 6) {
-      return 'Password must be at least 6 characters';
-    }
+    if (v.trim().length < 6) return 'Password must be at least 6 characters';
     return null;
   }
 
@@ -79,9 +82,52 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
     return null;
   }
 
-  void _onNextPressed() {
+  Future<void> _onNextPressed() async {
     if (!_formKey.currentState!.validate()) return;
-    Navigator.pushNamed(context, '/create_profile');
+
+    setState(() => _isLoading = true);
+
+    try {
+      final response = await supabase.auth.signUp(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      if (response.user != null) {
+        // ✅ Success
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Account created successfully 🎉"),
+            backgroundColor: Colors.teal,
+          ),
+        );
+
+        Navigator.pushNamed(context, '/create_profile');
+      } else if (response.session == null) {
+        // Email confirmation might be required
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Check your email for verification link before logging in.",
+            ),
+            backgroundColor: Colors.teal,
+          ),
+        );
+      }
+    } on AuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message), backgroundColor: Colors.redAccent),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Unexpected error occurred"),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -106,7 +152,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
               ),
             ),
           ),
-
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
@@ -115,21 +160,21 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
                 child: Column(
                   children: [
                     const SizedBox(height: 15),
-
-                    // 🏷 Logo
                     Image.asset(
                       'assets/whitenamelogo.png',
                       height: 130,
                       width: 130,
                     ),
-
                     const SizedBox(height: 30),
-
-                    // 🎬 Animated Card
                     FadeTransition(
-                      opacity: _fadeAnim,
+                      opacity: _fadeAnim ?? const AlwaysStoppedAnimation(1.0),
                       child: SlideTransition(
-                        position: _slideAnim,
+                        position:
+                            _slideAnim ??
+                            Tween<Offset>(
+                              begin: Offset.zero,
+                              end: Offset.zero,
+                            ).animate(_animController),
                         child: Container(
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
@@ -159,8 +204,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
                                 style: TextStyle(color: Colors.grey),
                               ),
                               const SizedBox(height: 30),
-
-                              // Email
                               _buildField(
                                 controller: _emailController,
                                 focusNode: _emailFocus,
@@ -173,10 +216,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
                                   ).requestFocus(_passwordFocus);
                                 },
                               ),
-
                               const SizedBox(height: 20),
-
-                              // Password
                               _buildField(
                                 controller: _passwordController,
                                 focusNode: _passwordFocus,
@@ -201,10 +241,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
                                   ).requestFocus(_confirmPasswordFocus);
                                 },
                               ),
-
                               const SizedBox(height: 20),
-
-                              // Confirm Password
                               _buildField(
                                 controller: _confirmPasswordController,
                                 focusNode: _confirmPasswordFocus,
@@ -226,15 +263,12 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
                                 ),
                                 onSubmit: _onNextPressed,
                               ),
-
                               const SizedBox(height: 30),
-
-                              // Next Button
                               SizedBox(
                                 width: double.infinity,
                                 height: 50,
                                 child: ElevatedButton(
-                                  onPressed: _onNextPressed,
+                                  onPressed: _isLoading ? null : _onNextPressed,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color.fromARGB(
                                       255,
@@ -246,24 +280,23 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                   ),
-                                  child: const Text(
-                                    "Next",
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
+                                  child: _isLoading
+                                      ? const CircularProgressIndicator(
+                                          color: Colors.white,
+                                        )
+                                      : const Text(
+                                          "Next",
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
                                 ),
                               ),
-
                               const SizedBox(height: 20),
-
-                              // 🌐 Social signup
-                              const SizedBox(height: 20),
-
                               const SocialAuthSection(
-                                title: "Or sign up using social media",
+                                title: "Or continue with",
                               ),
                             ],
                           ),
@@ -280,7 +313,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
     );
   }
 
-  // 🧱 Input Field Builder
   Widget _buildField({
     required TextEditingController controller,
     required FocusNode focusNode,
