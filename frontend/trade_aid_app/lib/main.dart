@@ -38,7 +38,10 @@ import 'screens/chat/chat_screen.dart';
 import 'models/product.dart';
 import 'models/resource.dart';
 
-
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const TradeAidApp());
+}
 
 class TradeAidApp extends StatelessWidget {
   const TradeAidApp({super.key});
