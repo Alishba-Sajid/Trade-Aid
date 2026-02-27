@@ -74,15 +74,15 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
     setState(() => _loading = true);
 
     try {
-      final userId = supabase.auth.currentUser!.id;
+      final user = supabase.auth.currentUser; // current logged-in user
+      if (user == null) throw 'User not logged in';
+
       String? uploadedImageUrl;
 
-      // 🔹 Upload profile image if selected
+      // Upload profile image if selected
       if (_profileImage != null) {
-        final bucket = 'profile-images'; // your Supabase bucket name
-        final filePath = 'users/$userId-profile.jpg';
-
-        // Upload the file
+        final bucket = 'profile-images';
+        final filePath = 'users/${user.id}-profile.jpg';
         await supabase.storage
             .from(bucket)
             .upload(
@@ -90,14 +90,12 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
               _profileImage!,
               fileOptions: const FileOptions(upsert: true),
             );
-
-        // Get public URL
         uploadedImageUrl = supabase.storage.from(bucket).getPublicUrl(filePath);
       }
 
-      // 🔹 Insert profile data into 'profiles' table
+      // Insert profile into 'profiles' table
       await supabase.from('profiles').insert({
-        'id': userId, // usually the same as auth user id
+        'user_id': user.id, // must match auth.users.id
         'full_name': _nameController.text.trim(),
         'gender': _selectedGender,
         'phone': _phoneController.text.trim(),
@@ -112,7 +110,6 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
         ),
       );
 
-      // Navigate to the next screen
       Navigator.pushNamed(context, '/location_permission');
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

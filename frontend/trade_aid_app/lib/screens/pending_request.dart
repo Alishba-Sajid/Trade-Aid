@@ -2,9 +2,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// =======================
-/// COLORS
-/// =======================
 class AppColors {
   static const Color darkPrimary = Color(0xFF004D40);
   static const Color backgroundLight = Color(0xFFF0F9F8);
@@ -20,26 +17,24 @@ class AppColors {
   );
 }
 
-/// =======================
-/// MODEL
-/// =======================
 class UserRequest {
   final String id;
   final String name;
   final String location;
   final double rating;
+  final String communityId;
+  final String requesterId;
 
   UserRequest({
     required this.id,
     required this.name,
     required this.location,
     required this.rating,
+    required this.communityId,
+    required this.requesterId,
   });
 }
 
-/// =======================
-/// PENDING REQUESTS SCREEN
-/// =======================
 class PendingRequestsScreen extends StatefulWidget {
   const PendingRequestsScreen({super.key});
 
@@ -50,6 +45,9 @@ class PendingRequestsScreen extends StatefulWidget {
 class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
   List<UserRequest> requests = [];
   bool loading = true;
+  bool actionInProgress = false;
+
+  final supabase = Supabase.instance.client;
 
   @override
   void initState() {
@@ -57,16 +55,10 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
     fetchRequests();
   }
 
-  /// =======================
-  /// FETCH PENDING REQUESTS (JOINED)
-  /// =======================
   Future<void> fetchRequests() async {
     setState(() => loading = true);
-
     try {
-      final supabase = Supabase.instance.client;
       final user = supabase.auth.currentUser;
-
       if (user == null) {
         setState(() {
           requests = [];
@@ -87,8 +79,6 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
           .map((e) => e['id'].toString())
           .toList();
 
-      debugPrint('Owned community IDs: $communityIds');
-
       if (communityIds.isEmpty) {
         setState(() {
           requests = [];
@@ -99,18 +89,12 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
 
       // 2️⃣ Fetch pending requests with profile info
       final pendingRequests = await supabase
-          .from('community_requests')
+          .from('community_join_requests')
           .select(
-            'id, status, created_at, user_id, profiles!inner(full_name, address)',
+            'id, status, created_at, requester_id, community_id, requester:profiles(full_name, address)',
           )
-          .filter(
-            'community_id',
-            'in',
-            communityIds,
-          ) // ✅ pass List<String> directly
+          .filter('community_id', 'in', communityIds)
           .eq('status', 'pending');
-
-      debugPrint('Pending requests raw: $pendingRequests');
 
       final List<UserRequest> tempRequests = [];
 
@@ -118,9 +102,11 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
         tempRequests.add(
           UserRequest(
             id: req['id'].toString(),
-            name: req['profiles']['full_name'] ?? 'Unknown',
-            location: req['profiles']['address'] ?? '',
+            name: req['requester']['full_name'] ?? 'Unknown',
+            location: req['requester']['address'] ?? '',
             rating: 0,
+            communityId: req['community_id'],
+            requesterId: req['requester_id'],
           ),
         );
       }
@@ -138,106 +124,116 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
     }
   }
 
-  /// =======================
-  /// UPDATE REQUEST STATUS
-  /// =======================
-  Future<void> updateRequestStatus(String requestId, bool accept) async {
+  Future<void> approveRequest(UserRequest req) async {
+    if (actionInProgress) return;
+    setState(() => actionInProgress = true);
+
     try {
-      await Supabase.instance.client
-          .from('community_requests')
-          .update({'status': accept ? 'approved' : 'rejected'})
-          .eq('id', requestId);
+      final userId = supabase.auth.currentUser!.id;
 
-      fetchRequests();
+      // Check if already voted
+      final voteCheck = await supabase
+          .from('request_votes')
+          .select()
+          .eq('request_id', req.id)
+          .eq('voter_id', userId)
+          .maybeSingle();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(accept ? 'Request accepted' : 'Request rejected'),
-          backgroundColor: accept
-              ? AppColors.accentTeal
-              : const Color.fromARGB(255, 164, 10, 10),
-        ),
-      );
+      if (voteCheck != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('You already voted for this request')),
+        );
+        return;
+      }
+
+      // Insert vote
+      await supabase.from('request_votes').insert({
+        'request_id': req.id,
+        'voter_id': userId,
+        'vote': 'approve',
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      // Check approval threshold
+      final members = await supabase
+          .from('community_members')
+          .select()
+          .eq('community_id', req.communityId);
+
+      final totalMembers = members.length;
+      final votes = await supabase
+          .from('request_votes')
+          .select()
+          .eq('request_id', req.id);
+
+      final approvedVotes = votes.length;
+
+      if (totalMembers > 0 && approvedVotes / totalMembers >= 0.5) {
+        // Add user to community
+        await supabase.from('community_members').insert({
+          'community_id': req.communityId,
+          'user_id': req.requesterId,
+          'role': 'member',
+          'joined_at': DateTime.now().toIso8601String(),
+        });
+
+        // Update request status
+        await supabase
+            .from('community_join_requests')
+            .update({'status': 'approved'})
+            .eq('id', req.id);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('User added to community!'),
+            backgroundColor: AppColors.accentTeal,
+          ),
+        );
+      }
+
+      await fetchRequests();
     } catch (e) {
-      debugPrint('Error updating request status: $e');
+      debugPrint('Error approving request: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Failed to update request'),
+          content: Text('Failed to approve request'),
           backgroundColor: Colors.redAccent,
         ),
       );
+    } finally {
+      setState(() => actionInProgress = false);
     }
   }
 
-  /// =======================
-  /// UI
-  /// =======================
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
-      body: Column(
-        children: [
-          _buildHeader(context),
-          loading
-              ? const Expanded(
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              : Expanded(
-                  child: requests.isEmpty
-                      ? const Center(child: Text('No pending requests'))
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 20,
-                          ),
-                          itemCount: requests.length,
-                          itemBuilder: (context, index) {
-                            final request = requests[index];
-                            return _RequestCard(
-                              data: request,
-                              onAccept: () =>
-                                  updateRequestStatus(request.id, true),
-                              onReject: () =>
-                                  updateRequestStatus(request.id, false),
-                              onProfileTap: () =>
-                                  _showProfileDialog(context, request),
-                            );
-                          },
-                        ),
-                ),
-        ],
-      ),
-    );
-  }
+  Future<void> rejectRequest(UserRequest req) async {
+    if (actionInProgress) return;
+    setState(() => actionInProgress = true);
 
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(gradient: AppColors.appGradient),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-              ),
-              const Text(
-                'Pending Requests',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(width: 48),
-            ],
-          ),
+    try {
+      await supabase
+          .from('community_join_requests')
+          .update({'status': 'rejected'})
+          .eq('id', req.id);
+
+      await fetchRequests();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Request rejected'),
+          backgroundColor: Colors.redAccent,
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      debugPrint('Error rejecting request: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to reject request'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      setState(() => actionInProgress = false);
+    }
   }
 
   void _showProfileDialog(BuildContext context, UserRequest data) {
@@ -361,22 +357,88 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
       ),
     );
   }
+
+  Widget _buildHeader(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(gradient: AppColors.appGradient),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+              ),
+              const Text(
+                'Pending Requests',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(width: 48),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.backgroundLight,
+      body: Column(
+        children: [
+          _buildHeader(context),
+          loading
+              ? const Expanded(
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              : Expanded(
+                  child: requests.isEmpty
+                      ? const Center(child: Text('No pending requests'))
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 20,
+                          ),
+                          itemCount: requests.length,
+                          itemBuilder: (context, index) {
+                            final req = requests[index];
+                            return _RequestCard(
+                              data: req,
+                              onAccept: () => approveRequest(req),
+                              onReject: () => rejectRequest(req),
+                              onProfileTap: () =>
+                                  _showProfileDialog(context, req),
+                              actionInProgress: actionInProgress,
+                            );
+                          },
+                        ),
+                ),
+        ],
+      ),
+    );
+  }
 }
 
-/// =======================
-/// REQUEST CARD
-/// =======================
 class _RequestCard extends StatelessWidget {
   final UserRequest data;
   final VoidCallback onAccept;
   final VoidCallback onReject;
   final VoidCallback onProfileTap;
+  final bool actionInProgress;
 
   const _RequestCard({
     required this.data,
     required this.onAccept,
     required this.onReject,
     required this.onProfileTap,
+    required this.actionInProgress,
   });
 
   @override
@@ -444,17 +506,7 @@ class _RequestCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () {
-                      _showConfirmDialog(
-                        context,
-                        title: 'Reject Request',
-                        message:
-                            'Do you really want to reject ${data.name} request?',
-                        confirmText: 'Reject',
-                        isAccept: false,
-                        onConfirm: onReject,
-                      );
-                    },
+                    onPressed: actionInProgress ? null : onReject,
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Colors.redAccent),
                       shape: RoundedRectangleBorder(
@@ -476,17 +528,7 @@ class _RequestCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: ElevatedButton(
-                      onPressed: () {
-                        _showConfirmDialog(
-                          context,
-                          title: 'Accept Request',
-                          message:
-                              'Do you really want to accept ${data.name} request?',
-                          confirmText: 'Accept',
-                          isAccept: true,
-                          onConfirm: onAccept,
-                        );
-                      },
+                      onPressed: actionInProgress ? null : onAccept,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
@@ -495,115 +537,28 @@ class _RequestCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      child: const Text(
-                        'Accept',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      child: actionInProgress
+                          ? const SizedBox(
+                              height: 16,
+                              width: 16,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              'Accept',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                   ),
                 ),
               ],
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  void _showConfirmDialog(
-    BuildContext context, {
-    required String title,
-    required String message,
-    required String confirmText,
-    required bool isAccept,
-    required VoidCallback onConfirm,
-  }) {
-    showDialog(
-      context: context,
-      builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        backgroundColor: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.darkPrimary,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 14),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.darkPrimary),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: const Text(
-                        'Cancel',
-                        style: TextStyle(
-                          color: AppColors.darkPrimary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: isAccept
-                            ? null
-                            : const Color.fromARGB(255, 164, 10, 10),
-                        gradient: isAccept ? AppColors.appGradient : null,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          onConfirm();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        child: Text(
-                          confirmText,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
         ),
       ),
     );
