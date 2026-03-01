@@ -95,8 +95,6 @@ class TradeAidApp extends StatelessWidget {
         '/verify-code': (_) => const VerifyCodeScreen(),
         '/new-password': (_) => const NewPasswordScreen(),
         '/notifications': (_) => const NotificationsScreen(),
-        '/product_post': (_) => const ProductPostScreen(),
-        '/resource_post': (_) => const ResourcePostScreen(),
         '/blocked_users': (_) => const BlockedUsersScreen(),
         '/help_support': (_) => const HelpSupportScreen(),
         '/wish_request': (_) => const WishRequestsScreen(),
@@ -105,6 +103,17 @@ class TradeAidApp extends StatelessWidget {
       },
 
       onGenerateRoute: (settings) {
+        if (settings.name == '/product_post') {
+          final communityId = settings.arguments as String;
+
+          return MaterialPageRoute(
+            builder: (_) => ProductPostScreen(
+              communityId: communityId,
+            ),
+            settings: settings,
+          );
+        }
+
         if (settings.name == '/product_details') {
           final args = settings.arguments as Map<String, dynamic>;
           return MaterialPageRoute(
@@ -114,6 +123,16 @@ class TradeAidApp extends StatelessWidget {
           );
         }
 
+      if (settings.name == '/resource_post') {
+          final communityId = settings.arguments as String;
+
+          return MaterialPageRoute(
+            builder: (_) => ResourcePostScreen(
+              communityId: communityId,
+            ),
+            settings: settings,
+          );
+        }
         if (settings.name == '/resource_details') {
           final args = settings.arguments as Map<String, dynamic>;
           return MaterialPageRoute(

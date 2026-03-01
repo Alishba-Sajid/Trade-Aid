@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// 🌿 Premium Industrial Color Palette
 const LinearGradient appGradient = LinearGradient(
   colors: [
     Color.fromARGB(255, 15, 119, 124),
@@ -18,7 +18,9 @@ const Color accentTeal = Color(0xFF119E90);
 const Color subtleGrey = Color(0xFFF2F2F2);
 
 class ProductPostScreen extends StatefulWidget {
-  const ProductPostScreen({super.key});
+  final String communityId;
+
+  const ProductPostScreen({super.key, required this.communityId});
 
   @override
   State<ProductPostScreen> createState() => _ProductPostScreenState();
@@ -45,23 +47,22 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
     '9 months',
     '> 1 year',
   ];
+
   final List<String> _conditionOptions = ['New', 'Best', 'Good', 'Average'];
   final List<String> _productCategories = ['Lifestyle', 'Essential'];
 
   // ---------------- IMAGE HANDLING ----------------
+
   Future<void> _pickImage(int slot) async {
     FocusScope.of(context).unfocus();
-    final XFile? picked = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 80,
-    );
+    final picked =
+        await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
     if (picked != null) setState(() => _images[slot] = picked);
   }
 
   void _removeImage(int slot) => setState(() => _images[slot] = null);
 
   void _showImageOptions(int index) {
-    FocusScope.of(context).unfocus();
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -84,10 +85,8 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(
-                Icons.delete_outline_rounded,
-                color: Colors.redAccent,
-              ),
+              leading:
+                  const Icon(Icons.delete_outline_rounded, color: Colors.red),
               title: const Text(
                 'Remove Photo',
                 style: TextStyle(fontWeight: FontWeight.w600),
@@ -104,9 +103,10 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
   }
 
   Widget _buildImageSlot(int index) {
-    final XFile? img = _images[index];
+    final img = _images[index];
     return GestureDetector(
-      onTap: () => img == null ? _pickImage(index) : _showImageOptions(index),
+      onTap: () =>
+          img == null ? _pickImage(index) : _showImageOptions(index),
       child: Container(
         height: 150,
         decoration: BoxDecoration(
@@ -125,29 +125,39 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
             ? Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.photo_camera_outlined,
-                    size: 28,
-                    color: accentTeal.withOpacity(0.6),
-                  ),
+                  Icon(Icons.photo_camera_outlined,
+                      size: 28, color: accentTeal.withOpacity(0.6)),
                   const SizedBox(height: 6),
                   const Text(
                     'UPLOAD',
                     style: TextStyle(
-                      letterSpacing: 1.2,
-                      fontSize: 12,
-                      color: darkPrimary,
-                      fontWeight: FontWeight.bold,
-                    ),
+                        letterSpacing: 1.2,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: darkPrimary),
                   ),
                 ],
               )
             : ClipRRect(
                 borderRadius: BorderRadius.circular(14),
-                child: Image.file(
-                  File(img.path),
-                  fit: BoxFit.cover,
-                  width: double.infinity,
+                child: Stack(
+                  children: [
+                    Image.file(
+                      File(img.path),
+                      fit: BoxFit.cover,
+                      height: 150,
+                      width: double.infinity,
+                    ),
+                    Positioned.fill(
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          splashColor: Colors.white24,
+                          onTap: () => _showImageOptions(index),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
       ),
@@ -164,11 +174,17 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.blueGrey.withOpacity(0.2)),
+        borderSide: BorderSide(
+          color: Colors.blueGrey.withOpacity(0.2),
+          width: 1,
+        ),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.blueGrey.withOpacity(0.2)),
+        borderSide: BorderSide(
+          color: Colors.blueGrey.withOpacity(0.2),
+          width: 1,
+        ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -214,47 +230,17 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
                 .map((e) => PopupMenuItem<String>(value: e, child: Text(e)))
                 .toList(),
           );
+
           if (selected != null) onChanged(selected);
         },
         child: InputDecorator(
-          decoration: InputDecoration(
-            labelText: label,
-            floatingLabelBehavior: FloatingLabelBehavior.never,
-            prefixIcon: icon != null ? Icon(icon, color: accentTeal) : null,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.blueGrey.withOpacity(0.2)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.blueGrey.withOpacity(0.2)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: accentTeal.withOpacity(0.6),
-                width: 1.5,
-              ),
-            ),
-          ),
+          decoration: _modernInput(label, icon: icon),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                displayText,
-                style: const TextStyle(fontSize: 14, color: Colors.black87),
-              ),
-              const Icon(
-                Icons.keyboard_arrow_down_rounded,
-                size: 20,
-                color: Colors.grey,
-              ),
+              Text(displayText, style: const TextStyle(fontSize: 14)),
+              const Icon(Icons.keyboard_arrow_down_rounded,
+                  size: 20, color: Colors.grey),
             ],
           ),
         ),
@@ -262,10 +248,31 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
     );
   }
 
-  void _submit() async {
-    FocusScope.of(context).unfocus(); // Close keyboard
+  Widget _sectionHeading(String title) {
+    return Row(
+      children: [
+        Container(width: 4, height: 20, color: accentTeal),
+        const SizedBox(width: 6),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.2,
+            color: Colors.blueGrey,
+          ),
+        ),
+      ],
+    );
+  }
 
-    // Check if at least one image is uploaded
+  // ---------------- SUBMIT ----------------
+
+  Future<void> _submit() async {
+    FocusScope.of(context).unfocus();
+
+    if (_isLoading) return;
+
     if (!_images.any((e) => e != null)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -276,38 +283,71 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
       return;
     }
 
-    // Validate form
     if (!_formKey.currentState!.validate()) return;
     _formKey.currentState!.save();
 
-    // Collect product data into a map
-    final Map<String, dynamic> productData = {
-      'title': _productName,
-      'description': _description,
-      'price': _price,
-      'category': _productCategoryValue,
-      'condition': _conditionValue,
-      'usedTime': _usedTimeValue,
-      'images': _images.whereType<XFile>().map((e) => e.path).toList(),
-    };
-
-    // For now, we can print to check
-    print('Product Data: $productData');
-
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 1));
-    setState(() => _isLoading = false);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        backgroundColor: darkPrimary,
-        content: Text('Product Published Successfully'),
-      ),
-    );
+    try {
+      final supabase = Supabase.instance.client;
+      final user = supabase.auth.currentUser;
 
-    // Return the product data to previous screen
-    Navigator.pop(context, productData);
+      if (user == null) {
+        throw Exception("User not authenticated");
+      }
+
+      List<String> imageUrls = [];
+
+      for (var image in _images.whereType<XFile>()) {
+        final file = File(image.path);
+        final filePath =
+            "${widget.communityId}/${user.id}/${DateTime.now().millisecondsSinceEpoch}.jpg";
+
+        await supabase.storage
+            .from('product-images')
+            .upload(filePath, file);
+
+        final imageUrl =
+            supabase.storage.from('product-images').getPublicUrl(filePath);
+
+        imageUrls.add(imageUrl);
+      }
+
+      await supabase.from('products').insert({
+        'community_id': widget.communityId,
+        'user_id': user.id,
+        'title': _productName!.trim(),
+        'description': _description!.trim(),
+        'price': double.parse(_price!.trim()),
+        'category': _productCategoryValue,
+        'condition': _conditionValue,
+        'used_time': _usedTimeValue,
+        'images': imageUrls,
+      });
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: darkPrimary,
+          content: Text('Product Published Successfully'),
+        ),
+      );
+
+      Navigator.pop(context, true);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red,
+          content: Text("Error: ${e.toString()}"),
+        ),
+      );
+    }
+
+    if (mounted) setState(() => _isLoading = false);
   }
+
+  // ---------------- UI ----------------
 
   @override
   Widget build(BuildContext context) {
@@ -322,12 +362,12 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
             width: double.infinity,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
                 colors: [
                   Color.fromARGB(255, 15, 119, 124),
                   Color.fromARGB(255, 17, 158, 144),
                 ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
               ),
               boxShadow: [
                 BoxShadow(
@@ -344,16 +384,14 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    ),
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.arrow_back, color: Colors.white)),
                     const Text(
                       "Product Post",
                       style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                      ),
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(width: 48),
                   ],
@@ -370,9 +408,8 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Images
                   _sectionHeading('PRODUCT IMAGES'),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Row(
                     children: List.generate(
                       3,
@@ -385,81 +422,125 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  // Basic Info
                   _sectionHeading('BASIC INFORMATION'),
-                  const SizedBox(height: 6),
-                  TextFormField(
-                    textInputAction: TextInputAction.done,
-                    decoration: _modernInput(
-                      'Product Name',
-                      icon: Icons.shopping_bag_outlined,
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    validator: (v) =>
-                        v == null || v.isEmpty ? 'Required' : null,
-                    onSaved: (v) => _productName = v,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    maxLines: 3,
-                    maxLength: 200,
-                    textInputAction: TextInputAction.done,
-                    decoration: _modernInput(
-                      'Description',
-                      icon: Icons.description_outlined,
+                    child: Column(
+                      children: [
+                        TextFormField(
+                          decoration: _modernInput('Product Name',
+                              icon: Icons.shopping_bag_outlined),
+                          validator: (v) =>
+                              v == null || v.isEmpty ? 'Required' : null,
+                          onSaved: (v) => _productName = v,
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          maxLines: 3,
+                          maxLength: 200,
+                          buildCounter: (
+                            BuildContext context, {
+                            required int currentLength,
+                            required bool isFocused,
+                            required int? maxLength,
+                          }) {
+                            return Align(
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                '$currentLength/$maxLength',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.blueGrey[400],
+                                ),
+                              ),
+                            );
+                          },
+                          decoration: _modernInput('Description',
+                              icon: Icons.description_outlined),
+                          validator: (v) =>
+                              v == null || v.isEmpty ? 'Required' : null,
+                          onSaved: (v) => _description = v,
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          keyboardType: TextInputType.number,
+                          decoration: _modernInput('Price', icon: Icons.payments_outlined),
+                          validator: (v) =>
+                              v == null || v.isEmpty ? 'Required' : null,
+                          onSaved: (v) => _price = v,
+                        ),
+                      ],
                     ),
-                    validator: (v) =>
-                        v == null || v.isEmpty ? 'Required' : null,
-                    onSaved: (v) => _description = v,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    keyboardType: TextInputType.number,
-                    textInputAction: TextInputAction.done,
-                    decoration: _modernInput(
-                      'Price',
-                      icon: Icons.payments_outlined,
-                    ),
-                    validator: (v) =>
-                        v == null || v.isEmpty ? 'Required' : null,
-                    onSaved: (v) => _price = v,
                   ),
                   const SizedBox(height: 16),
-                  // Details
+                  // --- Details Section with identical UI ---
                   _sectionHeading('DETAILS'),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _premiumDropdown(
-                          label: 'Duration',
-                          value: _usedTimeValue,
-                          items: _usedTimeOptions,
-                          onChanged: (v) => setState(() => _usedTimeValue = v),
-                          icon: Icons.timelapse,
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _premiumDropdown(
-                          label: 'Status',
-                          value: _conditionValue,
-                          items: _conditionOptions,
-                          onChanged: (v) => setState(() => _conditionValue = v),
-                          icon: Icons.check_circle_outline,
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _premiumDropdown(
+                                label: 'Duration',
+                                value: _usedTimeValue,
+                                items: _usedTimeOptions,
+                                onChanged: (v) =>
+                                    setState(() => _usedTimeValue = v),
+                                icon: Icons.timelapse,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _premiumDropdown(
+                                label: 'Status',
+                                value: _conditionValue,
+                                items: _conditionOptions,
+                                onChanged: (v) =>
+                                    setState(() => _conditionValue = v),
+                                icon: Icons.check_circle_outline,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _premiumDropdown(
-                    label: 'Category',
-                    value: _productCategoryValue,
-                    items: _productCategories,
-                    onChanged: (v) => setState(() => _productCategoryValue = v),
-                    icon: Icons.category,
+                        const SizedBox(height: 12),
+                        _premiumDropdown(
+                          label: 'Category',
+                          value: _productCategoryValue,
+                          items: _productCategories,
+                          onChanged: (v) =>
+                              setState(() => _productCategoryValue = v),
+                          icon: Icons.category,
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 24),
-                  // Submit Button
                   SizedBox(
                     width: double.infinity,
                     height: 55,
@@ -488,7 +569,7 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
                                 ),
                               )
                             : const Text(
-                                'Post Product',
+                                'POST PRODUCT',
                                 style: TextStyle(
                                   letterSpacing: 2,
                                   fontSize: 16,
@@ -506,24 +587,6 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _sectionHeading(String title) {
-    return Row(
-      children: [
-        Container(width: 4, height: 20, color: accentTeal),
-        const SizedBox(width: 6),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1.2,
-            color: Colors.blueGrey,
-          ),
-        ),
-      ],
     );
   }
 }
