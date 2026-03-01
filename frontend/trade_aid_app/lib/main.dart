@@ -34,6 +34,7 @@ import 'screens/forgotpass/forget_pass_screen.dart';
 import 'screens/forgotpass/verifycode_screen.dart';
 import 'screens/forgotpass/newpass_screen.dart';
 import 'screens/chat/chat_screen.dart';
+import 'screens/waiting_approval_screen.dart';
 
 // models
 import 'models/product.dart';
@@ -99,6 +100,7 @@ class TradeAidApp extends StatelessWidget {
         '/help_support': (_) => const HelpSupportScreen(),
         '/wish_request': (_) => const WishRequestsScreen(),
         '/chat_list': (_) => const ChatListScreen(),
+        '/waiting_approval': (_) => const WaitingApprovalScreen(),
         '/chat_screen': (_) => const ChatScreen(sellerName: 'Seller'),
       },
 
@@ -107,9 +109,7 @@ class TradeAidApp extends StatelessWidget {
           final communityId = settings.arguments as String;
 
           return MaterialPageRoute(
-            builder: (_) => ProductPostScreen(
-              communityId: communityId,
-            ),
+            builder: (_) => ProductPostScreen(communityId: communityId),
             settings: settings,
           );
         }
@@ -123,13 +123,11 @@ class TradeAidApp extends StatelessWidget {
           );
         }
 
-      if (settings.name == '/resource_post') {
+        if (settings.name == '/resource_post') {
           final communityId = settings.arguments as String;
 
           return MaterialPageRoute(
-            builder: (_) => ResourcePostScreen(
-              communityId: communityId,
-            ),
+            builder: (_) => ResourcePostScreen(communityId: communityId),
             settings: settings,
           );
         }
