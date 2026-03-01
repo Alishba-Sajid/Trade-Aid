@@ -76,7 +76,7 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
             'description': desc,
             'latitude': userLocation.latitude,
             'longitude': userLocation.longitude,
-            'creator_id': user.id, // MUST match profiles.user_id
+            'creator_id': user.id,
             'created_at': DateTime.now().toIso8601String(),
           })
           .select()
@@ -84,13 +84,22 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
 
       final communityId = response['id'];
 
-      // 🔹 Add creator to community_members
-      await supabase.from('community_members').insert({
-        'community_id': communityId,
-        'user_id': user.id, // MUST match profiles.user_id
-        'role': 'creator',
-        'joined_at': DateTime.now().toIso8601String(),
-      });
+      // 🔹 Ensure creator is inserted into community_members
+      final existingCreator = await supabase
+          .from('community_members')
+          .select()
+          .eq('community_id', communityId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+      if (existingCreator == null) {
+        await supabase.from('community_members').insert({
+          'community_id': communityId,
+          'user_id': user.id,
+          'role': 'creator',
+          'joined_at': DateTime.now().toIso8601String(),
+        });
+      }
 
       final inviteLink = "https://tradeaid.app/community/$communityId";
 

@@ -348,6 +348,7 @@ class _LoginScreenState extends State<LoginScreen>
       decoration: InputDecoration(
         labelText: label,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        suffixIcon: suffix, // <-- Eye icon now works properly
       ),
     );
   }

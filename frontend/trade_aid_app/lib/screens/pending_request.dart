@@ -45,9 +45,9 @@ class PendingRequestsScreen extends StatefulWidget {
 class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
   List<UserRequest> requests = [];
   bool loading = true;
-  bool actionInProgress = false;
 
-  final supabase = Supabase.instance.client;
+  /// Track which request is being processed (approve)
+  String? _processingRequestId;
 
   @override
   void initState() {
@@ -57,7 +57,9 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
 
   Future<void> fetchRequests() async {
     setState(() => loading = true);
+
     try {
+      final supabase = Supabase.instance.client;
       final user = supabase.auth.currentUser;
       if (user == null) {
         setState(() {
@@ -93,7 +95,7 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
           .select(
             'id, status, created_at, requester_id, community_id, requester:profiles(full_name, address)',
           )
-          .filter('community_id', 'in', communityIds)
+          .inFilter('community_id', communityIds)
           .eq('status', 'pending');
 
       final List<UserRequest> tempRequests = [];
@@ -124,74 +126,42 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
     }
   }
 
+  /// =======================
+  /// Approve with per-request loading
+  /// =======================
   Future<void> approveRequest(UserRequest req) async {
-    if (actionInProgress) return;
-    setState(() => actionInProgress = true);
+    final supabase = Supabase.instance.client;
 
     try {
-      final userId = supabase.auth.currentUser!.id;
-
-      // Check if already voted
-      final voteCheck = await supabase
-          .from('request_votes')
-          .select()
-          .eq('request_id', req.id)
-          .eq('voter_id', userId)
-          .maybeSingle();
-
-      if (voteCheck != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('You already voted for this request')),
-        );
-        return;
-      }
-
-      // Insert vote
-      await supabase.from('request_votes').insert({
-        'request_id': req.id,
-        'voter_id': userId,
-        'vote': 'approve',
-        'created_at': DateTime.now().toIso8601String(),
+      setState(() {
+        _processingRequestId = req.id;
       });
 
-      // Check approval threshold
-      final members = await supabase
-          .from('community_members')
-          .select()
-          .eq('community_id', req.communityId);
+      // Insert user into community_members
+      await supabase.from('community_members').insert({
+        'community_id': req.communityId,
+        'user_id': req.requesterId,
+        'role': 'member',
+        'joined_at': DateTime.now().toIso8601String(),
+      });
 
-      final totalMembers = members.length;
-      final votes = await supabase
-          .from('request_votes')
-          .select()
-          .eq('request_id', req.id);
+      // Update join request status
+      await supabase
+          .from('community_join_requests')
+          .update({'status': 'approved'})
+          .eq('id', req.id);
 
-      final approvedVotes = votes.length;
+      // Remove from UI list
+      setState(() {
+        requests.removeWhere((r) => r.id == req.id);
+      });
 
-      if (totalMembers > 0 && approvedVotes / totalMembers >= 0.5) {
-        // Add user to community
-        await supabase.from('community_members').insert({
-          'community_id': req.communityId,
-          'user_id': req.requesterId,
-          'role': 'member',
-          'joined_at': DateTime.now().toIso8601String(),
-        });
-
-        // Update request status
-        await supabase
-            .from('community_join_requests')
-            .update({'status': 'approved'})
-            .eq('id', req.id);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('User added to community!'),
-            backgroundColor: AppColors.accentTeal,
-          ),
-        );
-      }
-
-      await fetchRequests();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('User added to community!'),
+          backgroundColor: Colors.green,
+        ),
+      );
     } catch (e) {
       debugPrint('Error approving request: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -201,21 +171,22 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
         ),
       );
     } finally {
-      setState(() => actionInProgress = false);
+      setState(() {
+        _processingRequestId = null;
+      });
     }
   }
 
   Future<void> rejectRequest(UserRequest req) async {
-    if (actionInProgress) return;
-    setState(() => actionInProgress = true);
-
     try {
-      await supabase
+      await Supabase.instance.client
           .from('community_join_requests')
           .update({'status': 'rejected'})
           .eq('id', req.id);
 
-      await fetchRequests();
+      setState(() {
+        requests.removeWhere((r) => r.id == req.id);
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -231,9 +202,74 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
           backgroundColor: Colors.redAccent,
         ),
       );
-    } finally {
-      setState(() => actionInProgress = false);
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.backgroundLight,
+      body: Column(
+        children: [
+          _buildHeader(context),
+          loading
+              ? const Expanded(
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              : Expanded(
+                  child: requests.isEmpty
+                      ? const Center(child: Text('No pending requests'))
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 20,
+                          ),
+                          itemCount: requests.length,
+                          itemBuilder: (context, index) {
+                            final req = requests[index];
+                            return _RequestCard(
+                              data: req,
+                              onAccept: () => approveRequest(req),
+                              onReject: () => rejectRequest(req),
+                              onProfileTap: () =>
+                                  _showProfileDialog(context, req),
+                              processingRequestId: _processingRequestId,
+                            );
+                          },
+                        ),
+                ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(gradient: AppColors.appGradient),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+              ),
+              const Text(
+                'Pending Requests',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(width: 48),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _showProfileDialog(BuildContext context, UserRequest data) {
@@ -357,73 +393,6 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
       ),
     );
   }
-
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(gradient: AppColors.appGradient),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-              ),
-              const Text(
-                'Pending Requests',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(width: 48),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
-      body: Column(
-        children: [
-          _buildHeader(context),
-          loading
-              ? const Expanded(
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              : Expanded(
-                  child: requests.isEmpty
-                      ? const Center(child: Text('No pending requests'))
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 20,
-                          ),
-                          itemCount: requests.length,
-                          itemBuilder: (context, index) {
-                            final req = requests[index];
-                            return _RequestCard(
-                              data: req,
-                              onAccept: () => approveRequest(req),
-                              onReject: () => rejectRequest(req),
-                              onProfileTap: () =>
-                                  _showProfileDialog(context, req),
-                              actionInProgress: actionInProgress,
-                            );
-                          },
-                        ),
-                ),
-        ],
-      ),
-    );
-  }
 }
 
 class _RequestCard extends StatelessWidget {
@@ -431,14 +400,14 @@ class _RequestCard extends StatelessWidget {
   final VoidCallback onAccept;
   final VoidCallback onReject;
   final VoidCallback onProfileTap;
-  final bool actionInProgress;
+  final String? processingRequestId;
 
   const _RequestCard({
     required this.data,
     required this.onAccept,
     required this.onReject,
     required this.onProfileTap,
-    required this.actionInProgress,
+    required this.processingRequestId,
   });
 
   @override
@@ -506,7 +475,7 @@ class _RequestCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: actionInProgress ? null : onReject,
+                    onPressed: onReject,
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Colors.redAccent),
                       shape: RoundedRectangleBorder(
@@ -528,7 +497,9 @@ class _RequestCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: ElevatedButton(
-                      onPressed: actionInProgress ? null : onAccept,
+                      onPressed: processingRequestId == data.id
+                          ? null
+                          : onAccept,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
@@ -537,10 +508,10 @@ class _RequestCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      child: actionInProgress
+                      child: processingRequestId == data.id
                           ? const SizedBox(
-                              height: 16,
                               width: 16,
+                              height: 16,
                               child: CircularProgressIndicator(
                                 color: Colors.white,
                                 strokeWidth: 2,
