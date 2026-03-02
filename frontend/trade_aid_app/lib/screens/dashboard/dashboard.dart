@@ -22,12 +22,8 @@ const Color dark = Color(0xFF004D40);
 const Color light = Color(0xFFE0F2F1);
 
 class DashboardScreen extends StatefulWidget {
-  final bool isAdmin; // added for role-based
-
-  const DashboardScreen({
-    super.key,
-    this.isAdmin = true,
-  }); // default to true for testing
+  final bool isAdmin;
+  const DashboardScreen({super.key, this.isAdmin = false});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -36,19 +32,78 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _currentIndex = 0;
 
+  String? _communityId;
+  String _communityName = 'Community';
+  String _userName = 'User';
+
   @override
   void initState() {
     super.initState();
     _checkLoggedInUser();
+    _fetchUserCommunity(); // fetch community automatically
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final args =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+
+    if (args != null) {
+      _communityId = args['communityId'];
+      _communityName = args['communityName'] ?? 'Community';
+      _userName = args['userName'] ?? 'User';
+    }
   }
 
   void _checkLoggedInUser() {
     final user = Supabase.instance.client.auth.currentUser;
-
     if (user != null) {
       print("✅ Logged in as: ${user.id}");
     } else {
       print("❌ No user logged in");
+    }
+  }
+
+  Future<void> _fetchUserCommunity() async {
+    final supabase = Supabase.instance.client;
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+
+    try {
+      // Fetch user's community membership
+     final memberResponse = await supabase
+    .from('community_members')
+    .select('community_id')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+      if (memberResponse == null || memberResponse['community_id'] == null) {
+        print('⚠️ User is not part of any community');
+        return;
+      }
+
+      final communityId = memberResponse['community_id'] as String;
+
+      // Fetch community name
+      final communityResponse = await supabase
+          .from('communities')
+          .select('name')
+          .eq('id', communityId)
+          .maybeSingle();
+
+      final communityName =
+          communityResponse?['name'] as String? ?? 'Community';
+
+      setState(() {
+        _communityId = communityId;
+        _communityName = communityName;
+      });
+
+      print('✅ User belongs to community $_communityName ($_communityId)');
+    } catch (e) {
+      print('⚠️ Error fetching community: $e');
     }
   }
 
@@ -116,7 +171,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
+                      const Text(
                         'Create a Post',
                         style: TextStyle(
                           fontSize: 20,
@@ -125,25 +180,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      Text(
+                      const Text(
                         'Choose what you want to share with your community',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.black.withOpacity(0.6),
+                          color: Colors.black54,
                         ),
                       ),
                       const SizedBox(height: 24),
 
+                      // POST PRODUCT
                       _PremiumPostCard(
                         icon: Icons.shopping_bag_outlined,
                         title: 'Post Product',
                         subtitle: 'Sell Items',
                         onTap: () {
                           Navigator.pop(context);
+
+                          if (_communityId == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                    'You are not part of any community.'),
+                              ),
+                            );
+                            return;
+                          }
+
                           Navigator.pushNamed(
                             context,
                             '/product_post',
+                            arguments: _communityId,
                           ).then((_) => setState(() => _currentIndex = 0));
                         },
                       ),
@@ -152,15 +220,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Divider(color: Colors.grey[300]),
                       const SizedBox(height: 16),
 
+                      // POST RESOURCE
                       _PremiumPostCard(
                         icon: Icons.groups_outlined,
                         title: 'Post Resource',
                         subtitle: 'Resource Availability',
                         onTap: () {
                           Navigator.pop(context);
+
+                          if (_communityId == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                    'You are not part of any community.'),
+                              ),
+                            );
+                            return;
+                          }
+
                           Navigator.pushNamed(
                             context,
                             '/resource_post',
+                            arguments: _communityId,
                           ).then((_) => setState(() => _currentIndex = 0));
                         },
                       ),
@@ -177,17 +258,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final args =
-        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-
-    final String userName = args?['userName'] ?? 'Ayesha';
-    final String communityName = args?['communityName'] ?? 'Gulberg Greens';
-
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       drawer: DashboardDrawer(
-        communityName: communityName,
-        isAdmin: widget.isAdmin, // pass admin role to drawer
+        communityName: _communityName,
+        isAdmin: widget.isAdmin,
       ),
       appBar: AppBar(
         backgroundColor: const Color(0xFFF5F5F5),
@@ -204,16 +279,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                MaterialPageRoute(
+                  builder: (_) => const NotificationsScreen(),
+                ),
               );
             },
           ),
         ],
       ),
       body: DashboardBody(
-        userName: userName,
-        communityName: communityName,
-        isAdmin: widget.isAdmin, // pass admin role to body
+        userName: _userName,
+        communityName: _communityName,
+        isAdmin: widget.isAdmin,
       ),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.white,
@@ -227,9 +304,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Chat'),
           BottomNavigationBarItem(icon: Icon(Icons.add_box), label: 'Post'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_cart),
-            label: 'Cart',
-          ),
+              icon: Icon(Icons.shopping_cart), label: 'Cart'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
@@ -288,7 +363,10 @@ class _PremiumPostCard extends StatelessWidget {
                 ),
                 Text(
                   subtitle,
-                  style: const TextStyle(fontSize: 12, color: Colors.white70),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.white70,
+                  ),
                 ),
               ],
             ),

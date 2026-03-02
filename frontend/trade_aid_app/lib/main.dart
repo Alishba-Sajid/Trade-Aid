@@ -34,6 +34,7 @@ import 'screens/forgotpass/forget_pass_screen.dart';
 import 'screens/forgotpass/verifycode_screen.dart';
 import 'screens/forgotpass/newpass_screen.dart';
 import 'screens/chat/chat_screen.dart';
+import 'screens/waiting_approval_screen.dart';
 
 // models
 import 'models/product.dart';
@@ -95,16 +96,24 @@ class TradeAidApp extends StatelessWidget {
         '/verify-code': (_) => const VerifyCodeScreen(),
         '/new-password': (_) => const NewPasswordScreen(),
         '/notifications': (_) => const NotificationsScreen(),
-        '/product_post': (_) => const ProductPostScreen(),
-        '/resource_post': (_) => const ResourcePostScreen(),
         '/blocked_users': (_) => const BlockedUsersScreen(),
         '/help_support': (_) => const HelpSupportScreen(),
         '/wish_request': (_) => const WishRequestsScreen(),
         '/chat_list': (_) => const ChatListScreen(),
+        '/waiting_approval': (_) => const WaitingApprovalScreen(),
         '/chat_screen': (_) => const ChatScreen(sellerName: 'Seller'),
       },
 
       onGenerateRoute: (settings) {
+        if (settings.name == '/product_post') {
+          final communityId = settings.arguments as String;
+
+          return MaterialPageRoute(
+            builder: (_) => ProductPostScreen(communityId: communityId),
+            settings: settings,
+          );
+        }
+
         if (settings.name == '/product_details') {
           final args = settings.arguments as Map<String, dynamic>;
           return MaterialPageRoute(
@@ -114,6 +123,14 @@ class TradeAidApp extends StatelessWidget {
           );
         }
 
+        if (settings.name == '/resource_post') {
+          final communityId = settings.arguments as String;
+
+          return MaterialPageRoute(
+            builder: (_) => ResourcePostScreen(communityId: communityId),
+            settings: settings,
+          );
+        }
         if (settings.name == '/resource_details') {
           final args = settings.arguments as Map<String, dynamic>;
           return MaterialPageRoute(
