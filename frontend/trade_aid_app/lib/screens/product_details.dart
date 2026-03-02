@@ -5,7 +5,8 @@ import '../models/product.dart';
 import 'payment_option.dart';
 import 'chat/chat_screen.dart';
 import '../widgets/app_bar.dart';
-/* ===================== COLORS ===================== */
+
+/* ===================== COLORS & CONSTANTS ===================== */
 const LinearGradient appGradient = LinearGradient(
   colors: [
     Color.fromARGB(255, 15, 119, 124),
@@ -14,11 +15,16 @@ const LinearGradient appGradient = LinearGradient(
   begin: Alignment.bottomLeft,
   end: Alignment.topRight,
 );
+
+const Color dark = Color(0xFF004D40);
+const Color light = Color(0xFFF0F9F8);
+const Color accent = Color(0xFF119E90);
+const Color surface = Colors.white;
+
 /* ===================== SELLER CARD ===================== */
 class _SellerCard extends StatefulWidget {
   final Product product;
   const _SellerCard({required this.product});
-
 
   @override
   State<_SellerCard> createState() => _SellerCardState();
@@ -31,7 +37,7 @@ class _SellerCardState extends State<_SellerCard> {
   Widget build(BuildContext context) {
     final sellerName = widget.product.sellerName ?? 'Community Member';
     final address =
-        widget.product.sellerAddress ?? 'Sample Address Line, Gulberg Greens';
+     widget.product.sellerAddress ?? 'Sample Address Line, Gulberg Greens';
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -71,8 +77,7 @@ class _SellerCardState extends State<_SellerCard> {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        const Icon(Icons.verified,
-                            color: accent, size: 15),
+                        const Icon(Icons.verified, color: accent, size: 15),
                         const SizedBox(width: 8),
                         Text(
                           'Verified Seller',
@@ -91,8 +96,7 @@ class _SellerCardState extends State<_SellerCard> {
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) =>
-                        ChatScreen(sellerName: sellerName),
+                    builder: (_) => ChatScreen(sellerName: sellerName),
                   ),
                 ),
                 borderRadius: BorderRadius.circular(16),
@@ -117,8 +121,7 @@ class _SellerCardState extends State<_SellerCard> {
             onTap: () => setState(() => isExpanded = !isExpanded),
             child: Row(
               children: [
-                const Icon(Icons.location_on_outlined,
-                    size: 20, color: accent),
+                const Icon(Icons.location_on_outlined, size: 20, color: accent),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -154,13 +157,10 @@ class ProductDetailsScreen extends StatefulWidget {
   const ProductDetailsScreen({super.key, required this.product});
 
   @override
-  State<ProductDetailsScreen> createState() =>
-      _ProductDetailsScreenState();
+  State<ProductDetailsScreen> createState() => _ProductDetailsScreenState();
 }
 
 class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
-  int currentImageIndex = 0;
-
   @override
   Widget build(BuildContext context) {
     final product = widget.product;
@@ -177,8 +177,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           children: [
             _buildImageSlider(product),
             Padding(
-              padding:
-                  const EdgeInsets.fromLTRB(20, 24, 20, 130),
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 130),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -215,30 +214,31 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),
-            borderRadius:
-                BorderRadius.vertical(bottom: Radius.circular(40)),
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(40)),
           ),
           child: PageView.builder(
             itemCount: product.images.length,
-            onPageChanged: (i) =>
-                setState(() => currentImageIndex = i),
+            onPageChanged: (i) => setState(() => product.currentPageIndex = i),
             itemBuilder: (_, i) => GestureDetector(
-              onTap: () =>
-                  _openZoomViewer(product.images, i),
+              onTap: () => _openZoomViewer(product.images, i),
               child: ClipRRect(
                 borderRadius:
-                    const BorderRadius.vertical(
-                        bottom: Radius.circular(40)),
-                child: Image.asset(
-                  product.images[i],
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                ),
+                    const BorderRadius.vertical(bottom: Radius.circular(40)),
+                child: product.images[i].startsWith('http')
+                    ? Image.network(
+                        product.images[i],
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                      )
+                    : Image.asset(
+                        product.images[i],
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                      ),
               ),
             ),
           ),
         ),
-
         Positioned(
           bottom: 24,
           left: 0,
@@ -248,15 +248,13 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             children: List.generate(
               product.images.length,
               (i) => AnimatedContainer(
-                duration:
-                    const Duration(milliseconds: 300),
-                margin:
-                    const EdgeInsets.symmetric(horizontal: 5),
-                width: currentImageIndex == i ? 24 : 8,
+                duration: const Duration(milliseconds: 300),
+                margin: const EdgeInsets.symmetric(horizontal: 5),
+                width: product.currentPageIndex == i ? 24 : 8,
                 height: 8,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
-                  color: currentImageIndex == i
+                  color: product.currentPageIndex == i
                       ? Colors.white
                       : Colors.white.withOpacity(0.5),
                 ),
@@ -264,13 +262,12 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             ),
           ),
         ),
-
         Positioned(
           top: 24,
           right: 20,
           child: GestureDetector(
-            onTap: () => _openZoomViewer(
-                product.images, currentImageIndex),
+            onTap: () =>
+                _openZoomViewer(product.images, product.currentPageIndex),
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -284,8 +281,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   ),
                 ],
               ),
-              child: const Icon(Icons.zoom_out_map,
-                  size: 20, color: dark),
+              child: const Icon(Icons.zoom_out_map, size: 20, color: dark),
             ),
           ),
         ),
@@ -366,172 +362,158 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       ],
     );
   }
-Widget _buildTermsAndConditions() {
-  final terms = [
-    "Posted by a community seller",
-    "Price is fixed",
-    "Verify product before payment",
-    "Platform not liable post-payment",
-    "Availability subject to seller",
-  ];
 
-  return Container(
-    padding: const EdgeInsets.all(22),
-    decoration: BoxDecoration(
-      color: surface, // white block
-      borderRadius: BorderRadius.circular(26),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.06),
-          blurRadius: 20,
-          offset: const Offset(0, 6),
-        ),
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Heading inside the same block
-        Text(
-          'Terms & Conditions',
-          style: GoogleFonts.poppins(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: dark,
-            letterSpacing: 0.3,
+  Widget _buildTermsAndConditions() {
+    final terms = [
+      "Posted by a community seller",
+      "Price is fixed",
+      "Verify product before payment",
+      "Platform not liable post-payment",
+      "Availability subject to seller",
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(26),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
           ),
-        ),
-        const SizedBox(height: 14),
-
-        // Terms list
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: List.generate(
-            terms.length,
-            (index) => Padding(
-              padding: EdgeInsets.only(bottom: index < terms.length - 1 ? 12 : 0),
-              child: Row(
-                children: [
-                  Icon(Icons.check_circle, color: accent.withOpacity(0.85), size: 18),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      terms[index],
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        color: Colors.black54,
-                        height: 1.5,
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Terms & Conditions',
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: dark,
+              letterSpacing: 0.3,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: List.generate(
+              terms.length,
+              (index) => Padding(
+                padding:
+                    EdgeInsets.only(bottom: index < terms.length - 1 ? 12 : 0),
+                child: Row(
+                  children: [
+                    Icon(Icons.check_circle,
+                        color: accent.withOpacity(0.85), size: 18),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        terms[index],
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          color: Colors.black54,
+                          height: 1.5,
+                        ),
                       ),
                     ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomAction(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 20),
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 24,
+            offset: const Offset(0, -8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            height: 54,
+            width: 54,
+            decoration: BoxDecoration(
+              color: accent.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: accent.withOpacity(0.2),
+                width: 1.2,
+              ),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.shopping_cart_outlined),
+              color: accent,
+              iconSize: 22,
+              onPressed: () {},
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Container(
+              height: 54,
+              decoration: BoxDecoration(
+                gradient: appGradient,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: accent.withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
                   ),
                 ],
               ),
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-
-Widget _buildBottomAction(BuildContext context) {
-  return Container(
-    padding: const EdgeInsets.fromLTRB(18, 14, 18, 20),
-    decoration: BoxDecoration(
-      color: surface,
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.08),
-          blurRadius: 24,
-          offset: const Offset(0, -8),
-        ),
-      ],
-    ),
-    child: Row(
-      children: [
-        // Add to Cart Button
-        Container(
-          height: 54,
-          width: 54,
-          decoration: BoxDecoration(
-            color: accent.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: accent.withOpacity(0.2),
-              width: 1.2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 12,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: IconButton(
-            icon: const Icon(Icons.shopping_cart_outlined),
-            color: accent,
-            iconSize: 22,
-            onPressed: () {
-           
-            },
-          ),
-        ),
-        const SizedBox(width: 14),
-        // Buy Now Button with Gradient
-        Expanded(
-          child: Container(
-            height: 54,
-            decoration: BoxDecoration(
-              gradient: appGradient,
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color.fromARGB(255, 17, 158, 144).withOpacity(0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(18),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const PaymentSelectionScreen(),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(18),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PaymentSelectionScreen(),
+                    ),
                   ),
-                ),
-                child: Center(
-                  child: Text(
-                    'Buy Now',
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      letterSpacing: 0.3,
+                  child: Center(
+                    child: Text(
+                      'Buy Now',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        letterSpacing: 0.3,
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
-}
-
+        ],
+      ),
+    );
+  }
 
   void _openZoomViewer(List<String> images, int index) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            _ZoomImageViewer(images: images, initialIndex: index),
+        builder: (_) => _ZoomImageViewer(images: images, initialIndex: index),
       ),
     );
   }
@@ -544,9 +526,7 @@ class _InfoCard extends StatelessWidget {
   final String value;
 
   const _InfoCard(
-      {required this.icon,
-      required this.label,
-      required this.value});
+      {required this.icon, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -597,42 +577,36 @@ class _InfoCard extends StatelessWidget {
 }
 
 /* ================= ZOOM VIEWER ================= */
-
 class _ZoomImageViewer extends StatefulWidget {
   final List<String> images;
   final int initialIndex;
 
-  const _ZoomImageViewer(
-      {required this.images, required this.initialIndex});
+  const _ZoomImageViewer({required this.images, required this.initialIndex});
 
   @override
-  State<_ZoomImageViewer> createState() =>
-      _ZoomImageViewerState();
+  State<_ZoomImageViewer> createState() => _ZoomImageViewerState();
 }
 
 class _ZoomImageViewerState extends State<_ZoomImageViewer> {
   late final PageController _pageController;
   final TransformationController _controller = TransformationController();
   TapDownDetails? _doubleTapDetails;
-
   bool _showHint = true;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: widget.initialIndex);
-
-    // Hide hint after 2 seconds
     Future.delayed(const Duration(seconds: 1), () {
       if (mounted) setState(() => _showHint = false);
     });
   }
 
   void _handleDoubleTap() {
-    final position = _doubleTapDetails!.localPosition;
     if (_controller.value != Matrix4.identity()) {
       _controller.value = Matrix4.identity();
     } else {
+      final position = _doubleTapDetails!.localPosition;
       _controller.value = Matrix4.identity()
         ..translate(-position.dx * 2, -position.dy * 2)
         ..scale(3.0);
@@ -646,6 +620,7 @@ class _ZoomImageViewerState extends State<_ZoomImageViewer> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        leading: const BackButton(color: Colors.white),
       ),
       body: Stack(
         children: [
@@ -660,10 +635,9 @@ class _ZoomImageViewerState extends State<_ZoomImageViewer> {
                 minScale: 1,
                 maxScale: 4,
                 child: Center(
-                  child: Image.asset(
-                    widget.images[index],
-                    fit: BoxFit.contain,
-                  ),
+                  child: widget.images[index].startsWith('http')
+                      ? Image.network(widget.images[index], fit: BoxFit.contain)
+                      : Image.asset(widget.images[index], fit: BoxFit.contain),
                 ),
               ),
             ),
@@ -671,15 +645,14 @@ class _ZoomImageViewerState extends State<_ZoomImageViewer> {
           if (_showHint)
             Center(
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(0.6),
                   borderRadius: BorderRadius.circular(30),
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
+                  children: [
                     Icon(Icons.search, color: Colors.white, size: 18),
                     SizedBox(width: 8),
                     Text(

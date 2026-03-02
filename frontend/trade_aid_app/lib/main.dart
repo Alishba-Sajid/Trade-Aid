@@ -82,7 +82,6 @@ class TradeAidApp extends StatelessWidget {
         '/location_permission': (_) => const LocationPermissionScreen(),
         '/select_community': (_) => const SelectCommunityScreen(),
         '/dashboard': (_) => const DashboardScreen(),
-        '/products': (_) => const ProductListingScreen(),
         '/resources': (_) => const ResourceListingScreen(),
         '/cart': (_) => const CartScreen(),
         '/profile': (_) => const ProfileScreen(),
@@ -122,6 +121,16 @@ class TradeAidApp extends StatelessWidget {
             settings: settings,
           );
         }
+        {
+    if (settings.name == '/product_listing') {
+      final communityId = settings.arguments as String;
+
+      return MaterialPageRoute(
+        builder: (_) => ProductListingScreen(
+          communityId: communityId,
+        ),
+      );
+    }
 
       if (settings.name == '/resource_post') {
           final communityId = settings.arguments as String;
@@ -153,10 +162,14 @@ class TradeAidApp extends StatelessWidget {
           );
         }
 
-        return MaterialPageRoute(
-          builder: (_) =>
-              const Scaffold(body: Center(child: Text('Page not found'))),
+    return MaterialPageRoute(
+      builder: (_) => const Scaffold(
+        body: Center(
+          child: Text("Page not found"),
+        ),
+        ),
         );
+        }
       },
     );
   }
