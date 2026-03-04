@@ -214,15 +214,15 @@ class _DashboardBodyState extends State<DashboardBody> {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    Expanded(
-                      child: _ServiceCard(
-                        title: 'Resources',
-                        subtitle: 'Available resources',
-                        icon: Icons.group,
-                        route: '/resources',
-                        communityId: widget.communityId,
-                      ),
-                    ),
+                   Expanded(
+  child: _ServiceCard(
+    title: 'Resources',
+    subtitle: 'Available resources',
+    icon: Icons.group,
+    route: '/resource_listing', // ✅ FIXED
+    communityId: widget.communityId,
+  ),
+),
                   ],
                 ),
 

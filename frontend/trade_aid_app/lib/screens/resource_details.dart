@@ -118,11 +118,22 @@ class _ResourceDetailsScreenState extends State<ResourceDetailsScreen> {
                 borderRadius: const BorderRadius.vertical(
                   bottom: Radius.circular(40),
                 ),
-                child: Image.asset(
-                  images[i],
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                ),
+                child: Image.network(
+  images[i],
+  fit: BoxFit.cover,
+  width: double.infinity,
+  loadingBuilder: (context, child, progress) {
+    if (progress == null) return child;
+    return const Center(
+      child: CircularProgressIndicator(color: Colors.white),
+    );
+  },
+  errorBuilder: (context, error, stackTrace) {
+    return const Center(
+      child: Icon(Icons.broken_image, color: Colors.white, size: 40),
+    );
+  },
+),
               ),
             ),
           ),
@@ -670,7 +681,19 @@ class _ZoomImageViewerState extends State<_ZoomImageViewer> {
                 minScale: 1,
                 maxScale: 4,
                 child: Center(
-                  child: Image.asset(widget.images[index], fit: BoxFit.contain),
+                  child: Image.network(
+  widget.images[index],
+  fit: BoxFit.contain,
+  loadingBuilder: (context, child, progress) {
+    if (progress == null) return child;
+    return const Center(
+      child: CircularProgressIndicator(color: Colors.white),
+    );
+  },
+  errorBuilder: (context, error, stackTrace) {
+    return const Icon(Icons.broken_image, color: Colors.white);
+  },
+),
                 ),
               ),
             ),

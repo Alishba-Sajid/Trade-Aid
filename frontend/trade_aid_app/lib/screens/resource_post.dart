@@ -50,7 +50,7 @@ class _ResourcePostScreenState extends State<ResourcePostScreen> {
   TimeOfDay? _endTime;
   String? _description;
   String? _rate;
-
+  String? _name; 
   // ---------------- IMAGE HANDLING ----------------
   Future<void> _pickImage(int slot) async {
     FocusScope.of(context).unfocus();
@@ -334,6 +334,7 @@ class _ResourcePostScreenState extends State<ResourcePostScreen> {
         'community_id': widget.communityId,
         'user_id': user.id,
         'description': _description!.trim(),
+        'name': _name!.trim(),
         'rate': double.parse(_rate!.trim()),
         'available_days': selectedDays,
         'start_time': _startTime!.format(context),
@@ -411,7 +412,17 @@ class _ResourcePostScreenState extends State<ResourcePostScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-
+                 _sectionHeading("Resource Name"),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    maxLines: 1,
+                    decoration: _modernInput("Enter Resource Name"),
+                    validator: (v) => v == null || v.isEmpty ? "Required" : null,
+                    onSaved: (v) => _name = v,
+                  ),
+                  const SizedBox(height: 1),
+                 
+                  const SizedBox(height: 20),
                   _sectionHeading("DETAILS"),
                   const SizedBox(height: 8),
                   TextFormField(

@@ -55,8 +55,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
     super.dispose();
   }
 
-  /* ================= FETCH PRODUCTS ================= */
-Future<void> _fetchProducts() async {
+  /* ================= FETCH PRODUCTS ================= */Future<void> _fetchProducts() async {
   setState(() => isLoading = true);
 
   try {
@@ -66,6 +65,7 @@ Future<void> _fetchProducts() async {
     final productResponse = await supabase
         .from('products')
         .select()
+   
         .eq('community_id', widget.communityId)
         .eq('category', selectedCategory);
 
@@ -119,6 +119,7 @@ Future<void> _fetchProducts() async {
     setState(() => isLoading = false);
   }
 }
+
   List<Product> _filteredProducts() {
     return products
         .where((p) => p.name.toLowerCase().contains(searchQuery.toLowerCase()))
