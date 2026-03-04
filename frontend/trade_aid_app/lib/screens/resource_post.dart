@@ -282,83 +282,90 @@ class _ResourcePostScreenState extends State<ResourcePostScreen> {
   }
 
   // ---------------- SUBMIT ----------------
-  Future<void> _submit() async {
-    FocusScope.of(context).unfocus();
+Future<void> _submit() async {
+  FocusScope.of(context).unfocus();
 
-    if (!_formKey.currentState!.validate()) return;
+  if (!_formKey.currentState!.validate()) return;
 
-    if (!_images.any((e) => e != null)) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Upload at least one image")));
-      return;
-    }
-
-    if (!_availableDays.containsValue(true)) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Select at least one available day")));
-      return;
-    }
-
-    if (_startTime == null || _endTime == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Select start and end time")));
-      return;
-    }
-
-    _formKey.currentState!.save();
-    setState(() => _isLoading = true);
-
-    try {
-      final supabase = Supabase.instance.client;
-      final user = supabase.auth.currentUser;
-      if (user == null) throw Exception("User not authenticated");
-
-      List<String> imageUrls = [];
-
-      for (var image in _images.whereType<XFile>()) {
-        final file = File(image.path);
-        final filePath =
-            "${widget.communityId}/${user.id}/${DateTime.now().millisecondsSinceEpoch}.jpg";
-
-        await supabase.storage.from('resource-images').upload(filePath, file);
-        final imageUrl = supabase.storage.from('resource-images').getPublicUrl(filePath);
-        imageUrls.add(imageUrl);
-      }
-
-      final selectedDays = _availableDays.entries
-          .where((entry) => entry.value)
-          .map((entry) => entry.key)
-          .toList();
-
-      await supabase.from('resources').insert({
-        'community_id': widget.communityId,
-        'user_id': user.id,
-        'description': _description!.trim(),
-        'name': _name!.trim(),
-        'rate': double.parse(_rate!.trim()),
-        'available_days': selectedDays,
-        'start_time': _startTime!.format(context),
-        'end_time': _endTime!.format(context),
-        'images': imageUrls,
-      });
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: darkPrimary,
-          content: Text("Resource Posted Successfully"),
-        ),
-      );
-
-      Navigator.pop(context, true);
-    } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.toString())));
-    }
-
-    if (mounted) setState(() => _isLoading = false);
+  if (!_images.any((e) => e != null)) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text("Upload at least one image")));
+    return;
   }
+
+  if (!_availableDays.containsValue(true)) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text("Select at least one available day")));
+    return;
+  }
+
+  if (_startTime == null || _endTime == null) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text("Select start and end time")));
+    return;
+  }
+
+  _formKey.currentState!.save();
+  setState(() => _isLoading = true);
+
+  try {
+    final supabase = Supabase.instance.client;
+    final user = supabase.auth.currentUser;
+    if (user == null) throw Exception("User not authenticated");
+
+    // ---------------- CONVERT TIME ----------------
+    String _timeToString(TimeOfDay time) =>
+        '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+
+    // ---------------- UPLOAD IMAGES ----------------
+    List<String> imageUrls = [];
+
+    for (var image in _images.whereType<XFile>()) {
+      final file = File(image.path);
+      final filePath =
+          "${widget.communityId}/${user.id}/${DateTime.now().millisecondsSinceEpoch}.jpg";
+
+      await supabase.storage.from('resource-images').upload(filePath, file);
+      final imageUrl = supabase.storage.from('resource-images').getPublicUrl(filePath);
+      imageUrls.add(imageUrl);
+    }
+
+    final selectedDays = _availableDays.entries
+        .where((entry) => entry.value)
+        .map((entry) => entry.key)
+        .toList();
+
+    // ---------------- INSERT RESOURCE ----------------
+    await supabase.from('resources').insert({
+      'community_id': widget.communityId,
+      'user_id': user.id,
+      'description': _description!.trim(),
+      'name': _name!.trim(),
+      'rate': double.parse(_rate!.trim()),
+      'available_days': selectedDays,
+      'start_time': _timeToString(_startTime!),
+      'end_time': _timeToString(_endTime!),
+      'images': imageUrls,
+      'is_enabled': true, // default enabled
+    });
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        backgroundColor: darkPrimary,
+        content: Text("Resource Posted Successfully"),
+      ),
+    );
+
+    Navigator.pop(context, true);
+  } catch (e) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(e.toString())));
+  }
+
+  if (mounted) setState(() => _isLoading = false);
+}
 
   // ---------------- UI ----------------
   @override

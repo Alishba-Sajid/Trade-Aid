@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-
+import 'package:supabase_flutter/supabase_flutter.dart';
 const LinearGradient appGradient = LinearGradient(
   colors: [
     Color.fromARGB(255, 15, 119, 124),
@@ -59,11 +59,14 @@ class _EditUploadProductScreenState extends State<EditUploadProductScreen> {
     _conditionValue = widget.product['condition'];
     _productCategoryValue = widget.product['category'];
 
-    if (widget.product['images'] != null) {
-      for (int i = 0; i < widget.product['images'].length && i < 3; i++) {
-        _images[i] = XFile(widget.product['images'][i]);
-      }
-    }
+     if (widget.product['images'] != null) {
+  final List imagesFromDb = widget.product['images'];
+
+  for (int i = 0; i < imagesFromDb.length && i < 3; i++) {
+    _images[i] = XFile(imagesFromDb[i]); // Works for URL too
+  }
+}
+
   }
 
   Future<void> _pickImage(int slot) async {
@@ -163,12 +166,19 @@ class _EditUploadProductScreenState extends State<EditUploadProductScreen> {
                 borderRadius: BorderRadius.circular(14),
                 child: Stack(
                   children: [
-                    Image.file(
-                      File(img.path),
-                      fit: BoxFit.cover,
-                      height: 150,
-                      width: double.infinity,
-                    ),
+                    img.path.startsWith('http')
+    ? Image.network(
+        img.path,
+        fit: BoxFit.cover,
+        height: 150,
+        width: double.infinity,
+      )
+    : Image.file(
+        File(img.path),
+        fit: BoxFit.cover,
+        height: 150,
+        width: double.infinity,
+      ),
                     Positioned.fill(
                       child: Material(
                         color: Colors.transparent,
@@ -328,25 +338,29 @@ class _EditUploadProductScreenState extends State<EditUploadProductScreen> {
       ],
     );
   }
+void _submit() async {
+  FocusScope.of(context).unfocus();
 
-  void _submit() async {
-    FocusScope.of(context).unfocus();
-    if (!_images.any((e) => e != null)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.redAccent,
-          content: Text('Please upload at least one image'),
-        ),
-      );
-      return;
-    }
+  if (!_formKey.currentState!.validate()) return;
+  _formKey.currentState!.save();
 
-    if (!_formKey.currentState!.validate()) return;
-    _formKey.currentState!.save();
+  setState(() => _isLoading = true);
 
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 1));
-    setState(() => _isLoading = false);
+  try {
+    final supabase = Supabase.instance.client;
+
+    await supabase.from('products').update({
+      'title': _productName,
+      'description': _description,
+      'price': double.tryParse(_price ?? "0"),
+      'used_time': _usedTimeValue,
+      'condition': _conditionValue,
+      'category': _productCategoryValue,
+      'images': _images
+          .whereType<XFile>()
+          .map((e) => e.path)
+          .toList(),
+    }).eq('id', widget.product['id']);
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -355,17 +369,18 @@ class _EditUploadProductScreenState extends State<EditUploadProductScreen> {
       ),
     );
 
-    Navigator.pop(context, {
-      ...widget.product,
-      'title': _productName,
-      'description': _description,
-      'price': _price,
-      'usedTime': _usedTimeValue,
-      'condition': _conditionValue,
-      'category': _productCategoryValue,
-      'images': _images.whereType<XFile>().map((e) => e.path).toList(),
-    });
+    Navigator.pop(context, true); // just return success
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Colors.red,
+        content: Text('Update failed: $e'),
+      ),
+    );
   }
+
+  setState(() => _isLoading = false);
+}
 
   @override
   Widget build(BuildContext context) {

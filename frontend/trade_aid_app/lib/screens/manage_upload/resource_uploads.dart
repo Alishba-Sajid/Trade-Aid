@@ -211,7 +211,9 @@ class ResourceUploadCard extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  '${item['startTime']} - ${item['endTime']}',
+                                 '${item['startTime'] != null ? item['startTime'].format(context) : "--:--"}'
+                                 ' - '
+                                 '${item['endTime'] != null ? item['endTime'].format(context) : "--:--"}',
                                   style: TextStyle(
                                     fontSize: 13,
                                     color: isEnabled ? Colors.black87 : Colors.grey,

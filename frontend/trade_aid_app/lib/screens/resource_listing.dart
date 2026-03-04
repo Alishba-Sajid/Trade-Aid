@@ -28,11 +28,20 @@ class ResourceListingScreen extends StatefulWidget {
   @override
   State<ResourceListingScreen> createState() => _ResourceListingScreenState();
 }
-
 class _ResourceListingScreenState extends State<ResourceListingScreen> {
   String searchQuery = '';
   List<Resource> resources = [];
   bool isLoading = true;
+
+  // ✅ Add your toggleResource method here
+  Future<void> toggleResource(String resourceId, bool enable) async {
+    final supabase = Supabase.instance.client;
+    await supabase
+        .from('resources')
+        .update({'is_enabled': enable})
+        .eq('id', resourceId);
+    _fetchResources(); // refresh the list
+  }
 
   List<Resource> get filteredResources {
     if (searchQuery.trim().isEmpty) return resources;
@@ -44,7 +53,6 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
           r.ownerAddress.toLowerCase().contains(q);
     }).toList();
   }
-
   Future<void> _fetchResources() async {
     setState(() => isLoading = true);
 
@@ -55,7 +63,8 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
       final resourceResponse = await supabase
           .from('resources')
           .select()
-          .eq('community_id', widget.communityId);
+          .eq('community_id', widget.communityId)
+          .eq('is_enabled', true);
 
       final resourceList = resourceResponse as List;
 
