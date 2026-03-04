@@ -43,10 +43,12 @@ class _EditUploadResourceScreenState extends State<EditUploadResourceScreen> {
   TimeOfDay? _endTime;
   String? _description;
   String? _rate;
+  String? _name;
 
   @override
   void initState() {
     super.initState();
+    _name = widget.resource['name'];
     _description = widget.resource['description'];
     _rate = widget.resource['rate']?.toString();
     _startTime = widget.resource['startTime'];
@@ -312,6 +314,7 @@ class _EditUploadResourceScreenState extends State<EditUploadResourceScreen> {
 
     final updated = {
       ...widget.resource,
+      'name': _name,
       'description': _description,
       'rate': _rate,
       'days': _availableDays,
@@ -403,6 +406,48 @@ class _EditUploadResourceScreenState extends State<EditUploadResourceScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
+
+_sectionHeading("RESOURCE NAME"),
+                const SizedBox(height: 8),
+                TextFormField(
+                  initialValue: _name,
+                  maxLines: 1,
+                  maxLength: 100,
+                  decoration: _modernInput("Enter Resource Name"),
+                  validator: (v) => v == null || v.isEmpty ? "Required" : null,
+                  onSaved: (v) => _name = v,
+                ),
+                const SizedBox(height: 16),
+                _sectionHeading("DESCRIPTION"),
+                const SizedBox(height: 8),
+                TextFormField(
+                  initialValue: _description,
+                  maxLines: 3,
+                  maxLength: 250,
+                  buildCounter:
+                      (
+                        context, {
+                        required currentLength,
+                        required isFocused,
+                        maxLength,
+                      }) {
+                        return Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            "$currentLength/$maxLength",
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.blueGrey[400],
+                            ),
+                          ),
+                        );
+                      },
+                  decoration: _modernInput("Enter Resource Details"),
+                  validator: (v) => v == null || v.isEmpty ? "Required" : null,
+                  onSaved: (v) => _name = v,
+                ),
+                const SizedBox(height: 16),
+
                 _sectionHeading("DETAILS"),
                 const SizedBox(height: 8),
                 TextFormField(

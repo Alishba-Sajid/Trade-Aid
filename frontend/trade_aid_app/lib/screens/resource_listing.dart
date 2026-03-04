@@ -5,9 +5,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 // 🌿 Premium Color Constants
 const LinearGradient appGradient = LinearGradient(
-  colors: [Color(0xFF2E9499), Color(0xFF119E90)],
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
+  colors: [
+    Color.fromARGB(255, 15, 119, 124),
+    Color.fromARGB(255, 17, 158, 144),
+  ],
+  begin: Alignment.bottomLeft,
+  end: Alignment.topRight,
 );
 
 const Color dark = Color(0xFF004D40);
@@ -147,7 +150,9 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
   Widget _buildPremiumAppBar(BuildContext context) {
     return Container(
       height: 100,
-      decoration: const BoxDecoration(gradient: appGradient),
+      decoration: const BoxDecoration(
+        gradient: appGradient,
+      ),
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -348,35 +353,42 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pushNamed(
-                            context,
-                            '/booking',
-                            arguments: {
-                              'resourceId': r.id,
-                              'resourceName': r.name
-                            },
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: accent,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: appGradient,
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Text(
-                          "Book",
-                          style: TextStyle(fontWeight: FontWeight.w600),
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pushNamed(
+                              context,
+                              '/booking',
+                              arguments: {
+                                'resourceId': r.id,
+                                'resourceName': r.name
+                              },
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shadowColor: Colors.transparent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text(
+                            "Book",
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(width: 10),
                     Container(
                       decoration: BoxDecoration(
-                        color: accent,
+                        gradient: appGradient,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: IconButton(

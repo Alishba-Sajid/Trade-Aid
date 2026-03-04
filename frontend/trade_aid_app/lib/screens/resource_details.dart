@@ -6,9 +6,12 @@ import '../widgets/app_bar.dart';
 import 'chat/chat_screen.dart';
 
 const LinearGradient appGradient = LinearGradient(
-  colors: [Color(0xFF2E9499), Color(0xFF119E90)],
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
+  colors: [
+    Color.fromARGB(255, 15, 119, 124),
+    Color.fromARGB(255, 17, 158, 144),
+  ],
+  begin: Alignment.bottomLeft,
+  end: Alignment.topRight,
 );
 
 /* ===================== RESOURCE DETAILS SCREEN ===================== */

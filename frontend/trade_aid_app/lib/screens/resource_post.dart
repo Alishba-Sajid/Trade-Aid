@@ -412,7 +412,7 @@ class _ResourcePostScreenState extends State<ResourcePostScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                 _sectionHeading("Resource Name"),
+                 _sectionHeading("RESOURCE NAME"),
                   const SizedBox(height: 8),
                   TextFormField(
                     maxLines: 1,
