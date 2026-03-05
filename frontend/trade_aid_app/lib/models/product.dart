@@ -25,7 +25,7 @@ final String? sellerAddress;
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
       id: json['id'],
-      name: json['title'], // your DB column is title
+      name: json['title'], 
       description: json['description'],
       price: (json['price'] as num).toDouble(),
       condition: json['condition'],

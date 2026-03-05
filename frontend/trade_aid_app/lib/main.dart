@@ -1,6 +1,9 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'providers/cart_provider.dart';
 
 // screens
 import 'screens/splash_screen.dart';
@@ -50,7 +53,12 @@ Future<void> main() async {
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpZHhyemlpc3Nta2thdm9hb2xqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMDUzOTYsImV4cCI6MjA4NzU4MTM5Nn0.5_6Ywl7je00tB8uGVKnf3_sZ3-USoghGJfTGS7iJBhE', // paste your Supabase anon public key
   );
 
-  runApp(const TradeAidApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => CartProvider(),
+      child: const TradeAidApp(),
+    ),
+  );
 }
 
 class TradeAidApp extends StatelessWidget {

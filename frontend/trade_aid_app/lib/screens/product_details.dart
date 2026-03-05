@@ -1,7 +1,9 @@
 // lib/screens/product_details.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../models/product.dart';
+import '../providers/cart_provider.dart';
 import 'payment_option.dart';
 import 'chat/chat_screen.dart';
 import '../widgets/app_bar.dart';
@@ -461,7 +463,16 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               icon: const Icon(Icons.shopping_cart_outlined),
               color: accent,
               iconSize: 22,
-              onPressed: () {},
+              onPressed: () {
+                context.read<CartProvider>().addProduct(widget.product);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${widget.product.name} added to cart'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+                Navigator.pushNamed(context, '/cart');
+              },
             ),
           ),
           const SizedBox(width: 14),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../models/resource.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../models/resource.dart';
+import '../providers/cart_provider.dart';
 
 // 🌿 Premium Color Constants
 const LinearGradient appGradient = LinearGradient(
@@ -55,6 +57,16 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
   }
   Future<void> _fetchResources() async {
     setState(() => isLoading = true);
+
+    // If we don't have a valid community yet, don't hit Supabase.
+    if (widget.communityId.isEmpty) {
+      debugPrint('RESOURCE LISTING: No communityId provided, skipping fetch.');
+      setState(() {
+        resources = [];
+        isLoading = false;
+      });
+      return;
+    }
 
     try {
       final supabase = Supabase.instance.client;
@@ -402,9 +414,14 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
                       ),
                       child: IconButton(
                         onPressed: () {
+                          context.read<CartProvider>().addResource(r);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('${r.name} added to cart.')),
+                            SnackBar(
+                              content: Text('${r.name} added to cart'),
+                              behavior: SnackBarBehavior.floating,
+                            ),
                           );
+                          Navigator.pushNamed(context, '/cart');
                         },
                         icon: const Icon(
                           Icons.shopping_cart_outlined,

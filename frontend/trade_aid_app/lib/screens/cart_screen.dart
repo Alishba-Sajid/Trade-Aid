@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import '../providers/cart_provider.dart';
+import '../models/cart_item.dart';
+import 'payment_option.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -9,7 +13,6 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
-  // --- Updated  Palette ---
   static const Color darkPrimary = Color(0xFF004D40);
   static const Color backgroundLight = Color(0xFFF8FAFA);
   static const Color accentTeal = Color(0xFF119E90);
@@ -24,78 +27,59 @@ class _CartScreenState extends State<CartScreen> {
     end: Alignment.topRight,
   );
 
-  List<Map<String, dynamic>> cartItems = [
-    {
-      'name': 'Spacious Lawn',
-      'price': 2000.0,
-      'image': 'assets/lawn.jpg',
-      'description': 'Lawn booking for 3 hours',
-      'seller': 'Hania B.',
-    },
-    {
-      'name': 'Washing Machine',
-      'price': 300.0,
-      'image': 'assets/washing_machine.jpg',
-      'description': 'High efficiency hourly use',
-      'seller': 'Ali K.',
-    },
-    {
-      'name': 'Refrigerator',
-      'price': 500.0,
-      'image': 'assets/fridge.jpg',
-      'description': 'Large capacity, party rental',
-      'seller': 'Sara A.',
-    },
-  ];
-
   Set<int> selectedIndexes = {};
   bool get selectionMode => selectedIndexes.isNotEmpty;
 
-  double get currentTotal {
-    if (selectionMode) {
-      return selectedIndexes.fold(
-        0,
-        (sum, i) => sum + (cartItems[i]['price'] as double),
-      );
-    }
-    return cartItems.fold(0, (sum, item) => sum + (item['price'] as double));
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: backgroundLight,
-      body: Column(
-        children: [
-          _buildHeader(context), // <-- Updated header
-          Expanded(
-            child: CustomScrollView(
-              slivers: [
-                if (cartItems.isEmpty)
-                  SliverFillRemaining(child: _buildEmptyState())
-                else
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) => _buildPremiumCard(index),
-                        childCount: cartItems.length,
+    return Consumer<CartProvider>(
+      builder: (context, cart, _) {
+        final items = cart.items;
+        final totalFromSelection = selectionMode
+            ? selectedIndexes.fold<double>(
+                0, (sum, i) => sum + (i < items.length ? items[i].price : 0))
+            : null;
+        final currentTotal =
+            totalFromSelection ?? cart.totalPrice;
+
+        return Scaffold(
+          backgroundColor: backgroundLight,
+          body: Column(
+            children: [
+              _buildHeader(context),
+              Expanded(
+                child: CustomScrollView(
+                  slivers: [
+                    if (items.isEmpty)
+                      SliverFillRemaining(child: _buildEmptyState())
+                    else
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) => _buildPremiumCard(
+                              context,
+                              index,
+                              items[index],
+                              cart,
+                            ),
+                            childCount: items.length,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-              ],
-            ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-      extendBody: true,
-      bottomNavigationBar: cartItems.isEmpty ? null : _buildFloatingCheckout(),
+          extendBody: true,
+          bottomNavigationBar:
+              items.isEmpty ? null : _buildFloatingCheckout(context, currentTotal, cart),
+        );
+      },
     );
   }
 
-  /// =======================
-  /// APP BAR (Pending Requests Style)
-  /// =======================
   Widget _buildHeader(BuildContext context) {
     return Container(
       padding: const EdgeInsets.only(top: 50, bottom: 10, left: 16, right: 16),
@@ -106,7 +90,7 @@ class _CartScreenState extends State<CartScreen> {
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () => Navigator.pop(context),
           ),
-          const SizedBox(width: 100), // <-- Add spacing here
+          const SizedBox(width: 100),
           const Text(
             'My Cart',
             style: TextStyle(
@@ -120,14 +104,34 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  Widget _buildPremiumCard(int index) {
-    final item = cartItems[index];
+  Widget _buildPremiumCard(
+    BuildContext context,
+    int index,
+    CartItem item,
+    CartProvider cart,
+  ) {
     final isSelected = selectedIndexes.contains(index);
+    // Per-item 15-min countdown for both products and resources
+    final remaining = cart.remainingForItem(item);
+    final countdownText = remaining.inSeconds > 0
+        ? '${remaining.inMinutes.toString().padLeft(2, '0')}:${(remaining.inSeconds % 60).toString().padLeft(2, '0')}'
+        : null;
 
     return Dismissible(
-      key: Key(item['name'] + index.toString()),
+      key: Key(item.uniqueId),
       direction: DismissDirection.endToStart,
-      onDismissed: (_) => _removeItem(index),
+      onDismissed: (_) {
+        cart.removeItemAt(index);
+        _adjustSelectionAfterRemove(index);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Item removed from cart'),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            backgroundColor: darkPrimary,
+          ),
+        );
+      },
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 25),
@@ -180,14 +184,7 @@ class _CartScreenState extends State<CartScreen> {
                       width: 85,
                       height: 85,
                       color: subtleGrey,
-                      child: Image.asset(
-                        item['image'],
-                        fit: BoxFit.cover,
-                        errorBuilder: (c, e, s) => const Icon(
-                          Icons.inventory_2_outlined,
-                          color: accentTeal,
-                        ),
-                      ),
+                      child: _buildItemImage(item),
                     ),
                   ),
                   if (isSelected)
@@ -211,7 +208,7 @@ class _CartScreenState extends State<CartScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      item['name'],
+                      item.name,
                       style: GoogleFonts.poppins(
                         fontWeight: FontWeight.w600,
                         fontSize: 16,
@@ -219,16 +216,38 @@ class _CartScreenState extends State<CartScreen> {
                       ),
                     ),
                     Text(
-                      item['description'],
+                      item.description,
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         color: Colors.grey[500],
                       ),
                       maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
+                    if (countdownText != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Row(
+                          children: [
+                            Icon(Icons.timer_outlined,
+                                size: 14, color: accentTeal),
+                            const SizedBox(width: 4),
+                            Text(
+                              item.isProduct
+                                  ? 'Hold: $countdownText'
+                                  : 'Timer: $countdownText',
+                              style: GoogleFonts.poppins(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: accentTeal,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     Text(
-                      'Rs ${item['price'].toStringAsFixed(0)}',
+                      'Rs ${item.price.toStringAsFixed(0)}${item.isProduct ? '' : '/h'}',
                       style: GoogleFonts.poppins(
                         fontWeight: FontWeight.w700,
                         fontSize: 17,
@@ -244,7 +263,19 @@ class _CartScreenState extends State<CartScreen> {
                   color: Colors.redAccent,
                   size: 22,
                 ),
-                onPressed: () => _removeItem(index),
+                onPressed: () {
+                  cart.removeItemAt(index);
+                  _adjustSelectionAfterRemove(index);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Item removed from cart'),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      backgroundColor: darkPrimary,
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -253,7 +284,40 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  Widget _buildFloatingCheckout() {
+  Widget _buildItemImage(CartItem item) {
+    final url = item.imageUrl;
+    if (url.isEmpty) {
+      return const Icon(Icons.inventory_2_outlined, color: accentTeal);
+    }
+    if (url.startsWith('http')) {
+      return Image.network(
+        url,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) =>
+            const Icon(Icons.inventory_2_outlined, color: accentTeal),
+      );
+    }
+    return Image.asset(
+      url,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) =>
+          const Icon(Icons.inventory_2_outlined, color: accentTeal),
+    );
+  }
+
+  void _adjustSelectionAfterRemove(int removedIndex) {
+    setState(() {
+      selectedIndexes = selectedIndexes
+          .where((i) => i != removedIndex)
+          .map((i) => i > removedIndex ? i - 1 : i)
+          .toSet();
+    });
+  }
+
+  Widget _buildFloatingCheckout(
+      BuildContext context, double currentTotal, CartProvider cart) {
+    final items = cart.items;
+
     return Container(
       margin: const EdgeInsets.all(20),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -308,7 +372,16 @@ class _CartScreenState extends State<CartScreen> {
                 ],
               ),
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: items.isEmpty
+                    ? null
+                    : () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const PaymentSelectionScreen(),
+                          ),
+                        );
+                      },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
@@ -365,21 +438,6 @@ class _CartScreenState extends State<CartScreen> {
             style: GoogleFonts.poppins(color: Colors.grey),
           ),
         ],
-      ),
-    );
-  }
-
-  void _removeItem(int i) {
-    setState(() {
-      cartItems.removeAt(i);
-      selectedIndexes.remove(i);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Item removed from cart'),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        backgroundColor: darkPrimary,
       ),
     );
   }
