@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../widgets/app_bar.dart';
 
 // ───────── COLORS & GRADIENTS ─────────
@@ -7,14 +8,72 @@ const Color darkPrimary = Color(0xFF004D40);
 const Color accentTeal = Color(0xFF119E90);
 const Color backgroundLight = Color(0xFFF0F9F8);
 const Color subtleGrey = Color(0xFFE8ECEC);
+
 const LinearGradient appGradient = LinearGradient(
   colors: [Color(0xFF2E9499), Color(0xFF119E90)],
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
 );
 
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
+
+  @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  final supabase = Supabase.instance.client;
+
+  List notifications = [];
+
+  @override
+  void initState() {
+    super.initState();
+
+    fetchNotifications();
+
+    // REALTIME LISTENER
+    supabase
+        .channel('notifications')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'notifications',
+          callback: (payload) {
+            fetchNotifications();
+          },
+        )
+        .subscribe();
+  }
+
+  Future<void> fetchNotifications() async {
+    final user = supabase.auth.currentUser;
+
+    if (user == null) return;
+
+    try {
+      final member = await supabase
+          .from('community_members')
+          .select('community_id')
+          .eq('user_id', user.id)
+          .single();
+
+      final communityId = member['community_id'];
+
+      final data = await supabase
+          .from('notifications')
+          .select()
+          .eq('community_id', communityId)
+          .order('created_at', ascending: false);
+
+      setState(() {
+        notifications = data;
+      });
+    } catch (e) {
+      print("Error fetching notifications: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,39 +86,22 @@ class NotificationsScreen extends StatelessWidget {
       body: ListView(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
+
         children: [
-          _buildSectionHeader("RECENT UPDATES"),
-          const _PremiumNotificationCard(
-            icon: Icons.shopping_bag_rounded,
-            title: 'New Product Posted',
-            message: 'A new product has been posted in Gulberg Greens.',
-            time: '2 mins ago',
-            isUnread: true,
-          ),
-          const _PremiumNotificationCard(
-            icon: Icons.auto_awesome_rounded,
-            title: 'New Resource Available',
-            message: 'Someone shared a new community resource.',
-            time: '1 hour ago',
-            isUnread: true,
-          ),
-          const SizedBox(height: 20),
-          _buildSectionHeader("PREVIOUS"),
-          const _PremiumNotificationCard(
-            icon: Icons.local_shipping_rounded,
-            title: 'Order Update',
-            message: 'Your order #12345 has been successfully placed.',
-            time: 'Yesterday',
-            isUnread: false,
-          ),
-          const _PremiumNotificationCard(
-            icon: Icons.check_circle_outline,
-            title: 'Request Completed',
-            message: 'Your wish request for "Iron" has been fulfilled.',
-            time: '2 days ago',
-            isUnread: false,
-          ),
-        ],
+
+  _buildSectionHeader("Recent Updates"),
+
+  ...notifications.map((n) {
+    return _PremiumNotificationCard(
+      icon: Icons.notifications,
+      title: n['title'] ?? '',
+      message: n['message'] ?? '',
+      time: n['created_at'].toString(),
+      isUnread: true,
+    );
+  }).toList(),
+
+],
       ),
     );
   }
@@ -102,103 +144,72 @@ class _PremiumNotificationCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             color: Colors.black12,
             blurRadius: 16,
-            offset: const Offset(0, 8),
+            offset: Offset(0, 8),
           ),
         ],
         border: isUnread
             ? Border.all(color: accentTeal.withOpacity(0.3), width: 1.5)
             : null,
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(22),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () {},
-            splashColor: accentTeal.withOpacity(0.1),
-            highlightColor: Colors.transparent,
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Row(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              height: 50,
+              width: 50,
+              decoration: BoxDecoration(
+                gradient: isUnread ? appGradient : null,
+                color: !isUnread ? subtleGrey : null,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(
+                icon,
+                color: isUnread ? Colors.white : darkPrimary.withOpacity(0.5),
+                size: 26,
+              ),
+            ),
+            const SizedBox(width: 18),
+            Expanded(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Icon Circle
-                  Container(
-                    height: 50,
-                    width: 50,
-                    decoration: BoxDecoration(
-                      gradient: isUnread ? appGradient : null,
-                      color: !isUnread ? subtleGrey : null,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(
-                      icon,
-                      color: isUnread
-                          ? Colors.white
-                          : darkPrimary.withOpacity(0.5),
-                      size: 26,
+                  Text(
+                    title,
+                    style: GoogleFonts.poppins(
+                      fontWeight:
+                          isUnread ? FontWeight.w700 : FontWeight.w600,
+                      fontSize: 15,
+                      color: darkPrimary,
                     ),
                   ),
-                  const SizedBox(width: 18),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                title,
-                                style: GoogleFonts.poppins(
-                                  fontWeight: isUnread
-                                      ? FontWeight.w700
-                                      : FontWeight.w600,
-                                  fontSize: 15,
-                                  color: darkPrimary,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            if (isUnread)
-                              Container(
-                                width: 10,
-                                height: 10,
-                                decoration: const BoxDecoration(
-                                  color: accentTeal,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          message,
-                          style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            height: 1.5,
-                            color: Colors.grey.shade700,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          time,
-                          style: GoogleFonts.poppins(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: accentTeal.withOpacity(0.75),
-                          ),
-                        ),
-                      ],
+                  const SizedBox(height: 6),
+                  Text(
+                    message,
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      height: 1.5,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    time,
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: accentTeal.withOpacity(0.75),
                     ),
                   ),
                 ],
               ),
             ),
-          ),
+          ],
         ),
       ),
     );

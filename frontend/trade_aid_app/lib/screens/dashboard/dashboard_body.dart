@@ -169,36 +169,6 @@ class _DashboardBodyState extends State<DashboardBody> {
             ),
             child: ListView(
               children: [
-                _buildSectionHeader('Nearby Communities'),
-                const SizedBox(height: 13),
-
-                SizedBox(
-                  height: 130,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    clipBehavior: Clip.none,
-                    children:[
-                      _CommunityTile(
-                        'GG-12',
-                        description:
-                            'GG-12 is a premium community for resource sharing, skill development, and community support.',
-                      ),
-                      _CommunityTile(
-                        'GG-13',
-                        description:
-                            'GG-13 focuses on sustainability, eco-friendly projects, and collaboration among members.',
-                      ),
-                      _CommunityTile(
-                        'GG-14',
-                        description:
-                            'GG-14 is a tech-oriented community where members share knowledge and products.',
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 10),
-
                 _buildSectionHeader('Services'),
                 const SizedBox(height: 13),
 
@@ -243,6 +213,36 @@ class _DashboardBodyState extends State<DashboardBody> {
                 ),
 
                 const SizedBox(height: 20),
+
+                   _buildSectionHeader('Nearby Communities'),
+                const SizedBox(height: 13),
+
+                SizedBox(
+                  height: 130,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    clipBehavior: Clip.none,
+                    children:[
+                      _CommunityTile(
+                        'GG-12',
+                        description:
+                            'GG-12 is a premium community for resource sharing, skill development, and community support.',
+                      ),
+                      _CommunityTile(
+                        'GG-13',
+                        description:
+                            'GG-13 focuses on sustainability, eco-friendly projects, and collaboration among members.',
+                      ),
+                      _CommunityTile(
+                        'GG-14',
+                        description:
+                            'GG-14 is a tech-oriented community where members share knowledge and products.',
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 10),
               ],
             ),
           ),
