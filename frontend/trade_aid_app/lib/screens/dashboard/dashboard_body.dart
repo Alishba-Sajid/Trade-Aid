@@ -17,10 +17,11 @@ const Color accent = Color(0xFF119E90);
 // Dashboard Body
 // =========================
 class DashboardBody extends StatefulWidget {
-  final String userName;
+   final String userName;
   final String communityName;
-  final String communityId; // ✅ ADDED (functionality only)
+  final String communityId; 
   final bool isAdmin;
+
 
   const DashboardBody({
     super.key,

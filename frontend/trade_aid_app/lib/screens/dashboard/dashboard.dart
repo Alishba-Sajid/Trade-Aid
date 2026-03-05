@@ -35,6 +35,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String? _communityId;
   String _communityName = 'Community';
   String _userName = 'User';
+  
 
   @override
   void initState() {
@@ -65,48 +66,59 @@ class _DashboardScreenState extends State<DashboardScreen> {
       print("❌ No user logged in");
     }
   }
+Future<void> _fetchUserCommunity() async {
+  final supabase = Supabase.instance.client;
+  final user = supabase.auth.currentUser;
 
-  Future<void> _fetchUserCommunity() async {
-    final supabase = Supabase.instance.client;
-    final user = supabase.auth.currentUser;
-    if (user == null) return;
+  if (user == null) return;
 
-    try {
-      // Fetch user's community membership
-     final memberResponse = await supabase
-    .from('community_members')
-    .select('community_id')
-    .eq('user_id', user.id)
-    .maybeSingle();
+  try {
+    // Fetch community membership
+    final memberResponse = await supabase
+        .from('community_members')
+        .select('community_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-      if (memberResponse == null || memberResponse['community_id'] == null) {
-        print('⚠️ User is not part of any community');
-        return;
-      }
-
-      final communityId = memberResponse['community_id'] as String;
-
-      // Fetch community name
-      final communityResponse = await supabase
-          .from('communities')
-          .select('name')
-          .eq('id', communityId)
-          .maybeSingle();
-
-      final communityName =
-          communityResponse?['name'] as String? ?? 'Community';
-
-      setState(() {
-        _communityId = communityId;
-        _communityName = communityName;
-      });
-
-      print('✅ User belongs to community $_communityName ($_communityId)');
-    } catch (e) {
-      print('⚠️ Error fetching community: $e');
+    if (memberResponse == null || memberResponse['community_id'] == null) {
+      print('⚠️ User is not part of any community');
+      return;
     }
-  }
 
+    final communityId = memberResponse['community_id'];
+
+    // Fetch community name
+    final communityResponse = await supabase
+        .from('communities')
+        .select('name')
+        .eq('id', communityId)
+        .maybeSingle();
+
+    final communityName =
+        communityResponse?['name'] ?? 'Community';
+
+    // Fetch user profile name
+    final profileResponse = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('user_id', user.id)
+        .single();
+
+    final userName = profileResponse['full_name'] ?? 'User';
+
+    setState(() {
+      _communityId = communityId;
+      _communityName = communityName;
+      _userName = userName; // ✅ important
+    });
+
+    print("✅ User: $userName");
+    print("✅ Community: $communityName");
+
+  } catch (e) {
+    print('⚠️ Error fetching dashboard data: $e');
+  }
+}
   void _onBottomTap(int index) {
     if (index == 1 || index == 2 || index == 3 || index == 4) {
       switch (index) {
