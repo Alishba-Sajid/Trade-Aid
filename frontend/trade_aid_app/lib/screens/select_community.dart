@@ -1,6 +1,90 @@
+// lib/screens/select_community.dart
 import 'package:flutter/material.dart';
 import 'create_community.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+// ✅ Animated card widget (same as other screens)
+class AnimatedCard extends StatefulWidget {
+  final String message;
+  final IconData? icon;
+  const AnimatedCard({super.key, required this.message, this.icon});
+
+  @override
+  State<AnimatedCard> createState() => _AnimatedCardState();
+}
+
+class _AnimatedCardState extends State<AnimatedCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnim;
+  late Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    _offsetAnim = Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SlideTransition(
+      position: _offsetAnim,
+      child: FadeTransition(
+        opacity: _fadeAnim,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color.fromARGB(255, 17, 158, 144),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.icon != null)
+                  Icon(
+                    widget.icon,
+                    color: const Color.fromARGB(255, 17, 158, 144),
+                  ),
+                if (widget.icon != null) const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.message,
+                    style: const TextStyle(color: Colors.black),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class SelectCommunityScreen extends StatefulWidget {
   const SelectCommunityScreen({super.key});
@@ -27,17 +111,32 @@ class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
     }
   }
 
+  // ✅ Animated card helper
+  void _showAnimatedCard(String message, {IconData? icon}) {
+    final overlay = Overlay.of(context);
+
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: 50,
+        left: 20,
+        right: 20,
+        child: AnimatedCard(message: message, icon: icon),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 2), () => overlayEntry.remove());
+  }
+
   // =========================
   // ✅ Step 1: Send Join Request
   // =========================
   Future<void> joinCommunity(Map<String, dynamic> community) async {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('You must be logged in to join a community'),
-          backgroundColor: Colors.redAccent,
-        ),
+      _showAnimatedCard(
+        'You must be logged in to join a community',
+        icon: Icons.error,
       );
       return;
     }
@@ -45,7 +144,6 @@ class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Check if already a member
       final memberCheck = await supabase
           .from('community_members')
           .select()
@@ -54,16 +152,13 @@ class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
           .maybeSingle();
 
       if (memberCheck != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('You are already a member of this community'),
-            backgroundColor: Colors.orange,
-          ),
+        _showAnimatedCard(
+          'You are already a member of this community',
+          icon: Icons.info,
         );
         return;
       }
 
-      // Check if join request already exists
       final existingRequest = await supabase
           .from('community_join_requests')
           .select()
@@ -72,16 +167,13 @@ class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
           .maybeSingle();
 
       if (existingRequest != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('You already requested to join this community'),
-            backgroundColor: Colors.orange,
-          ),
+        _showAnimatedCard(
+          'You already requested to join this community',
+          icon: Icons.info,
         );
         return;
       }
 
-      // ✅ Insert join request with proper response check
       final response = await supabase
           .from('community_join_requests')
           .insert({
@@ -89,34 +181,20 @@ class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
             'requester_id': userId,
             'status': 'pending',
           })
-          .select() // make sure it returns the inserted row
+          .select()
           .maybeSingle();
 
-      // response will contain the inserted row or null if failed
       if (response != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Request sent to join "${community['name']}"'),
-            backgroundColor: Colors.teal,
-          ),
+        _showAnimatedCard(
+          'Request sent to join "${community['name']}"',
+          icon: Icons.check,
         );
       } else {
-        // fallback in case Supabase did not throw but returned null
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to send join request'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+        _showAnimatedCard('Failed to send join request', icon: Icons.error);
       }
     } catch (e) {
       debugPrint('Error sending join request: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to send join request'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      _showAnimatedCard('Failed to send join request', icon: Icons.error);
     } finally {
       setState(() => _isLoading = false);
     }

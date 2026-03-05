@@ -25,6 +25,8 @@ class _LoginScreenState extends State<LoginScreen>
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
 
+  final supabase = Supabase.instance.client;
+
   @override
   void initState() {
     super.initState();
@@ -68,13 +70,30 @@ class _LoginScreenState extends State<LoginScreen>
     return null;
   }
 
+  // ✅ Replace snackbar with animated card
+  void _showAnimatedCard(String message, {IconData? icon}) {
+    final overlay = Overlay.of(context);
+
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: 50,
+        left: 20,
+        right: 20,
+        child: AnimatedCard(message: message, icon: icon),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 2), () => overlayEntry.remove());
+  }
+
   Future<void> _onLoginPressed() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _loading = true);
 
     try {
-      final response = await Supabase.instance.client.auth.signInWithPassword(
+      final response = await supabase.auth.signInWithPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
@@ -84,20 +103,80 @@ class _LoginScreenState extends State<LoginScreen>
       if (user != null) {
         if (!mounted) return;
 
-        Navigator.pushReplacementNamed(context, '/dashboard');
+        await _handlePostLoginFlow(user.id);
       }
     } on AuthException catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
+      _showAnimatedCard(e.message, icon: Icons.error);
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Login failed")));
+      _showAnimatedCard("Login failed", icon: Icons.error);
     }
 
     if (mounted) {
       setState(() => _loading = false);
+    }
+  }
+
+  // ✅ NEW LOGIC: Flow controller after login
+  Future<void> _handlePostLoginFlow(String userId) async {
+    final supabase = Supabase.instance.client;
+
+    try {
+      // 1️⃣ Check if profile exists
+      final profile = await supabase
+          .from('profiles')
+          .select()
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (profile == null) {
+        _showAnimatedCard(
+          "You haven’t completed your profile yet.",
+          icon: Icons.person,
+        );
+        await Future.delayed(const Duration(seconds: 2));
+        Navigator.pushReplacementNamed(context, '/create_profile');
+        return;
+      }
+
+      // 2️⃣ Check if approved member
+      final membership = await supabase
+          .from('community_members')
+          .select()
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (membership != null) {
+        Navigator.pushReplacementNamed(context, '/dashboard');
+        return;
+      }
+
+      // 3️⃣ Check if pending request
+      final pendingRequest = await supabase
+          .from('community_join_requests')
+          .select()
+          .eq('requester_id', userId)
+          .eq('status', 'pending')
+          .maybeSingle();
+
+      if (pendingRequest != null) {
+        // ✅ Show only animated card, DO NOT navigate anywhere
+        _showAnimatedCard(
+          "Your community join request is still pending approval.",
+          icon: Icons.pending,
+        );
+        return; // Exit here to avoid showing location card
+      }
+
+      // 4️⃣ Only show location permission card if user hasn't done location/community step
+      // Assuming if profile exists but no membership and no pending request, they need location
+      _showAnimatedCard(
+        "Please allow location access to continue.",
+        icon: Icons.location_on,
+      );
+      await Future.delayed(const Duration(seconds: 2));
+      Navigator.pushReplacementNamed(context, '/location_permission');
+    } catch (e) {
+      _showAnimatedCard("Error determining flow: $e", icon: Icons.error);
     }
   }
 
@@ -108,7 +187,6 @@ class _LoginScreenState extends State<LoginScreen>
       resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
-          // 🌈 Gradient header
           Container(
             height: 280,
             width: double.infinity,
@@ -123,7 +201,6 @@ class _LoginScreenState extends State<LoginScreen>
               ),
             ),
           ),
-
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
@@ -132,17 +209,12 @@ class _LoginScreenState extends State<LoginScreen>
                 child: Column(
                   children: [
                     const SizedBox(height: 15),
-
-                    // 🏷 Logo
                     Image.asset(
                       'assets/whitenamelogo.png',
                       height: 130,
                       width: 130,
                     ),
-
                     const SizedBox(height: 30),
-
-                    // 🎬 Animated Card
                     FadeTransition(
                       opacity: _fadeAnim,
                       child: SlideTransition(
@@ -176,8 +248,6 @@ class _LoginScreenState extends State<LoginScreen>
                                 style: TextStyle(color: Colors.grey),
                               ),
                               const SizedBox(height: 30),
-
-                              // Email
                               _buildField(
                                 controller: _emailController,
                                 focusNode: _emailFocus,
@@ -190,10 +260,7 @@ class _LoginScreenState extends State<LoginScreen>
                                   ).requestFocus(_passwordFocus);
                                 },
                               ),
-
                               const SizedBox(height: 20),
-
-                              // Password
                               _buildField(
                                 controller: _passwordController,
                                 focusNode: _passwordFocus,
@@ -216,9 +283,7 @@ class _LoginScreenState extends State<LoginScreen>
                                   if (!_loading) _onLoginPressed();
                                 },
                               ),
-
                               const SizedBox(height: 6),
-
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: TextButton(
@@ -236,10 +301,7 @@ class _LoginScreenState extends State<LoginScreen>
                                   ),
                                 ),
                               ),
-
                               const SizedBox(height: 10),
-
-                              // Login Button
                               SizedBox(
                                 width: double.infinity,
                                 height: 50,
@@ -275,17 +337,11 @@ class _LoginScreenState extends State<LoginScreen>
                                         ),
                                 ),
                               ),
-
                               const SizedBox(height: 20),
-
-                              // 🌐 Social login (SHARED WIDGET)
                               const SocialAuthSection(
                                 title: "Or login using social media",
                               ),
-
                               const SizedBox(height: 24),
-
-                              // Register
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -324,7 +380,6 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  // 🧱 Input Field Builder
   Widget _buildField({
     required TextEditingController controller,
     required FocusNode focusNode,
@@ -348,7 +403,90 @@ class _LoginScreenState extends State<LoginScreen>
       decoration: InputDecoration(
         labelText: label,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        suffixIcon: suffix, // <-- Eye icon now works properly
+        suffixIcon: suffix,
+      ),
+    );
+  }
+}
+
+// ✅ Animated card widget
+class AnimatedCard extends StatefulWidget {
+  final String message;
+  final IconData? icon;
+  const AnimatedCard({super.key, required this.message, this.icon});
+
+  @override
+  State<AnimatedCard> createState() => _AnimatedCardState();
+}
+
+class _AnimatedCardState extends State<AnimatedCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnim;
+  late Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    _offsetAnim = Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SlideTransition(
+      position: _offsetAnim,
+      child: FadeTransition(
+        opacity: _fadeAnim,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color.fromARGB(255, 17, 158, 144),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.icon != null)
+                  Icon(
+                    widget.icon,
+                    color: const Color.fromARGB(255, 17, 158, 144),
+                  ),
+                if (widget.icon != null) const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.message,
+                    style: const TextStyle(color: Colors.black),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

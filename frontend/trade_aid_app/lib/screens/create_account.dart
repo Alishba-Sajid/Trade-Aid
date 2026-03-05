@@ -3,6 +3,91 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/social_auth_section.dart';
 
+// ✅ Animated card widget (same as login screen)
+class AnimatedCard extends StatefulWidget {
+  final String message;
+  final IconData? icon;
+  const AnimatedCard({super.key, required this.message, this.icon});
+
+  @override
+  State<AnimatedCard> createState() => _AnimatedCardState();
+}
+
+class _AnimatedCardState extends State<AnimatedCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnim;
+  late Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    _offsetAnim = Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SlideTransition(
+      position: _offsetAnim,
+      child: FadeTransition(
+        opacity: _fadeAnim,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color.fromARGB(255, 17, 158, 144),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.icon != null)
+                  Icon(
+                    widget.icon,
+                    color: const Color.fromARGB(255, 17, 158, 144),
+                  ),
+                if (widget.icon != null) const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.message,
+                    style: const TextStyle(color: Colors.black),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ✅ CreateAccountScreen
 class CreateAccountScreen extends StatefulWidget {
   const CreateAccountScreen({super.key});
 
@@ -30,7 +115,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
   Animation<double>? _fadeAnim;
   Animation<Offset>? _slideAnim;
 
-  final supabase = Supabase.instance.client; // ✅ Supabase client
+  final supabase = Supabase.instance.client;
 
   @override
   void initState() {
@@ -42,7 +127,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
     );
 
     _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
-
     _slideAnim = Tween<Offset>(begin: const Offset(0, 0.15), end: Offset.zero)
         .animate(
           CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
@@ -61,6 +145,23 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
     _confirmPasswordFocus.dispose();
     _animController.dispose();
     super.dispose();
+  }
+
+  // ✅ Show animated card
+  void _showAnimatedCard(String message, {IconData? icon}) {
+    final overlay = Overlay.of(context);
+
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: 50,
+        left: 20,
+        right: 20,
+        child: AnimatedCard(message: message, icon: icon),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 2), () => overlayEntry.remove());
   }
 
   String? _validateEmail(String? v) {
@@ -94,37 +195,18 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
       );
 
       if (response.user != null) {
-        // ✅ Success
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Account created successfully 🎉"),
-            backgroundColor: Colors.teal,
-          ),
-        );
-
+        _showAnimatedCard("Account created successfully 🎉", icon: Icons.check);
         Navigator.pushNamed(context, '/create_profile');
       } else if (response.session == null) {
-        // Email confirmation might be required
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              "Check your email for verification link before logging in.",
-            ),
-            backgroundColor: Colors.teal,
-          ),
+        _showAnimatedCard(
+          "Check your email for verification link before logging in.",
+          icon: Icons.info,
         );
       }
     } on AuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message), backgroundColor: Colors.redAccent),
-      );
+      _showAnimatedCard(e.message, icon: Icons.error);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Unexpected error occurred"),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      _showAnimatedCard("Unexpected error occurred", icon: Icons.error);
     } finally {
       setState(() => _isLoading = false);
     }
@@ -137,7 +219,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
       resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
-          // 🌈 Gradient header
           Container(
             height: 280,
             width: double.infinity,

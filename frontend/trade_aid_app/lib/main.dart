@@ -37,6 +37,7 @@ import 'screens/forgotpass/forget_pass_screen.dart';
 import 'screens/forgotpass/verifycode_screen.dart';
 import 'screens/forgotpass/newpass_screen.dart';
 import 'screens/chat/chat_screen.dart';
+import 'screens/waiting_approval_screen.dart';
 
 // models
 import 'models/product.dart';
@@ -45,12 +46,10 @@ import 'models/resource.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 🔥 Initialize Supabase
   await Supabase.initialize(
-    url:
-        'https://gidxrziissmkkavoaolj.supabase.co', // paste your Supabase Project URL
+    url: 'https://gidxrziissmkkavoaolj.supabase.co',
     anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpZHhyemlpc3Nta2thdm9hb2xqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMDUzOTYsImV4cCI6MjA4NzU4MTM5Nn0.5_6Ywl7je00tB8uGVKnf3_sZ3-USoghGJfTGS7iJBhE', // paste your Supabase anon public key
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpZHhyemlpc3Nta2thdm9hb2xqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMDUzOTYsImV4cCI6MjA4NzU4MTM5Nn0.5_6Ywl7je00tB8uGVKnf3_sZ3-USoghGJfTGS7iJBhE',
   );
 
   runApp(
@@ -66,8 +65,6 @@ class TradeAidApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Check if user session exists
-
     return MaterialApp(
       title: 'Trade & Aid',
       debugShowCheckedModeBanner: false,
@@ -79,7 +76,6 @@ class TradeAidApp extends StatelessWidget {
         ),
       ),
 
-      // Route user based on session
       home: const SplashScreen(),
 
       routes: {
@@ -105,85 +101,94 @@ class TradeAidApp extends StatelessWidget {
         '/help_support': (_) => const HelpSupportScreen(),
         '/wish_request': (_) => const WishRequestsScreen(),
         '/chat_list': (_) => const ChatListScreen(),
+        '/waiting_approval': (_) => const WaitingApprovalScreen(),
         '/chat_screen': (_) => const ChatScreen(sellerName: 'Seller'),
       },
-onGenerateRoute: (settings) {
 
-  if (settings.name == '/product_post') {
-    final communityId = settings.arguments as String;
-    return MaterialPageRoute(
-      builder: (_) => ProductPostScreen(communityId: communityId),
-      settings: settings,
-    );
-  }
+      onGenerateRoute: (settings) {
 
-  if (settings.name == '/product_details') {
-    final args = settings.arguments as Map<String, dynamic>;
-    return MaterialPageRoute(
-      builder: (_) =>
-          ProductDetailsScreen(product: args['product'] as Product),
-      settings: settings,
-    );
-  }
+        if (settings.name == '/product_post') {
+          final communityId = settings.arguments as String;
 
-  if (settings.name == '/product_listing') {
-    final communityId = settings.arguments as String;
-    return MaterialPageRoute(
-      builder: (_) => ProductListingScreen(
-        communityId: communityId,
-      ),
-      settings: settings,
-    );
-  }
+          return MaterialPageRoute(
+            builder: (_) => ProductPostScreen(communityId: communityId),
+            settings: settings,
+          );
+        }
 
-  if (settings.name == '/resource_post') {
-    final communityId = settings.arguments as String;
-    return MaterialPageRoute(
-      builder: (_) => ResourcePostScreen(
-        communityId: communityId,
-      ),
-      settings: settings,
-    );
-  }
+        if (settings.name == '/product_listing') {
+          final communityId = settings.arguments as String;
 
-  if (settings.name == '/resource_listing') {
-    final communityId = settings.arguments as String;
-    return MaterialPageRoute(
-      builder: (_) => ResourceListingScreen(
-        communityId: communityId,
-      ),
-      settings: settings,
-    );
-  }
+          return MaterialPageRoute(
+            builder: (_) => ProductListingScreen(
+              communityId: communityId,
+            ),
+            settings: settings,
+          );
+        }
 
-  if (settings.name == '/resource_details') {
-    final args = settings.arguments as Map<String, dynamic>;
-    return MaterialPageRoute(
-      builder: (_) =>
-          ResourceDetailsScreen(resource: args['resource'] as Resource),
-      settings: settings,
-    );
-  }
+        if (settings.name == '/product_details') {
+          final args = settings.arguments as Map<String, dynamic>;
 
-  if (settings.name == '/booking') {
-    final args = settings.arguments as Map<String, dynamic>;
-    return MaterialPageRoute(
-      builder: (_) => BookingScreen(
-        resourceId: args['resourceId'],
-        resourceName: args['resourceName'],
-      ),
-      settings: settings,
-    );
-  }
+          return MaterialPageRoute(
+            builder: (_) =>
+                ProductDetailsScreen(product: args['product'] as Product),
+            settings: settings,
+          );
+        }
 
-  return MaterialPageRoute(
-    builder: (_) => const Scaffold(
-      body: Center(
-        child: Text("Page not found"),
-      ),
-    ),
-  );
-}
+        if (settings.name == '/resource_post') {
+          final communityId = settings.arguments as String;
+
+          return MaterialPageRoute(
+            builder: (_) => ResourcePostScreen(
+              communityId: communityId,
+            ),
+            settings: settings,
+          );
+        }
+
+        if (settings.name == '/resource_listing') {
+          final communityId = settings.arguments as String;
+
+          return MaterialPageRoute(
+            builder: (_) => ResourceListingScreen(
+              communityId: communityId,
+            ),
+            settings: settings,
+          );
+        }
+
+        if (settings.name == '/resource_details') {
+          final args = settings.arguments as Map<String, dynamic>;
+
+          return MaterialPageRoute(
+            builder: (_) =>
+                ResourceDetailsScreen(resource: args['resource'] as Resource),
+            settings: settings,
+          );
+        }
+
+        if (settings.name == '/booking') {
+          final args = settings.arguments as Map<String, dynamic>;
+
+          return MaterialPageRoute(
+            builder: (_) => BookingScreen(
+              resourceId: args['resourceId'],
+              resourceName: args['resourceName'],
+            ),
+            settings: settings,
+          );
+        }
+
+        return MaterialPageRoute(
+          builder: (_) => const Scaffold(
+            body: Center(
+              child: Text("Page not found"),
+            ),
+          ),
+        );
+      },
     );
   }
 }

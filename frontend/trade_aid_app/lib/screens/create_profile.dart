@@ -4,6 +4,91 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+// ✅ Animated card widget (same style as login/create account)
+class AnimatedCard extends StatefulWidget {
+  final String message;
+  final IconData? icon;
+  const AnimatedCard({super.key, required this.message, this.icon});
+
+  @override
+  State<AnimatedCard> createState() => _AnimatedCardState();
+}
+
+class _AnimatedCardState extends State<AnimatedCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnim;
+  late Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    _offsetAnim = Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SlideTransition(
+      position: _offsetAnim,
+      child: FadeTransition(
+        opacity: _fadeAnim,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color.fromARGB(255, 17, 158, 144),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.icon != null)
+                  Icon(
+                    widget.icon,
+                    color: const Color.fromARGB(255, 17, 158, 144),
+                  ),
+                if (widget.icon != null) const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.message,
+                    style: const TextStyle(color: Colors.black),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ✅ Main screen
 class CreateProfileScreen extends StatefulWidget {
   const CreateProfileScreen({super.key});
 
@@ -20,7 +105,6 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
 
   String? _selectedGender;
   File? _profileImage;
-  String? imageUrl;
   bool _loading = false;
 
   late AnimationController _animController;
@@ -39,7 +123,6 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
     );
 
     _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
-
     _slideAnim = Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero)
         .animate(
           CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
@@ -55,6 +138,23 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
     _addressController.dispose();
     _animController.dispose();
     super.dispose();
+  }
+
+  // ✅ Show animated card
+  void _showAnimatedCard(String message, {IconData? icon}) {
+    final overlay = Overlay.of(context);
+
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: 50,
+        left: 20,
+        right: 20,
+        child: AnimatedCard(message: message, icon: icon),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 2), () => overlayEntry.remove());
   }
 
   Future<void> _pickImage() async {
@@ -74,12 +174,11 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
     setState(() => _loading = true);
 
     try {
-      final user = supabase.auth.currentUser; // current logged-in user
+      final user = supabase.auth.currentUser;
       if (user == null) throw 'User not logged in';
 
       String? uploadedImageUrl;
 
-      // Upload profile image if selected
       if (_profileImage != null) {
         final bucket = 'profile-images';
         final filePath = 'users/${user.id}-profile.jpg';
@@ -93,9 +192,8 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
         uploadedImageUrl = supabase.storage.from(bucket).getPublicUrl(filePath);
       }
 
-      // Insert profile into 'profiles' table
       await supabase.from('profiles').insert({
-        'user_id': user.id, // must match auth.users.id
+        'user_id': user.id,
         'full_name': _nameController.text.trim(),
         'gender': _selectedGender,
         'phone': _phoneController.text.trim(),
@@ -103,21 +201,10 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
         'profile_image_url': uploadedImageUrl ?? '',
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Profile created successfully 🎉"),
-          backgroundColor: Colors.teal,
-        ),
-      );
-
+      _showAnimatedCard("Profile created successfully 🎉", icon: Icons.check);
       Navigator.pushNamed(context, '/location_permission');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Error saving profile: $e"),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      _showAnimatedCard("Error saving profile: $e", icon: Icons.error);
     } finally {
       setState(() => _loading = false);
     }
