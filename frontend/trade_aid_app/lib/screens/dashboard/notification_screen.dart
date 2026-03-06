@@ -47,33 +47,35 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         .subscribe();
   }
 
-  Future<void> fetchNotifications() async {
-    final user = supabase.auth.currentUser;
+Future<void> fetchNotifications() async {
+  final user = supabase.auth.currentUser;
 
-    if (user == null) return;
+  if (user == null) return;
 
-    try {
-      final member = await supabase
-          .from('community_members')
-          .select('community_id')
-          .eq('user_id', user.id)
-          .single();
+  try {
+    // Get user's community
+    final member = await supabase
+        .from('community_members')
+        .select('community_id')
+        .eq('user_id', user.id)
+        .single();
 
-      final communityId = member['community_id'];
+    final communityId = member['community_id'];
 
-      final data = await supabase
-          .from('notifications')
-          .select()
-          .eq('community_id', communityId)
-          .order('created_at', ascending: false);
+    // Fetch notifications for that community
+    final data = await supabase
+        .from('notifications')
+        .select()
+        .eq('community_id', communityId)
+        .order('created_at', ascending: false);
 
-      setState(() {
-        notifications = data;
-      });
-    } catch (e) {
-      print("Error fetching notifications: $e");
-    }
+    setState(() {
+      notifications = data;
+    });
+  } catch (e) {
+    print("Error fetching notifications: $e");
   }
+}
 
   @override
   Widget build(BuildContext context) {

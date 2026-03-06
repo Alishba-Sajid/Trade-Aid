@@ -202,15 +202,17 @@ class _DashboardBodyState extends State<DashboardBody> {
                 _buildSectionHeader('Wish Requests'),
                 const SizedBox(height: 13),
 
-                GestureDetector(
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const WishRequestsScreen(),
-                    ),
-                  ),
-                  child: _buildPremiumWishCard(),
-                ),
+              GestureDetector(
+  onTap: () => Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => WishRequestsScreen(
+        communityId: widget.communityId, // Pass it here
+      ),
+    ),
+  ),
+  child: _buildPremiumWishCard(),
+),
 
                 const SizedBox(height: 20),
 

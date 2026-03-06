@@ -99,7 +99,6 @@ class TradeAidApp extends StatelessWidget {
         '/notifications': (_) => const NotificationsScreen(),
         '/blocked_users': (_) => const BlockedUsersScreen(),
         '/help_support': (_) => const HelpSupportScreen(),
-        '/wish_request': (_) => const WishRequestsScreen(),
         '/chat_list': (_) => const ChatListScreen(),
         '/waiting_approval': (_) => const WaitingApprovalScreen(),
         '/chat_screen': (_) => const ChatScreen(sellerName: 'Seller'),
@@ -168,6 +167,15 @@ class TradeAidApp extends StatelessWidget {
             settings: settings,
           );
         }
+     
+     if (settings.name == '/wish_request') {
+  final communityId = settings.arguments as String; // Pass the ID dynamically
+
+  return MaterialPageRoute(
+    builder: (_) => WishRequestsScreen(communityId: communityId),
+    settings: settings,
+  );
+}
 
         if (settings.name == '/booking') {
           final args = settings.arguments as Map<String, dynamic>;
