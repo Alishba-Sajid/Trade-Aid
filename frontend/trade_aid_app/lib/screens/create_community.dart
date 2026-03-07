@@ -83,6 +83,14 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
           .single();
 
       final communityId = response['id'];
+      // 🔹 Generate invite link
+final inviteLink = "https://tradeaid.app/community/$communityId";
+
+// 🔹 Save invite link in database
+await supabase
+    .from('communities')
+    .update({'invite_link': inviteLink})
+    .eq('id', communityId);
 
       // 🔹 Ensure creator is inserted into community_members
       final existingCreator = await supabase
@@ -101,8 +109,7 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
         });
       }
 
-      final inviteLink = "https://tradeaid.app/community/$communityId";
-
+    
       // 🔹 Show success dialog
       showDialog(
         context: context,

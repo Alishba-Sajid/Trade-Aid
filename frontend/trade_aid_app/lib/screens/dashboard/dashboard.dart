@@ -23,7 +23,8 @@ const Color light = Color(0xFFE0F2F1);
 
 class DashboardScreen extends StatefulWidget {
   final bool isAdmin;
-  const DashboardScreen({super.key, this.isAdmin = false});
+   final String inviteLink;
+  const DashboardScreen({super.key, this.isAdmin = false, this.inviteLink = ''});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -35,6 +36,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String? _communityId;
   String _communityName = 'Community';
   String _userName = 'User';
+  String _inviteLink = '';
+ 
   
 
   @override
@@ -89,13 +92,13 @@ Future<void> _fetchUserCommunity() async {
 
     // Fetch community name
     final communityResponse = await supabase
-        .from('communities')
-        .select('name')
-        .eq('id', communityId)
-        .maybeSingle();
+    .from('communities')
+    .select('name, invite_link')
+    .eq('id', communityId)
+    .maybeSingle();
 
-    final communityName =
-        communityResponse?['name'] ?? 'Community';
+    final communityName = communityResponse?['name'] ?? 'Community';
+    final inviteLink = communityResponse?['invite_link'] ?? '';
 
     // Fetch user profile name
     final profileResponse = await supabase
@@ -107,17 +110,19 @@ Future<void> _fetchUserCommunity() async {
     final userName = profileResponse['full_name'] ?? 'User';
 
     setState(() {
-      _communityId = communityId;
-      _communityName = communityName;
-      _userName = userName; // ✅ important
-    });
+  _communityId = communityId;
+  _communityName = communityName;
+  _userName = userName;
+  _inviteLink = inviteLink;
+});
 
     print("✅ User: $userName");
     print("✅ Community: $communityName");
+    print("🔗 Invite Link: $inviteLink");
 
   } catch (e) {
     print('⚠️ Error fetching dashboard data: $e');
-  }
+      }
 }
   void _onBottomTap(int index) {
     if (index == 1 || index == 2 || index == 3 || index == 4) {
@@ -274,6 +279,7 @@ Future<void> _fetchUserCommunity() async {
       backgroundColor: const Color(0xFFF5F5F5),
       drawer: DashboardDrawer(
         communityName: _communityName,
+        inviteLink: _inviteLink,
         isAdmin: widget.isAdmin,
       ),
       appBar: AppBar(
