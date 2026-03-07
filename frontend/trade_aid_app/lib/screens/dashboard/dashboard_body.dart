@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'community_dialog.dart';
 import '../wish_request.dart';
-
+import 'package:supabase_flutter/supabase_flutter.dart';
 // 🌿 Premium Color Constants
 const LinearGradient appGradient = LinearGradient(
   colors: [Color(0xFF2E9499), Color(0xFF119E90)],
@@ -12,6 +12,7 @@ const LinearGradient appGradient = LinearGradient(
 const Color dark = Color(0xFF004D40);
 const Color light = Color(0xFFF0F9F8);
 const Color accent = Color(0xFF119E90);
+
 
 // =========================
 // Dashboard Body
@@ -30,12 +31,57 @@ class DashboardBody extends StatefulWidget {
     required this.communityId, // ✅ ADDED
     required this.isAdmin,
   });
-
   @override
   State<DashboardBody> createState() => _DashboardBodyState();
+  
 }
 
 class _DashboardBodyState extends State<DashboardBody> {
+  int activeWishCount = 0;
+
+  Future<void> _fetchActiveWishCount() async {
+    // If communityId is not yet loaded, skip for now.
+    if (widget.communityId.isEmpty) return;
+
+    try {
+      final supabase = Supabase.instance.client;
+
+      final response = await supabase
+          .from('wish_requests')
+          .select('id')
+          .eq('community_id', widget.communityId)
+          .gte(
+            'created_at',
+            DateTime.now()
+                .subtract(const Duration(days: 7))
+                .toIso8601String(),
+          );
+
+      if (!mounted) return;
+
+      setState(() {
+        activeWishCount = (response as List).length;
+      });
+    } catch (e) {
+      debugPrint("Error fetching wish count: $e");
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchActiveWishCount();
+  }
+
+  @override
+  void didUpdateWidget(covariant DashboardBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // When communityId changes from '' to a real id, refetch the count
+    if (widget.communityId != oldWidget.communityId &&
+        widget.communityId.isNotEmpty) {
+      _fetchActiveWishCount();
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -265,7 +311,7 @@ class _DashboardBodyState extends State<DashboardBody> {
     );
   }
 
-  static Widget _buildPremiumWishCard() {
+ Widget _buildPremiumWishCard() {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -323,8 +369,8 @@ class _DashboardBodyState extends State<DashboardBody> {
               gradient: appGradient,
               borderRadius: BorderRadius.circular(100),
             ),
-            child: const Text(
-              '1 Active',
+            child: Text(
+  '$activeWishCount Active',
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
