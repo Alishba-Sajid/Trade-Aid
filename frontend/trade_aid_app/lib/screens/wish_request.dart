@@ -44,11 +44,17 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
     try {
       final supabase = Supabase.instance.client;
 
-      final List data = await supabase
-          .from('wish_requests')
-          .select('id,item_name,description,urgent,user_id,created_at')
-          .eq('community_id', widget.communityId)
-          .order('created_at', ascending: false);
+final List data = await supabase
+    .from('wish_requests')
+    .select('id,item_name,description,urgent,user_id,created_at')
+    .eq('community_id', widget.communityId)
+    .gte(
+      'created_at',
+      DateTime.now()
+          .subtract(const Duration(days: 7))
+          .toIso8601String(),
+    )
+    .order('created_at', ascending: false);
 
       if (data.isEmpty) {
         setState(() {

@@ -63,11 +63,12 @@ Future<void> fetchNotifications() async {
     final communityId = member['community_id'];
 
     // Fetch notifications for that community
-    final data = await supabase
-        .from('notifications')
-        .select()
-        .eq('community_id', communityId)
-        .order('created_at', ascending: false);
+final data = await supabase
+    .from('notifications')
+    .select()
+    .eq('community_id', communityId)
+    .gte('created_at', DateTime.now().subtract(const Duration(days: 7)).toIso8601String())
+    .order('created_at', ascending: false);
 
     setState(() {
       notifications = data;

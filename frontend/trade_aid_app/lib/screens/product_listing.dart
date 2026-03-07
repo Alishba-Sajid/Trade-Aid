@@ -298,10 +298,6 @@ Future<void> _fetchProducts() async {
     required bool isHeld,
     required Duration remaining,
   }) {
-    final countdownText = isHeld && remaining.inSeconds > 0
-        ? '${remaining.inMinutes.toString().padLeft(2, '0')}:${(remaining.inSeconds % 60).toString().padLeft(2, '0')}'
-        : null;
-
     return StatefulBuilder(
       builder: (context, setCardState) {
         return Container(
