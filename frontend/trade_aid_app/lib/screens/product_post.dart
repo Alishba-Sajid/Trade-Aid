@@ -19,9 +19,17 @@ const Color subtleGrey = Color(0xFFF2F2F2);
 
 class ProductPostScreen extends StatefulWidget {
   final String communityId;
+  final String? wishId;
+  final bool? makePublicAfter48Hours;
+  final String? requesterId;
 
-  const ProductPostScreen({super.key, required this.communityId});
-
+  const ProductPostScreen({
+    super.key,
+    required this.communityId,
+    this.wishId,
+    this.makePublicAfter48Hours,
+    this.requesterId,
+  });
   @override
   State<ProductPostScreen> createState() => _ProductPostScreenState();
 }
@@ -268,85 +276,100 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
 
   // ---------------- SUBMIT ----------------
 
-  Future<void> _submit() async {
-    FocusScope.of(context).unfocus();
+Future<void> _submit() async {
+  FocusScope.of(context).unfocus();
 
-    if (_isLoading) return;
+  if (_isLoading) return;
 
-    if (!_images.any((e) => e != null)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.redAccent,
-          content: Text('Please upload at least one image'),
-        ),
-      );
-      return;
-    }
-
-    if (!_formKey.currentState!.validate()) return;
-    _formKey.currentState!.save();
-
-    setState(() => _isLoading = true);
-
-    try {
-      final supabase = Supabase.instance.client;
-      final user = supabase.auth.currentUser;
-
-      if (user == null) {
-        throw Exception("User not authenticated");
-      }
-
-      List<String> imageUrls = [];
-
-      for (var image in _images.whereType<XFile>()) {
-        final file = File(image.path);
-        final filePath =
-            "${widget.communityId}/${user.id}/${DateTime.now().millisecondsSinceEpoch}.jpg";
-
-        await supabase.storage
-            .from('product-images')
-            .upload(filePath, file);
-
-        final imageUrl =
-            supabase.storage.from('product-images').getPublicUrl(filePath);
-
-        imageUrls.add(imageUrl);
-      }
-
-      await supabase.from('products').insert({
-        'community_id': widget.communityId,
-        'user_id': user.id,
-        'title': _productName!.trim(),
-        'description': _description!.trim(),
-        'price': double.parse(_price!.trim()),
-        'category': _productCategoryValue,
-        'condition': _conditionValue,
-        'used_time': _usedTimeValue,
-        'images': imageUrls,
-      });
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: darkPrimary,
-          content: Text('Product Published Successfully'),
-        ),
-      );
-
-      Navigator.pop(context, true);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.red,
-          content: Text("Error: ${e.toString()}"),
-        ),
-      );
-    }
-
-    if (mounted) setState(() => _isLoading = false);
+  if (!_images.any((e) => e != null)) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        backgroundColor: Colors.redAccent,
+        content: Text('Please upload at least one image'),
+      ),
+    );
+    return;
   }
 
+  if (!_formKey.currentState!.validate()) return;
+  _formKey.currentState!.save();
+
+  setState(() => _isLoading = true);
+
+  try {
+    final supabase = Supabase.instance.client;
+    final user = supabase.auth.currentUser;
+
+    if (user == null) {
+      throw Exception("User not authenticated");
+    }
+
+    List<String> imageUrls = [];
+
+    for (var image in _images.whereType<XFile>()) {
+      final file = File(image.path);
+
+      final filePath =
+          "${widget.communityId}/${user.id}/${DateTime.now().millisecondsSinceEpoch}.jpg";
+
+      await supabase.storage
+          .from('product-images')
+          .upload(filePath, file);
+
+      final imageUrl =
+          supabase.storage.from('product-images').getPublicUrl(filePath);
+
+      imageUrls.add(imageUrl);
+    }
+
+    /// BASE PRODUCT DATA
+    final Map<String, dynamic> data = {
+      'community_id': widget.communityId,
+      'user_id': user.id,
+      'title': _productName!.trim(),
+      'description': _description!.trim(),
+      'price': double.parse(_price!.trim()),
+      'category': _productCategoryValue,
+      'condition': _conditionValue,
+      'used_time': _usedTimeValue,
+      'images': imageUrls,
+    };
+
+    /// IF PRODUCT IS FULFILLING A WISH
+    if (widget.wishId != null) {
+      final expiresAt = DateTime.now().add(const Duration(hours: 48));
+
+      data.addAll({
+        'wish_request_id': widget.wishId, // ✅ FIXED COLUMN NAME
+        'reserved_for': widget.requesterId,
+        'make_public_after_48h': widget.makePublicAfter48Hours ?? false,
+        'expires_at': expiresAt.toIso8601String(),
+      });
+    }
+
+    await supabase.from('products').insert(data);
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        backgroundColor: darkPrimary,
+        content: Text('Product Published Successfully'),
+      ),
+    );
+
+    Navigator.pop(context, true);
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Colors.red,
+        content: Text("Error: ${e.toString()}"),
+      ),
+    );
+  }
+
+  if (mounted) setState(() => _isLoading = false);
+}
   // ---------------- UI ----------------
 
   @override

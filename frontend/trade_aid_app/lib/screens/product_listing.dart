@@ -36,13 +36,56 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
   List<Product> products = [];
   bool isLoading = true;
 
-  /* ================= FETCH PRODUCTS ================= */
-  Future<void> _fetchProducts() async {
-    setState(() => isLoading = true);
+  @override
+  void initState() {
+    super.initState();
+    _fetchProducts();
+  }
 
-    // If we don't have a valid community yet, don't hit Supabase.
-    if (widget.communityId.isEmpty) {
-      debugPrint('PRODUCT LISTING: No communityId provided, skipping fetch.');
+  /* ================= FETCH PRODUCTS ================= */
+Future<void> _fetchProducts() async {
+  setState(() => isLoading = true);
+
+  if (widget.communityId.isEmpty) {
+    setState(() {
+      products = [];
+      isLoading = false;
+    });
+    return;
+  }
+
+  try {
+    final supabase = Supabase.instance.client;
+    final user = supabase.auth.currentUser;
+
+    if (user == null) throw Exception("User not authenticated");
+
+    // ---------------- CATEGORY + WISH FILTER ----------------
+    PostgrestFilterBuilder query = supabase
+        .from('products')
+        .select()
+        .eq('community_id', widget.communityId);
+
+    if (selectedCategory != 'Wish Item') {
+      // Essential / Lifestyle: show to all community members.
+      // Include: (1) normal dashboard products (wish_request_id null), and
+      // (2) wish-fulfillment products that became public after 48h.
+      query = query.eq('category', selectedCategory).or(
+        'wish_request_id.is.null,'
+        'and(make_public_after_48h.eq.true,expires_at.lt.now())',
+      );
+    } else {
+      // Wish Item tab: only products reserved for the current user (requester)
+      query = query
+          .not('wish_request_id', 'is', null)
+          .eq('reserved_for', user.id);
+    }
+
+    // ---------------- FETCH PRODUCTS ----------------
+    final productResponse = await query;
+    final productList = productResponse as List;
+
+    if (productList.isEmpty) {
       setState(() {
         products = [];
         isLoading = false;
@@ -50,70 +93,47 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
       return;
     }
 
-    try {
-      final supabase = Supabase.instance.client;
+    // ---------------- FETCH SELLER PROFILES ----------------
+    final userIds = productList
+        .map((p) => p['user_id'] as String)
+        .toSet()
+        .toList();
 
-      // 1️⃣ Fetch products with correct category filtering
-      final productResponse = await supabase
-          .from('products')
-          .select()
-          .eq('community_id', widget.communityId)
-          .eq('category', selectedCategory);
+    final profileResponse = await supabase
+        .from('profiles')
+        .select('user_id, full_name, address')
+        .inFilter('user_id', userIds); // only 2 args here
 
-      final productList = productResponse as List;
+    final profileList = profileResponse as List;
 
-      if (productList.isEmpty) {
-        setState(() {
-          products = [];
-          isLoading = false;
-        });
-        return;
-      }
+    final profileMap = {for (var p in profileList) p['user_id']: p};
 
-      // 2️⃣ Extract unique user IDs
-      final userIds = productList
-          .map((p) => p['user_id'] as String)
-          .toSet()
-          .toList();
+    // ---------------- MERGE PRODUCTS + PROFILE ----------------
+    final List<Product> fetched = productList.map((json) {
+      final map = json as Map<String, dynamic>;
+      final profile = profileMap[map['user_id']];
 
-      // 3️⃣ Fetch profiles for those users
-      final profileResponse = await supabase
-          .from('profiles')
-          .select('user_id, full_name, address')
-          .inFilter('user_id', userIds);
+      map['sellerName'] = profile?['full_name'];
+      map['sellerAddress'] = profile?['address'];
 
-      final profileList = profileResponse as List;
+      return Product.fromJson(map);
+    }).toList();
 
-      // 4️⃣ Create profile lookup map
-      final profileMap = {
-        for (var p in profileList) p['user_id']: p
-      };
-
-      // 5️⃣ Merge products with profile data
-      final List<Product> fetched = productList.map((json) {
-        final map = json as Map<String, dynamic>;
-
-        final profile = profileMap[map['user_id']];
-
-        map['sellerName'] = profile?['full_name'];
-        map['sellerAddress'] = profile?['address'];
-
-        return Product.fromJson(map);
-      }).toList();
-
-      setState(() {
-        products = fetched;
-        isLoading = false;
-      });
-    } catch (e) {
-      debugPrint("SUPABASE ERROR: $e");
-      setState(() => isLoading = false);
-    }
+    setState(() {
+      products = fetched;
+      isLoading = false;
+    });
+  } catch (e) {
+    debugPrint("SUPABASE ERROR: $e");
+    setState(() => isLoading = false);
   }
+}
+  /* ================= SEARCH FILTER ================= */
 
   List<Product> _filteredProducts() {
     return products
-        .where((p) => p.name.toLowerCase().contains(searchQuery.toLowerCase()))
+        .where((p) =>
+            p.name.toLowerCase().contains(searchQuery.toLowerCase()))
         .toList();
   }
 
@@ -154,6 +174,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                               final isHeld = cart.isProductHeld(product.id);
                               final remaining =
                                   cart.remainingForProduct(product.id);
+
                               return _buildPremiumProductCard(
                                 context,
                                 product,
@@ -205,7 +226,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
     );
   }
 
-  /* ================= SEARCH & CATEGORIES ================= */
+  /* ================= SEARCH ================= */
 
   Widget _buildSearchBar() {
     return TextField(
@@ -223,8 +244,11 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
     );
   }
 
+  /* ================= CATEGORIES ================= */
+
   Widget _buildCategorySelector() {
     final categories = ['Essential', 'Lifestyle', 'Wish Item'];
+
     return Row(
       children: categories
           .map((c) => Expanded(child: _buildCategoryButton(c)))
@@ -234,6 +258,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
 
   Widget _buildCategoryButton(String category) {
     final selected = selectedCategory == category;
+
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: GestureDetector(
@@ -262,7 +287,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
     );
   }
 
-  /* ================= PRODUCT CARD (DOTS FIX) ================= */
+  /* ================= PRODUCT CARD ================= */
 
   Widget _buildPremiumProductCard(
     BuildContext context,
@@ -276,6 +301,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
     final countdownText = isHeld && remaining.inSeconds > 0
         ? '${remaining.inMinutes.toString().padLeft(2, '0')}:${(remaining.inSeconds % 60).toString().padLeft(2, '0')}'
         : null;
+
     return StatefulBuilder(
       builder: (context, setCardState) {
         return Container(
@@ -295,6 +321,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              /// IMAGE + DOTS
               Stack(
                 alignment: Alignment.bottomCenter,
                 children: [
@@ -302,7 +329,8 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => ProductDetailsScreen(product: product),
+                        builder: (_) =>
+                            ProductDetailsScreen(product: product),
                       ),
                     ),
                     child: SizedBox(
@@ -312,8 +340,6 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                         borderRadius: BorderRadius.circular(12),
                         child: PageView.builder(
                           itemCount: product.images.length,
-                          // Use the PageController or manual index if necessary, 
-                          // but storing in the model is the most stable for ListView.
                           onPageChanged: (index) {
                             setCardState(() {
                               product.currentPageIndex = index;
@@ -329,22 +355,26 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                       ),
                     ),
                   ),
-                  // DOTS INDICATOR
+
                   if (product.images.length > 1)
                     Positioned(
                       bottom: 12,
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
                         children: List.generate(
                           product.images.length,
                           (index) => Container(
                             margin: const EdgeInsets.symmetric(horizontal: 3),
-                            width: product.currentPageIndex == index ? 18 : 6,
+                            width:
+                                product.currentPageIndex == index ? 18 : 6,
                             height: 6,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(10),
-                              gradient: product.currentPageIndex == index ? appGradient : null,
-                              color: product.currentPageIndex == index ? null : Colors.white.withOpacity(0.6),
+                              gradient: product.currentPageIndex == index
+                                  ? appGradient
+                                  : null,
+                              color: product.currentPageIndex == index
+                                  ? null
+                                  : Colors.white.withOpacity(0.6),
                             ),
                           ),
                         ),
@@ -352,7 +382,10 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                     ),
                 ],
               ),
+
               const SizedBox(height: 12),
+
+              /// TITLE + PRICE
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -378,40 +411,30 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                   ),
                 ],
               ),
+
               const SizedBox(height: 8),
+
+              /// DESCRIPTION
               Text(
                 product.description,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.poppins(
-                  fontSize: 12, 
+                  fontSize: 12,
                   color: Colors.black54,
                   height: 1.4,
                 ),
               ),
+
               const SizedBox(height: 12),
+
               _infoRow(Icons.star_border, "Condition", condition),
               _infoRow(Icons.history, "Used", usedTime),
               _infoRow(Icons.person_outline, "Seller", sellerName),
+
               const SizedBox(height: 16),
-              if (countdownText != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.lock_clock, size: 16, color: accent),
-                      const SizedBox(width: 6),
-                      Text(
-                        'On hold in cart · $countdownText',
-                        style: GoogleFonts.poppins(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: accent,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+
+              /// BUY BUTTON
               Row(
                 children: [
                   Expanded(
@@ -433,16 +456,20 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         child: const Text(
                           "Buy Now",
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
                   ),
+
                   const SizedBox(width: 10),
+
+                  /// CART
                   Container(
                     height: 48,
                     width: 55,
@@ -458,6 +485,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                               context
                                   .read<CartProvider>()
                                   .addProduct(product);
+
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content:
@@ -465,19 +493,11 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                                   behavior: SnackBarBehavior.floating,
                                 ),
                               );
+
                               Navigator.pushNamed(context, '/cart');
                             },
-                      icon: countdownText != null
-                          ? Text(
-                              countdownText,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            )
-                          : const Icon(Icons.shopping_cart_outlined,
-                              color: Colors.white),
+                      icon: const Icon(Icons.shopping_cart_outlined,
+                          color: Colors.white),
                     ),
                   ),
                 ],
@@ -498,9 +518,14 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
           const SizedBox(width: 6),
           Text(
             "$label: ",
-            style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: dark),
+            style: GoogleFonts.poppins(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: dark),
           ),
-          Expanded(child: Text(value, style: GoogleFonts.poppins(fontSize: 12))),
+          Expanded(
+              child: Text(value,
+                  style: GoogleFonts.poppins(fontSize: 12))),
         ],
       ),
     );
@@ -510,7 +535,10 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
     return Center(
       child: Text(
         "No products found",
-        style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: dark),
+        style: GoogleFonts.poppins(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: dark),
       ),
     );
   }

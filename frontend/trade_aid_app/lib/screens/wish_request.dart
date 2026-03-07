@@ -274,7 +274,7 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
                             child: ElevatedButton(
                               onPressed: () async {
 
-                                bool? makePublic = await showDialog<bool>(
+                                showDialog<bool>(
                                   context: context,
                                   builder: (context) => Dialog(
                                     shape: RoundedRectangleBorder(
@@ -304,8 +304,19 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
                                             children: [
                                               Expanded(
                                                 child: OutlinedButton(
-                                                  onPressed: () =>
-                                                      Navigator.pop(context, false),
+                                                  onPressed: () {
+                                                    Navigator.pop(context);
+                                                    Navigator.pushNamed(
+                                                      context,
+                                                      '/product_post',
+                                                      arguments: {
+                                                        'wishId': request['id'],
+                                                        'makePublicAfter48Hours': false,
+                                                        'communityId': widget.communityId,
+                                                        'requesterId': request['requesterId'],
+                                                      },
+                                                    );
+                                                  },
                                                   child: const Text("No"),
                                                 ),
                                               ),
@@ -320,8 +331,19 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
                                                         BorderRadius.circular(10),
                                                   ),
                                                   child: ElevatedButton(
-                                                    onPressed: () =>
-                                                        Navigator.pop(context, true),
+                                                    onPressed: () {
+                                                      Navigator.pop(context);
+                                                      Navigator.pushNamed(
+                                                        context,
+                                                        '/product_post',
+                                                        arguments: {
+                                                          'wishId': request['id'],
+                                                          'makePublicAfter48Hours': true,
+                                                          'communityId': widget.communityId,
+                                                          'requesterId': request['requesterId'],
+                                                        },
+                                                      );
+                                                    },
                                                     style: ElevatedButton.styleFrom(
                                                       backgroundColor:
                                                           Colors.transparent,
@@ -337,16 +359,6 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
                                       ),
                                     ),
                                   ),
-                                );
-
-                                if (makePublic == null) return;
-
-                                Navigator.pushNamed(
-                                  context,
-                                  '/product_post',
-                                  arguments: {
-                                    'makePublicAfter48Hours': makePublic,
-                                  },
                                 );
                               },
                               style: ElevatedButton.styleFrom(

@@ -107,10 +107,18 @@ class TradeAidApp extends StatelessWidget {
       onGenerateRoute: (settings) {
 
         if (settings.name == '/product_post') {
-          final communityId = settings.arguments as String;
+          final raw = settings.arguments;
+          final Map<String, dynamic> args = raw is Map<String, dynamic>
+              ? raw
+              : (raw is String ? {'communityId': raw} : <String, dynamic>{});
 
           return MaterialPageRoute(
-            builder: (_) => ProductPostScreen(communityId: communityId),
+            builder: (_) => ProductPostScreen(
+              communityId: (args['communityId'] as String?) ?? '',
+              wishId: args['wishId'] as String?,
+              makePublicAfter48Hours: args['makePublicAfter48Hours'] as bool?,
+              requesterId: args['requesterId'] as String?,
+            ),
             settings: settings,
           );
         }
