@@ -19,12 +19,14 @@ const LinearGradient appGradient = LinearGradient(
 
 /// COMMUNITY MODEL
 class Community {
+  final String id;
   final String name;
   final String description;
   final bool isCurrent; // trusted member (topmost community)
   final bool isMember;  // nearby community joined or not
 
   Community({
+    required this.id,
     required this.name,
     required this.description,
     this.isCurrent = false,
@@ -34,7 +36,7 @@ class Community {
 
 /// COMMUNITY DIALOG
 class CommunityDialog {
-  static void show(BuildContext context, Community community) {
+  static void show(BuildContext context, Community community, {VoidCallback? onJoin}) {
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
@@ -49,14 +51,14 @@ class CommunityDialog {
           scale: curve,
           child: Opacity(
             opacity: anim1.value.clamp(0.0, 1.0),
-            child: _buildDialog(context, community),
+            child: _buildDialog(context, community, onJoin),
           ),
         );
       },
     );
   }
 
-  static Widget _buildDialog(BuildContext context, Community community) {
+  static Widget _buildDialog(BuildContext context, Community community, VoidCallback? onJoin) {
     // Wrap with MediaQuery padding to move dialog above keyboard
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
@@ -120,7 +122,7 @@ class CommunityDialog {
                           const SizedBox(height: 32),
 
                           // Footer buttons
-                          _getDialogFooter(context, community),
+                          _getDialogFooter(context, community, onJoin),
                         ],
                       ),
                     ),
@@ -209,13 +211,13 @@ class CommunityDialog {
   }
 
   /// Returns footer buttons depending on scenario
-  static Widget _getDialogFooter(BuildContext context, Community community) {
+  static Widget _getDialogFooter(BuildContext context, Community community, VoidCallback? onJoin) {
     if (community.isCurrent) {
       return _buildStatusBadge();
     } else if (community.isMember) {
       return _buildSwitchButtons(context, community);
     } else {
-      return _buildJoinButtons(context, community);
+      return _buildJoinButtons(context, community, onJoin);
     }
   }
 
@@ -271,7 +273,7 @@ class CommunityDialog {
     );
   }
 
-  static Widget _buildJoinButtons(BuildContext context, Community community) {
+  static Widget _buildJoinButtons(BuildContext context, Community community, VoidCallback? onJoin) {
     return Row(
       children: [
         Expanded(
@@ -287,7 +289,11 @@ class CommunityDialog {
             label: 'Join Now',
             onPressed: () {
               Navigator.pop(context);
-              _showJoinSuccessDialog(context, community.name);
+              if (onJoin != null) {
+                onJoin();
+              } else {
+                _showJoinSuccessDialog(context, community.name);
+              }
             },
           ),
         ),

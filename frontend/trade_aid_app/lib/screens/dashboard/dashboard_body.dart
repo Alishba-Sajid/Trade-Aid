@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'community_dialog.dart';
 import '../wish_request.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:geolocator/geolocator.dart';
+
 // 🌿 Premium Color Constants
 const LinearGradient appGradient = LinearGradient(
   colors: [Color(0xFF2E9499), Color(0xFF119E90)],
@@ -13,34 +15,37 @@ const Color dark = Color(0xFF004D40);
 const Color light = Color(0xFFF0F9F8);
 const Color accent = Color(0xFF119E90);
 
-
 // =========================
 // Dashboard Body
 // =========================
 class DashboardBody extends StatefulWidget {
-   final String userName;
+  final String userName;
   final String communityName;
-  final String communityId; 
+  final String communityId;
   final bool isAdmin;
-
 
   const DashboardBody({
     super.key,
     required this.userName,
     required this.communityName,
-    required this.communityId, // ✅ ADDED
+    required this.communityId,
     required this.isAdmin,
   });
+
   @override
   State<DashboardBody> createState() => _DashboardBodyState();
-  
 }
 
 class _DashboardBodyState extends State<DashboardBody> {
+
   int activeWishCount = 0;
+  List<Map<String, dynamic>> nearbyCommunities = [];
+
+  bool locationPermissionGranted = false;
+  bool locationDeniedForever = false;
+  bool loadingNearby = true;
 
   Future<void> _fetchActiveWishCount() async {
-    // If communityId is not yet loaded, skip for now.
     if (widget.communityId.isEmpty) return;
 
     try {
@@ -67,21 +72,209 @@ class _DashboardBodyState extends State<DashboardBody> {
     }
   }
 
+  Future<void> _checkLocationPermission() async {
+    LocationPermission permission = await Geolocator.checkPermission();
+
+    if (permission == LocationPermission.always ||
+        permission == LocationPermission.whileInUse) {
+
+      locationPermissionGranted = true;
+      await _fetchNearbyCommunities();
+
+    } else if (permission == LocationPermission.deniedForever) {
+
+      locationDeniedForever = true;
+    }
+
+    if (mounted) {
+      setState(() {
+        loadingNearby = false;
+      });
+    }
+  }
+
+  Future<void> _fetchNearbyCommunities() async {
+
+    try {
+
+      Position userLocation = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      final supabase = Supabase.instance.client;
+
+      final response = await supabase.rpc('get_nearby_communities', params: {
+        'user_lat': userLocation.latitude,
+        'user_lng': userLocation.longitude,
+        'radius_km': 1.0,
+        'current_community': widget.communityId,
+      });
+
+      if (!mounted) return;
+
+      setState(() {
+        nearbyCommunities = List<Map<String, dynamic>>.from(response);
+      });
+
+    } catch (e) {
+      debugPrint("Error fetching nearby communities: $e");
+    }
+  }
+
+  Future<void> _requestLocationPermission() async {
+
+    LocationPermission permission = await Geolocator.requestPermission();
+
+    if (permission == LocationPermission.always ||
+        permission == LocationPermission.whileInUse) {
+
+      setState(() {
+        locationPermissionGranted = true;
+        loadingNearby = true;
+      });
+
+      await _fetchNearbyCommunities();
+
+    } else if (permission == LocationPermission.deniedForever) {
+
+      setState(() {
+        locationDeniedForever = true;
+      });
+    }
+  }
+
+  Future<void> _joinCommunity(Map<String, dynamic> community) async {
+
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+
+    if (userId == null) {
+      _showAnimatedCard('You must be logged in to join a community');
+      return;
+    }
+
+    try {
+
+      final memberCheck = await Supabase.instance.client
+          .from('community_members')
+          .select()
+          .eq('community_id', community['id'])
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (memberCheck != null) {
+        _showAnimatedCard('You are already a member of this community');
+        return;
+      }
+
+      final existingRequest = await Supabase.instance.client
+          .from('community_join_requests')
+          .select()
+          .eq('community_id', community['id'])
+          .eq('requester_id', userId)
+          .maybeSingle();
+
+      if (existingRequest != null) {
+        _showAnimatedCard('You already requested to join this community');
+        return;
+      }
+
+      final response = await Supabase.instance.client
+          .from('community_join_requests')
+          .insert({
+            'community_id': community['id'],
+            'requester_id': userId,
+            'status': 'pending',
+          })
+          .select()
+          .maybeSingle();
+
+      if (response != null) {
+        _showAnimatedCard('Request sent to join "${community['name']}"');
+      } else {
+        _showAnimatedCard('Failed to send join request');
+      }
+
+    } catch (e) {
+      debugPrint('Error sending join request: $e');
+      _showAnimatedCard('Failed to send join request');
+    }
+  }
+
+  void _showAnimatedCard(String message) {
+
+    IconData icon = Icons.check;
+
+    if (message.contains('already') ||
+        message.contains('Failed') ||
+        message.contains('must be logged in')) {
+      icon = Icons.error;
+    } else if (message.contains('already requested')) {
+      icon = Icons.info;
+    }
+
+    final overlay = Overlay.of(context);
+
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: 50,
+        left: 20,
+        right: 20,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color.fromARGB(255, 17, 158, 144),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, color: accent),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    message,
+                    style: const TextStyle(color: Colors.black),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 2), () => overlayEntry.remove());
+  }
+
   @override
   void initState() {
     super.initState();
     _fetchActiveWishCount();
+    _checkLocationPermission();
   }
 
   @override
   void didUpdateWidget(covariant DashboardBody oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // When communityId changes from '' to a real id, refetch the count
+
     if (widget.communityId != oldWidget.communityId &&
         widget.communityId.isNotEmpty) {
+
       _fetchActiveWishCount();
+      _fetchNearbyCommunities();
     }
   }
+
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -121,6 +314,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                       CommunityDialog.show(
                         context,
                         Community(
+                          id: widget.communityId,
                           name: widget.communityName,
                           description:
                               "This is your current community. All your posts, resources, and activity will appear here.",
@@ -178,6 +372,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                       CommunityDialog.show(
                         context,
                         Community(
+                          id: widget.communityId,
                           name: widget.communityName,
                           description:
                               "This is your current community. All your posts, resources, and activity will appear here.",
@@ -265,30 +460,25 @@ class _DashboardBodyState extends State<DashboardBody> {
                    _buildSectionHeader('Nearby Communities'),
                 const SizedBox(height: 13),
 
-                SizedBox(
-                  height: 130,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    clipBehavior: Clip.none,
-                    children:[
+              SizedBox(
+  height: 130,
+  child: loadingNearby
+      ? const Center(child: CircularProgressIndicator())
+      : !locationPermissionGranted
+          ? _buildEnableLocationCard()
+          : nearbyCommunities.isEmpty
+              ? _buildNoNearbyCommunities()
+              : ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: nearbyCommunities.map((community) =>
                       _CommunityTile(
-                        'GG-12',
-                        description:
-                            'GG-12 is a premium community for resource sharing, skill development, and community support.',
-                      ),
-                      _CommunityTile(
-                        'GG-13',
-                        description:
-                            'GG-13 focuses on sustainability, eco-friendly projects, and collaboration among members.',
-                      ),
-                      _CommunityTile(
-                        'GG-14',
-                        description:
-                            'GG-14 is a tech-oriented community where members share knowledge and products.',
-                      ),
-                    ],
-                  ),
+                        community['name'],
+                        description: community['description'] ?? '',
+                        id: community['id'],
+                        onJoin: () => _joinCommunity(community),
+                      )).toList(),
                 ),
+),
 
                 const SizedBox(height: 10),
               ],
@@ -307,6 +497,95 @@ class _DashboardBodyState extends State<DashboardBody> {
         fontWeight: FontWeight.bold,
         color: dark,
         letterSpacing: 0.2,
+      ),
+    );
+  }
+Widget _buildEnableLocationCard() {
+  return Container(
+    width: 220,
+    margin: const EdgeInsets.only(right: 16),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: Colors.black.withOpacity(0.05)),
+      boxShadow: [
+        BoxShadow(
+          color: dark.withOpacity(0.05),
+          blurRadius: 12,
+          offset: const Offset(0, 6),
+        ),
+      ],
+    ),
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Icon(Icons.location_on, color: accent, size: 30),
+        const SizedBox(height: 8),
+        const Text(
+          'Enable location to discover nearby communities',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 10),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: accent,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          ),
+          onPressed: locationDeniedForever
+              ? Geolocator.openAppSettings
+              : _requestLocationPermission,
+          child: Text(
+            locationDeniedForever ? 'Open Settings' : 'Enable Location',
+            style: const TextStyle(fontSize: 12),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+  Widget _buildNoNearbyCommunities() {
+    return Container(
+      width: 200,
+      margin: const EdgeInsets.only(right: 16),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            height: 90,
+            width: 100,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.black.withOpacity(0.03)),
+              boxShadow: [
+                BoxShadow(
+                  color: dark.withOpacity(0.05),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.location_off,
+                size: 32,
+                color: Colors.grey,
+              ),
+            ),
+          ),
+          const SizedBox(height: 5),
+          const Text(
+            'No nearby communities',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Colors.grey,
+              fontSize: 12,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
@@ -463,8 +742,15 @@ class _ServiceCard extends StatelessWidget {
 class _CommunityTile extends StatelessWidget {
   final String name;
   final String description;
+  final String? id;
+  final VoidCallback? onJoin;
 
-  const _CommunityTile(this.name, {required this.description});
+  const _CommunityTile(
+    this.name, {
+    required this.description,
+    this.id,
+    this.onJoin,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -477,7 +763,12 @@ class _CommunityTile extends StatelessWidget {
             onTap: () {
               CommunityDialog.show(
                 context,
-                Community(name: name, description: description),
+                Community(
+                  id: id ?? '',
+                  name: name,
+                  description: description, // still passed to dialog
+                ),
+                onJoin: onJoin,
               );
             },
             child: Container(
@@ -511,16 +802,25 @@ class _CommunityTile extends StatelessWidget {
               ),
             ),
           ),
+
           const SizedBox(height: 5),
+
           GestureDetector(
             onTap: () {
               CommunityDialog.show(
                 context,
-                Community(name: name, description: description),
+                Community(
+                  id: id ?? '',
+                  name: name,
+                  description: description,
+                ),
+                onJoin: onJoin,
               );
             },
             child: Text(
               name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 fontWeight: FontWeight.w600,
                 color: dark,
