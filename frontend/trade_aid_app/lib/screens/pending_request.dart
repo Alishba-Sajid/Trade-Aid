@@ -43,10 +43,10 @@ class PendingRequestsScreen extends StatefulWidget {
 }
 
 class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
+  final supabase = Supabase.instance.client;
+
   List<UserRequest> requests = [];
   bool loading = true;
-
-  /// Track which request is being processed (approve)
   String? _processingRequestId;
 
   @override
@@ -55,30 +55,31 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
     fetchRequests();
   }
 
+  /// =======================
+  /// Fetch pending requests
+  /// =======================
   Future<void> fetchRequests() async {
     setState(() => loading = true);
+    final user = supabase.auth.currentUser;
+    if (user == null) {
+      setState(() {
+        requests = [];
+        loading = false;
+      });
+      return;
+    }
 
     try {
-      final supabase = Supabase.instance.client;
-      final user = supabase.auth.currentUser;
-      if (user == null) {
-        setState(() {
-          requests = [];
-          loading = false;
-        });
-        return;
-      }
-
       final userId = user.id;
 
-      // 1️⃣ Get communities owned by this user
-      final ownedCommunities = await supabase
-          .from('communities')
-          .select('id')
-          .eq('creator_id', userId);
+      // 1️⃣ Get communities where this user is a member
+      final memberResp = await supabase
+          .from('community_members')
+          .select('community_id')
+          .eq('user_id', userId);
 
-      final communityIds = (ownedCommunities as List)
-          .map((e) => e['id'].toString())
+      final List communityIds = (memberResp.data as List)
+          .map((e) => e['community_id'])
           .toList();
 
       if (communityIds.isEmpty) {
@@ -89,8 +90,8 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
         return;
       }
 
-      // 2️⃣ Fetch pending requests with profile info
-      final pendingRequests = await supabase
+      // 2️⃣ Fetch pending requests of those communities
+      final pendingResp = await supabase
           .from('community_join_requests')
           .select(
             'id, status, created_at, requester_id, community_id, requester:profiles(full_name, address)',
@@ -98,10 +99,9 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
           .inFilter('community_id', communityIds)
           .eq('status', 'pending');
 
-      final List<UserRequest> tempRequests = [];
-
-      for (var req in pendingRequests) {
-        tempRequests.add(
+      final List<UserRequest> temp = [];
+      for (var req in pendingResp.data as List) {
+        temp.add(
           UserRequest(
             id: req['id'].toString(),
             name: req['requester']['full_name'] ?? 'Unknown',
@@ -114,7 +114,7 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
       }
 
       setState(() {
-        requests = tempRequests;
+        requests = temp;
         loading = false;
       });
     } catch (e, st) {
@@ -127,41 +127,74 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
   }
 
   /// =======================
-  /// Approve with per-request loading
+  /// Approve with endorsement
   /// =======================
   Future<void> approveRequest(UserRequest req) async {
-    final supabase = Supabase.instance.client;
+    setState(() => _processingRequestId = req.id);
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
 
     try {
-      setState(() {
-        _processingRequestId = req.id;
+      // 1️⃣ Insert a vote by current member
+      await supabase.from('community_request_votes').insert({
+        'request_id': req.id,
+        'voter_id': user.id,
       });
 
-      // Insert user into community_members
-      await supabase.from('community_members').insert({
-        'community_id': req.communityId,
-        'user_id': req.requesterId,
-        'role': 'member',
-        'joined_at': DateTime.now().toIso8601String(),
-      });
+      // 2️⃣ Count total votes for this request
+      final voteCountResp = await supabase
+          .from('community_request_votes')
+          .select('id', const {'count': 'exact'})
+          .eq('request_id', req.id)
+          .execute();
+      final int votesCount =
+          voteCountResp.count ?? (voteCountResp.data as List).length;
 
-      // Update join request status
-      await supabase
-          .from('community_join_requests')
-          .update({'status': 'approved'})
-          .eq('id', req.id);
+      // 3️⃣ Get total number of community members (for endorsement threshold)
+      final membersResp = await supabase
+          .from('community_members')
+          .select('id', const {'count': 'exact'})
+          .eq('community_id', req.communityId)
+          .execute();
+      final int membersCount =
+          membersResp.count ?? (membersResp.data as List).length;
 
-      // Remove from UI list
-      setState(() {
-        requests.removeWhere((r) => r.id == req.id);
-      });
+      // 4️⃣ Compute required votes
+      int requiredVotes = (membersCount / 2).ceil(); // half of current members
+      if (votesCount >= requiredVotes) {
+        // Approve the request
+        await supabase.from('community_members').insert({
+          'community_id': req.communityId,
+          'user_id': req.requesterId,
+          'role': 'member',
+          'joined_at': DateTime.now().toIso8601String(),
+        });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('User added to community!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+        await supabase
+            .from('community_join_requests')
+            .update({'status': 'approved'})
+            .eq('id', req.id);
+
+        setState(() {
+          requests.removeWhere((r) => r.id == req.id);
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('User added to community!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Vote recorded. Waiting for ${requiredVotes - votesCount} more votes',
+            ),
+            backgroundColor: Colors.blueAccent,
+          ),
+        );
+      }
     } catch (e) {
       debugPrint('Error approving request: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -171,15 +204,16 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
         ),
       );
     } finally {
-      setState(() {
-        _processingRequestId = null;
-      });
+      setState(() => _processingRequestId = null);
     }
   }
 
+  /// =======================
+  /// Reject request
+  /// =======================
   Future<void> rejectRequest(UserRequest req) async {
     try {
-      await Supabase.instance.client
+      await supabase
           .from('community_join_requests')
           .update({'status': 'rejected'})
           .eq('id', req.id);

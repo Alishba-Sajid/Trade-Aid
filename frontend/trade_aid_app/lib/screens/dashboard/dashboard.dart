@@ -291,6 +291,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         userName: _userName,
         communityName: _communityName,
         isAdmin: widget.isAdmin,
+        communityId: _communityId ?? '',
       ),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.white,

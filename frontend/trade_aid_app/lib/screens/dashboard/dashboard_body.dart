@@ -15,17 +15,18 @@ const Color accent = Color(0xFF119E90);
 
 // =========================
 // Dashboard Body
-
 // =========================
 class DashboardBody extends StatefulWidget {
   final String userName;
   final String communityName;
+  final String communityId; // ✅ ADDED (functionality only)
   final bool isAdmin;
 
   const DashboardBody({
     super.key,
     required this.userName,
     required this.communityName,
+    required this.communityId, // ✅ ADDED
     required this.isAdmin,
   });
 
@@ -38,7 +39,9 @@ class _DashboardBodyState extends State<DashboardBody> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Gradient Top Section
+        // =========================
+        // Gradient Top Section (UNCHANGED UI)
+        // =========================
         Container(
           width: double.infinity,
           padding: const EdgeInsets.fromLTRB(20, 25, 20, 25),
@@ -150,7 +153,9 @@ class _DashboardBodyState extends State<DashboardBody> {
           ),
         ),
 
-        // Main White Section
+        // =========================
+        // Main White Section (UNCHANGED UI)
+        // =========================
         Expanded(
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
@@ -165,12 +170,13 @@ class _DashboardBodyState extends State<DashboardBody> {
               children: [
                 _buildSectionHeader('Nearby Communities'),
                 const SizedBox(height: 13),
+
                 SizedBox(
                   height: 130,
                   child: ListView(
                     scrollDirection: Axis.horizontal,
                     clipBehavior: Clip.none,
-                    children: const [
+                    children:[
                       _CommunityTile(
                         'GG-12',
                         description:
@@ -189,33 +195,42 @@ class _DashboardBodyState extends State<DashboardBody> {
                     ],
                   ),
                 ),
+
                 const SizedBox(height: 10),
+
                 _buildSectionHeader('Services'),
                 const SizedBox(height: 13),
+
+                // ✅ FUNCTIONALITY ADDED HERE ONLY
                 Row(
-                  children: const [
+                  children: [
                     Expanded(
                       child: _ServiceCard(
                         title: 'Products',
                         subtitle: 'Browse items',
                         icon: Icons.shopping_cart_outlined,
-                        route: '/products',
+                        route: '/product_listing',
+                        communityId: widget.communityId,
                       ),
                     ),
-                    SizedBox(width: 10),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: _ServiceCard(
                         title: 'Resources',
                         subtitle: 'Available resources',
                         icon: Icons.group,
                         route: '/resources',
+                        communityId: widget.communityId,
                       ),
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 10),
+
                 _buildSectionHeader('Wish Requests'),
                 const SizedBox(height: 13),
+
                 GestureDetector(
                   onTap: () => Navigator.push(
                     context,
@@ -225,6 +240,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                   ),
                   child: _buildPremiumWishCard(),
                 ),
+
                 const SizedBox(height: 20),
               ],
             ),
@@ -320,6 +336,79 @@ class _DashboardBodyState extends State<DashboardBody> {
 }
 
 // =========================
+// Service Card (ONLY FUNCTIONAL CHANGE)
+// =========================
+class _ServiceCard extends StatelessWidget {
+  final String title, subtitle, route;
+  final IconData icon;
+  final String communityId; // ✅ ADDED
+
+  const _ServiceCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.route,
+    required this.communityId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(
+        context,
+        route,
+        arguments: communityId, // ✅ PASSING COMMUNITY ID
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.black.withOpacity(0.03)),
+          boxShadow: [
+            BoxShadow(
+              color: dark.withOpacity(0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Container(
+              decoration: const BoxDecoration(
+                gradient: appGradient,
+                shape: BoxShape.circle,
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Icon(icon, size: 28, color: Colors.white),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: dark,
+                fontSize: 15,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.black.withOpacity(0.4),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+// =========================
 // Community Tile
 // =========================
 class _CommunityTile extends StatelessWidget {
@@ -391,74 +480,6 @@ class _CommunityTile extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// =========================
-// Service Card
-// =========================
-class _ServiceCard extends StatelessWidget {
-  final String title, subtitle, route;
-  final IconData icon;
-
-  const _ServiceCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.route,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, route),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.black.withOpacity(0.03)),
-          boxShadow: [
-            BoxShadow(
-              color: dark.withOpacity(0.05),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Container(
-              decoration: const BoxDecoration(
-                gradient: appGradient,
-                shape: BoxShape.circle,
-              ),
-              padding: const EdgeInsets.all(16),
-              child: Icon(icon, size: 28, color: Colors.white),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: dark,
-                fontSize: 15,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.black.withOpacity(0.4),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
