@@ -1,9 +1,24 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 
-class CommunityElectionHistoryScreen extends StatelessWidget {
+const Color dark = Color(0xFF0B2F2A);
+const Color surface = Color(0xFFFFFFFF);
+const Color subtleGrey = Color(0xFFF2F2F2);
+const Color accent = Color(0xFF119E90);
+
+class CommunityElectionHistoryScreen extends StatefulWidget {
   const CommunityElectionHistoryScreen({super.key});
 
-  // Sample data for the election history table
+  @override
+  State<CommunityElectionHistoryScreen> createState() =>
+      _CommunityElectionHistoryScreenState();
+}
+
+class _CommunityElectionHistoryScreenState
+    extends State<CommunityElectionHistoryScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
   final List<Map<String, String>> electionHistoryData = const [
     {
       "date": "2023-04-15",
@@ -38,145 +53,154 @@ class CommunityElectionHistoryScreen extends StatelessWidget {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _controller =
+        AnimationController(vsync: this, duration: const Duration(seconds: 12))
+          ..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Defines the padding used for the entire screen content
-    const screenPadding = EdgeInsets.symmetric(horizontal: 40.0, vertical: 30.0);
-    // Defines the internal padding for table cells
-    const cellPadding = EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0);
-
     return Scaffold(
-      backgroundColor: Colors.white, // Use white background for the screen
-      body: Padding(
-        padding: screenPadding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 1. Title
-            const Text(
-              "Community Election History",
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height:15 ),
-
-            // 2. Description
-            const Text(
-              "View the complete historical record of past elections for each community.",
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.black,
-              ),
-            ),
-            const SizedBox(height: 20),
-
-           
-
-            // 4. Table Header
-            Container(
-              decoration: BoxDecoration(
-                color: const Color.fromARGB(255, 218, 216, 216), // Very light background for the header
-                border: Border.symmetric(
-                  vertical: BorderSide(color: Colors.grey[300]!, width: 1.0),
-                ),
-              ),
-              padding: cellPadding,
-              child: const Row(
-                children: [
-                  // Election Date
-                  Expanded(
-                      flex: 2,
-                      child: Text("Election Date",
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Colors.black87))),
-                  // Candidates
-                  Expanded(
-                      flex: 4,
-                      child: Text("Candidates",
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Colors.black87))),
-                  // Results
-                  Expanded(
-                      flex: 3,
-                      child: Text("Results",
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Colors.black87))),
-                  // Voter Turnout
-                  Expanded(
-                      flex: 2,
-                      child: Text("Voter Turnout",
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Colors.black87))),
+      body: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) {
+          return Container(
+            padding: const EdgeInsets.all(30),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.teal.shade700,
+                  Colors.teal.shade300,
+                ],
+                stops: [
+                  0.3,
+                  0.7 + 0.2 * sin(_controller.value * pi * 2),
                 ],
               ),
             ),
 
-            // 5. Table Body (Scrollable List)
-            Expanded(
+            /// ✅ FULL-WIDTH CARD (SAME AS ADMIN ROTATION)
+            child: SizedBox(
+              width: double.infinity,
               child: Container(
+                padding: const EdgeInsets.all(30),
                 decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: Colors.grey[300]!, width: 1.0),
-                  ),
+                  color: Colors.white.withValues(alpha: 0.95),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: ListView.separated(
-                  itemCount: electionHistoryData.length,
-                  // Use a thin divider for horizontal separation
-                  separatorBuilder: (context, index) => Divider(
-                    height: 1,
-                    color: Colors.grey[300],
-                  ),
-                  itemBuilder: (context, index) {
-                    final item = electionHistoryData[index];
-                    return Container(
-                      // Add padding to match header
-                      padding: cellPadding, 
-                      color: Colors.white, // Ensure row background is white
-                      child: Row(
-                        children: [
-                          // Election Date
-                          Expanded(
-                              flex: 2,
-                              child: Text(item["date"]!,
-                                  style: const TextStyle(
-                                      color: Colors.black87))),
-                          // Candidates
-                          Expanded(
-                              flex: 4,
-                              child: Text(item["candidates"]!,
-                                  style: const TextStyle(
-                                      color: Colors.black87))),
-                          // Results
-                          Expanded(
-                              flex: 3,
-                              child: Text(item["results"]!,
-                                  style: const TextStyle(
-                                      color: Colors.black87))),
-                          // Voter Turnout
-                          Expanded(
-                              flex: 2,
-                              child: Text(item["turnout"]!,
-                                  style: const TextStyle(
-                                      color: Colors.black87))),
-                        ],
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    /// 🔹 TITLE
+                    const Text(
+                      "Community Election History",
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: dark,
                       ),
-                    );
-                  },
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      "View the complete historical record of past elections",
+                      style: TextStyle(color: Colors.black54),
+                    ),
+                    const SizedBox(height: 25),
+
+                    /// 📊 TABLE
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            minWidth: 1400, // ⭐ SAME WIDTH CONTROL
+                          ),
+                          child: DataTable(
+                            headingRowColor:
+                                WidgetStateProperty.all(subtleGrey),
+                            columnSpacing: 140,
+                            dataRowMinHeight: 70,
+                            dataRowMaxHeight: 70,
+
+                            columns: const [
+                              DataColumn(
+                                label: Text(
+                                  "Election Date",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: dark,
+                                  ),
+                                ),
+                              ),
+                              DataColumn(
+                                label: Text(
+                                  "Candidates",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: dark,
+                                  ),
+                                ),
+                              ),
+                              DataColumn(
+                                label: Text(
+                                  "Results",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: dark,
+                                  ),
+                                ),
+                              ),
+                              DataColumn(
+                                label: Text(
+                                  "Voter Turnout",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: dark,
+                                  ),
+                                ),
+                              ),
+                            ],
+
+                            rows: electionHistoryData.map((item) {
+                              return DataRow(
+                                cells: [
+                                  DataCell(Text(item["date"]!)),
+                                  DataCell(Text(item["candidates"]!)),
+                                  DataCell(Text(
+                                    item["results"]!,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w600),
+                                  )),
+                                  DataCell(
+                                    Text(
+                                      item["turnout"]!,
+                                      style: const TextStyle(
+                                        color: accent,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

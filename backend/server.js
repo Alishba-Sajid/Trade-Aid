@@ -16,7 +16,7 @@ app.use(express.json()); // ❗ use built-in parser
 
 // ✅ health check
 app.get("/", (req, res) => {
-  res.status(200).send("Backend + PostgreSQL running 🚀");
+  res.status(200).send("Backend + Cloudrunning 🚀");
 });
 
 /* =======================

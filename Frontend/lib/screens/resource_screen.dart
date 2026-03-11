@@ -7,8 +7,11 @@ class ResourceSharing extends StatefulWidget {
   State<ResourceSharing> createState() => _ResourceSharingState();
 }
 
-class _ResourceSharingState extends State<ResourceSharing> {
-  String selectedCommunity = "Select Community";
+class _ResourceSharingState extends State<ResourceSharing>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  String selectedCommunity = "All Communities";
 
   final List<Map<String, String>> resources = [
     {
@@ -39,204 +42,225 @@ class _ResourceSharingState extends State<ResourceSharing> {
       'postedBy': 'Michael Brown',
       'status': 'Available'
     },
-    {
-      'name': '3D Printer',
-      'community': 'Makerspace',
-      'quantity': '1',
-      'postedBy': 'Jessica Wong',
-      'status': 'Disabled'
-    },
-    {
-      'name': 'Sewing Machine',
-      'community': 'Crafting Circle',
-      'quantity': '2',
-      'postedBy': 'David Kim',
-      'status': 'Available'
-    },
-    {
-      'name': 'Telescope',
-      'community': 'Astronomy Society',
-      'quantity': '1',
-      'postedBy': 'Olivia Green',
-      'status': 'In Use'
-    },
-    {
-      'name': 'VR Headset',
-      'community': 'Gaming Guild',
-      'quantity': '4',
-      'postedBy': 'Ethan Clark',
-      'status': 'Available'
-    },
-    {
-      'name': 'Drone',
-      'community': 'Aerial Photography',
-      'quantity': '1',
-      'postedBy': 'Sophia White',
-      'status': 'Disabled'
-    },
-    {
-      'name': 'Projector',
-      'community': 'Film Buffs',
-      'quantity': '2',
-      'postedBy': 'Noah Harris',
-      'status': 'Available'
-    },
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _controller =
+        AnimationController(vsync: this, duration: const Duration(seconds: 14))
+          ..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(10, 30, 50, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 🔹 Search Bar
-          Container(
-            height: 45,
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: const Row(
-              children: [
-                Icon(Icons.search, color: Colors.grey),
-                SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
-                      hintText: "Search",
-                    ),
+    return Scaffold(
+      body: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) {
+          return Stack(
+            children: [
+              /// 🌊 INDUSTRIAL BACKGROUND
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.teal.shade700,
+                      Colors.teal.shade400,
+                      Colors.cyan.shade200,
+                    ],
+                    stops: [
+                      0.2,
+                      0.5,
+                      1.0,
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // 🔹 Dropdown Menu
-          Container(
-            width: 280,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: selectedCommunity,
-                items: const [
-                  DropdownMenuItem(
-                      value: "Select Community",
-                      child: Text("Select Community")),
-                  DropdownMenuItem(
-                      value: "Greenwood", child: Text("Greenwood")),
-                  DropdownMenuItem(
-                      value: "Willow Creek", child: Text("Willow Creek")),
-                  DropdownMenuItem(value: "Oakwood", child: Text("Oakwood")),
-                ],
-                onChanged: (value) {
-                  setState(() => selectedCommunity = value!);
-                },
               ),
-            ),
-          ),
 
-          const SizedBox(height: 24),
+              /// 📦 MAIN CARD
+              Padding(
+                padding: const EdgeInsets.all(30),
+                child: Container(
+                  padding: const EdgeInsets.all(30),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.95),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 12,
+                        offset: Offset(0, 6),
+                      )
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Resource Sharing",
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
 
-          // 🔹 Data Table
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minWidth: 1800),
-                child: DataTable(
-                  columnSpacing: 40,
-                  headingRowColor: WidgetStateColor.resolveWith(
-                    (states) => const Color(0xFFF3F4F6),
-                  ),
-                  headingTextStyle: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                    color: Colors.black87,
-                  ),
-                  dataTextStyle: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.black87,
-                  ),
-                  border: TableBorder(
-                    horizontalInside: BorderSide(
-                      color: Colors.grey.withValues(alpha: 0.2),
-                      width: 1,
-                    ),
-                  ),
-                  columns: const [
-                    DataColumn(label: Text("Item Name")),
-                    DataColumn(label: Text("Community")),
-                    DataColumn(label: Text("Quantity")),
-                    DataColumn(label: Text("Posted By")),
-                    DataColumn(label: Text("Status")),
-                    DataColumn(label: Text("Actions")),
-                  ],
-                  rows: resources.map((resource) {
-                    return DataRow(
-                      cells: [
-                        DataCell(Text(resource["name"]!)),
-                        DataCell(Text(resource["community"]!)),
-                        DataCell(Text(resource["quantity"]!)),
-                        DataCell(Text(resource["postedBy"]!)),
-                        DataCell(_statusBadge(resource["status"]!)),
-                        DataCell(
-                          TextButton(
-                            onPressed: () {},
-                            style: TextButton.styleFrom(
-                              foregroundColor: Colors.blueAccent,
+                      /// 🔍 SEARCH + DROPDOWN
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              height: 45,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
+                              decoration: BoxDecoration(
+                                 color: const Color.fromARGB(255, 238, 235, 235),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Icon(Icons.search, color: Colors.grey),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: TextField(
+                                      decoration: InputDecoration(
+                                        border: InputBorder.none,
+                                        hintText: "Search resources",
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                            child: const Text(
-                              "View Details",
-                              style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(width: 16),
+                          _communityDropdown(),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      /// 📊 DATA TABLE
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: ConstrainedBox(
+                            constraints:
+                                const BoxConstraints(minWidth: 1600),
+                            child: DataTable(
+                              columnSpacing: 60,
+                              headingRowColor:
+                                  WidgetStateColor.resolveWith(
+                                      (_) => Colors.grey.shade100),
+                              headingTextStyle: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Colors.black,
+                              ),
+                              dataTextStyle: const TextStyle(fontSize: 15),
+                              columns: const [
+                                DataColumn(label: Text("Item Name")),
+                                DataColumn(label: Text("Community")),
+                                DataColumn(label: Text("Quantity")),
+                                DataColumn(label: Text("Posted By")),
+                                DataColumn(label: Text("Status")),
+                                DataColumn(label: Text("Actions")),
+                              ],
+                              rows: resources.map((resource) {
+                                return DataRow(
+                                  cells: [
+                                    DataCell(Text(resource["name"]!)),
+                                    DataCell(Text(resource["community"]!)),
+                                    DataCell(Text(resource["quantity"]!)),
+                                    DataCell(Text(resource["postedBy"]!)),
+                                    DataCell(
+                                        _statusBadge(resource["status"]!)),
+                                    DataCell(
+                                      TextButton(
+                                        onPressed: () {},
+                                        child: const Text(
+                                          "View",
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              }).toList(),
                             ),
                           ),
                         ),
-                      ],
-                    );
-                  }).toList(),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
 
-  // 🔹 Status Badge
+  /// 🔽 COMMUNITY DROPDOWN
+  Widget _communityDropdown() {
+    return Container(
+      height: 45,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: selectedCommunity,
+          items: const [
+            DropdownMenuItem(
+                value: "All Communities", child: Text("All Communities")),
+            DropdownMenuItem(
+                value: "Tech Enthusiasts",
+                child: Text("Tech Enthusiasts")),
+            DropdownMenuItem(
+                value: "Photography Club",
+                child: Text("Photography Club")),
+            DropdownMenuItem(
+                value: "Coding Group", child: Text("Coding Group")),
+          ],
+          onChanged: (value) {
+            setState(() => selectedCommunity = value!);
+          },
+        ),
+      ),
+    );
+  }
+
+  /// 🏷 STATUS BADGE
   Widget _statusBadge(String status) {
-    Color bgColor;
-    if (status == "Available") {
-      bgColor = const Color.fromARGB(255, 184, 221, 186);
-    } else if (status == "In Use") {
-      bgColor = const Color.fromARGB(255, 238, 200, 204);
-    } else {
-      bgColor = const Color.fromARGB(255, 238, 200, 204);
-    }
+    Color bg = status == "Available"
+        ? Colors.teal.withValues(alpha: 0.18)
+        : status == "In Use"
+            ? Colors.orange.withValues(alpha: 0.18)
+            : Colors.red.withValues(alpha: 0.18);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(7),
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         status,
-        style: const TextStyle(
-          color: Colors.black87,
-          fontWeight: FontWeight.w600,
-        ),
+        style: const TextStyle(fontWeight: FontWeight.bold),
       ),
     );
   }

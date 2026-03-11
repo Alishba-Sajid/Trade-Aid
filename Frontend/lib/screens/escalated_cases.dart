@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'dispute_details.dart';
 
@@ -8,190 +9,261 @@ class EscalatedCases extends StatefulWidget {
   State<EscalatedCases> createState() => _EscalatedCasesState();
 }
 
-class _EscalatedCasesState extends State<EscalatedCases> {
+class _EscalatedCasesState extends State<EscalatedCases>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  final List<Map<String, String>> caseData = const [
+    {
+      "id": "#12345",
+      "participants": "Alice Johnson vs Bob Williams",
+      "status": "Open",
+      "date": "2024-07-26"
+    },
+    {
+      "id": "#12346",
+      "participants": "Charlie Davis vs Eve Green",
+      "status": "In Review",
+      "date": "2024-07-25"
+    },
+    {
+      "id": "#12347",
+      "participants": "Grace Miller vs Henry Clark",
+      "status": "Pending",
+      "date": "2024-07-24"
+    },
+    {
+      "id": "#12348",
+      "participants": "Ivy White vs Jack Brown",
+      "status": "Open",
+      "date": "2024-07-23"
+    },
+  ];
+
   @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Colors.white,
-      body: EscalatedCasesScreen(),
-    );
+  void initState() {
+    super.initState();
+    _controller =
+        AnimationController(vsync: this, duration: const Duration(seconds: 12))
+          ..repeat();
   }
-}
 
-// 🧾 Escalated Cases Screen (unchanged except sidebar/header removed)
-class EscalatedCasesScreen extends StatelessWidget {
-  const EscalatedCasesScreen({super.key});
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, String>> caseData = [
-      {"id": "#12345", "participants": "Alice Johnson vs. Bob Williams", "status": "Open", "date": "2024-07-26"},
-      {"id": "#12346", "participants": "Charlie Davis vs. Eve Green", "status": "In Review", "date": "2024-07-25"},
-      {"id": "#12347", "participants": "Grace Miller vs. Henry Clark", "status": "Pending", "date": "2024-07-24"},
-      {"id": "#12348", "participants": "Ivy White vs. Jack Brown", "status": "Open", "date": "2024-07-23"},
-      {"id": "#12349", "participants": "Kevin Lee vs. Laura Adams", "status": "In Review", "date": "2024-07-22"},
-      {"id": "#12350", "participants": "Mia Turner vs. Nathan Craig", "status": "Pending", "date": "2024-07-21"},
-      {"id": "#12351", "participants": "Olivia Hill vs. Paul Baker", "status": "Open", "date": "2024-07-20"},
-      {"id": "#12352", "participants": "Quinn Evans vs. Ryan Carter", "status": "In Review", "date": "2024-07-19"},
-      {"id": "#12353", "participants": "Sophia King vs. Tom Parker", "status": "Pending", "date": "2024-07-18"},
-      {"id": "#12354", "participants": "Uma Reed vs. Victor Stone", "status": "Open", "date": "2024-07-17"},
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(30, 30, 30, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text("Escalated Cases",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 6),
-          const Text("Manage and resolve escalated disputes.",
-              style: TextStyle(fontSize: 16, color: Color.fromARGB(136, 3, 3, 3))),
-          const SizedBox(height: 25),
-
-          // 🔍 Search + Filters
-          Row(
+    return Scaffold(
+      body: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) {
+          return Stack(
             children: [
-              Expanded(
-                flex: 3,
-                child: Container(
-                  height: 45,
-                  decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 245, 245, 245),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: const Color.fromARGB(255, 238, 237, 237)),
-                  ),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12),
-                    child: Row(
-                      children: [
-                        Icon(Icons.search, color: Colors.grey),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: TextField(
-                            decoration: InputDecoration(
-                              hintText: "Search by Case ID or Participant",
-                              border: InputBorder.none,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+              /// 🌊 SAME ANIMATED GRADIENT
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.teal.shade600,
+                      Colors.teal.shade300,
+                      Colors.cyan.shade200,
+                    ],
+                    stops: [
+                      0.2,
+                      0.6 + 0.2 * sin(_controller.value * pi * 2),
+                      1.0,
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(width: 20),
-              _filterBox("Status"),
-              const SizedBox(width: 20),
-              _filterBox("Date of Escalation"),
-              const SizedBox(width: 20),
-              _filterBox("Participants"),
-            ],
-          ),
-          const SizedBox(height: 25),
 
-          // 📊 Escalated Cases Table
-          Expanded(
-            child: Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(13),
-              ),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(minWidth: 1400),
-                  child: DataTable(
-                    headingRowColor: WidgetStateProperty.all(
-                      const Color.fromARGB(255, 243, 244, 246),
-                      
+              /// ✨ FLOATING CIRCLES
+              ...List.generate(6, (i) {
+                final size = 80.0 + i * 20;
+                return Positioned(
+                  left: (i * 140) % MediaQuery.of(context).size.width,
+                  top: 120 +
+                      60 *
+                          sin((_controller.value * 2 * pi) + i.toDouble()),
+                  child: Container(
+                    width: size,
+                    height: size,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withValues(alpha: 0.08),
                     ),
-                    dataRowColor: WidgetStateProperty.all(Colors.white),
-                    columnSpacing: 80,
-                    columns: const [
-                      DataColumn(label: Text("Case ID", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18))),
-                      DataColumn(label: Text("Participants", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18))),
-                      DataColumn(label: Text("Status", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18))),
-                      DataColumn(label: Text("Date of Escalation", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18))),
-                      DataColumn(label: Text("Actions", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18))),
+                  ),
+                );
+              }),
+
+              /// 📦 MAIN GLASS CARD
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.95),
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 12,
+                        offset: Offset(0, 6),
+                      ),
                     ],
-                    rows: caseData.map((caseInfo) {
-                      return DataRow(cells: [
-                        DataCell(Text(caseInfo["id"]!)),
-                        DataCell(Text(caseInfo["participants"]!)),
-                        DataCell(_statusBadge(caseInfo["status"]!)),
-                        DataCell(Text(caseInfo["date"]!)),
-                        DataCell(
-                          TextButton(
-                            onPressed: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EscalatedDisputeScreen(
-          caseInfo: {
-            'id': '123',
-            'title': 'Dispute with Vendor A',
-          },
-        ),
-      ),
-    );
-  },
-                            child: const Text(
-                              "View",
-                              style: TextStyle(
-                                color: Colors.blueAccent,
-                                fontWeight: FontWeight.w600,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Escalated Cases",
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        "Manage and resolve escalated disputes",
+                        style: TextStyle(color: Colors.black54),
+                      ),
+                      const SizedBox(height: 20),
+
+                      /// 🔍 SEARCH BAR (same style)
+                      Container(
+                        height: 45,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.search, color: Colors.grey),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: TextField(
+                                decoration: InputDecoration(
+                                  border: InputBorder.none,
+                                  hintText:
+                                      "Search by Case ID or Participant",
+                                ),
                               ),
                             ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      /// 📊 DATA TABLE (SAME AS PRODUCT RESOURCE)
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: ConstrainedBox(
+                            constraints:
+                                const BoxConstraints(minWidth: 1400),
+                            child: DataTable(
+                              columnSpacing: 70,
+                              headingRowColor:
+                                  WidgetStateColor.resolveWith(
+                                      (_) => Colors.grey.shade100),
+                              columns: const [
+                                DataColumn(
+                                    label: Text(
+                                  "Case ID",
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.bold),
+                                )),
+                                DataColumn(
+                                    label: Text(
+                                  "Participants",
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.bold),
+                                )),
+                                DataColumn(
+                                    label: Text(
+                                  "Status",
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.bold),
+                                )),
+                                DataColumn(
+                                    label: Text(
+                                  "Date",
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.bold),
+                                )),
+                                DataColumn(
+                                    label: Text(
+                                  "Actions",
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.bold),
+                                )),
+                              ],
+                              rows: caseData.map((c) {
+                                return DataRow(
+                                  cells: [
+                                    DataCell(Text(c["id"]!)),
+                                    DataCell(Text(c["participants"]!)),
+                                    DataCell(_statusBadge(c["status"]!)),
+                                    DataCell(Text(c["date"]!)),
+                                    DataCell(
+                                      TextButton(
+                                        onPressed: () {
+                                          Navigator.push(
+  context,
+  MaterialPageRoute(
+    builder: (_) => const EscalatedDisputeScreen(),
+  ),
+);
+                                        },
+                                        child: const Text(
+                                          "View",
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              }).toList(),
+                            ),
                           ),
                         ),
-                      ]);
-                    }).toList(),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
 
-  static Widget _filterBox(String label) {
+  /// 🟡 STATUS BADGE (same concept)
+  Widget _statusBadge(String status) {
+    final Color bg = status == "Open"
+        ? Colors.green.shade100
+        : status == "In Review"
+            ? Colors.orange.shade100
+            : Colors.red.shade100;
+
     return Container(
-      height: 45,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-         color: const Color.fromARGB(255, 245, 245, 245),
+        color: bg,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color.fromARGB(255, 219, 218, 218)),
-      ),
-      child: Row(
-        children: [
-          Text(label,
-              style: const TextStyle(
-                  color: Colors.black, fontWeight: FontWeight.bold)),
-          const SizedBox(width: 5),
-          const Icon(Icons.keyboard_arrow_down,
-              size: 18, color: Colors.black),
-        ],
-      ),
-    );
-  }
-
-  static Widget _statusBadge(String status) {
-    const color = Color.fromARGB(255, 223, 226, 223);
-  
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 6),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(10),
       ),
       child: Text(
         status,
-        style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        style: const TextStyle(fontWeight: FontWeight.w600),
       ),
     );
   }

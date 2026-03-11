@@ -15,6 +15,8 @@ import 'package:admin_module/screens/productresourcescreen.dart';
 import 'package:admin_module/screens/resource_screen.dart';
 import 'package:admin_module/screens/admin_rotation.dart';
 import 'package:admin_module/screens/community_election.dart';
+import 'package:admin_module/screens/settings.dart';
+
 
 
 
@@ -36,7 +38,7 @@ class MyApp extends StatelessWidget {
       title: 'Trade&Aid Admin',
 
       // 👇 This decides which screen appears first
-      initialRoute: '/register',
+      initialRoute: '/dashboard',
 
       // 👇 Register all your app screens here
       routes: {
@@ -48,13 +50,15 @@ class MyApp extends StatelessWidget {
         //'/userprofile': (context) => const UserProfileScreen(), 
         '/communitymanagement': (context) => const ManageCommunityScreen(),
         '/communitydetails': (context) => const CommunityDetails(),
-        '/escalatedcases': (context) => const EscalatedCasesScreen(),
+        '/escalatedcases': (context) => const EscalatedCases(),
         '/productresource': (context) => const ProductResource(),
         '/resource': (context) => const ResourceSharing(),
         '/notification': (context) => const NotificationsScreen(),
         '/adminrotation': (context) => const AdminRotationScreen(),
         '/communityelection': (context) => const CommunityElectionHistoryScreen(),
+        
         '/reportdetail': (context) => const ReportDetailsPage(),
+        '/settings': (context) => const SettingsScreen(),
         
 
         // 👈 Added this line

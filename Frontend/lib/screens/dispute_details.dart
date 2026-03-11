@@ -1,263 +1,326 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 
-class EscalatedDisputeScreen extends StatelessWidget {
-  const EscalatedDisputeScreen({super.key, required Map<String, String> caseInfo});
+class EscalatedDisputeScreen extends StatefulWidget {
+  const EscalatedDisputeScreen({super.key});
+
+  @override
+  State<EscalatedDisputeScreen> createState() => _EscalatedDisputeScreenState();
+}
+
+class _EscalatedDisputeScreenState extends State<EscalatedDisputeScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller =
+        AnimationController(vsync: this, duration: const Duration(seconds: 12))
+          ..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          // 🔹 Header with back arrow + Trade&Aid brand
-          Container(
-            height: 65,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              border: Border(bottom: BorderSide(color: Colors.black12)),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // 🔙 Back Arrow + Title
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.black87),
-                      onPressed: () {
-                        Navigator.pop(context); // 👈 Go back
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      "Trade&Aid",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                      ),
-                    ),
-                  ],
-                ),
-                // 🔔 Icons & Profile
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.search,
-                          color: Colors.black87, size: 28),
-                      onPressed: () {},
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.notifications_none_outlined,
-                          color: Colors.black87, size: 30),
-                      onPressed: () {},
-                    ),
-                    const SizedBox(width: 10),
-                    const CircleAvatar(
-                      radius: 25,
-                      backgroundImage: AssetImage('assets/profile.png'),
-                      backgroundColor: Colors.black26,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // 🔹 Existing Screen Content (kept exactly as you had)
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 30),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Escalated Dispute Resolution",
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      "Review and resolve disputes that community admins were unable to handle.",
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.black,
-                      ),
-                    ),
-                    const SizedBox(height: 30),
-
-                    const Text(
-                      "Dispute Details",
-                      style: TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    _buildDetailRow("Dispute ID", "#12345"),
-                    _buildDetailRow("Date Reported", "2024-07-15"),
-                    _buildDetailRow("Community", "Community A"),
-                    _buildDetailRow("Status", "Escalated"),
-                    _buildDetailRow("Parties Involved", "User A vs. User B"),
-                    _buildDetailRow("Transaction/Resource", "Transaction ID: 87580"),
-                    const SizedBox(height: 30),
-
-                    const Text(
-                      "Community Admin Actions",
-                      style: TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    _buildDetailRow("Admin Decision", "Pending"),
-                    _buildDetailRow("Actions Taken", "None"),
-                    _buildDetailRow("Evidence", "Review logs and communications"),
-                    const SizedBox(height: 30),
-
-                    const Text(
-                      "Communication",
-                      style: TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 15),
-
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Container(
-                        constraints: const BoxConstraints(maxWidth: 400),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Community Admin",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              "We’ve reviewed the evidence and believe User A is at fault. They violated community guidelines by engaging in fraudulent activity.",
-                              style: TextStyle(fontSize: 16, color: Colors.black87),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 15),
-
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Container(
-                        constraints: const BoxConstraints(maxWidth: 400),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 15),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF007BFF).withValues(alpha: 0.9),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              "Admin",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              "Thank you for the update. We’ll review this and get back to you.",
-                              style:
-                                  TextStyle(fontSize: 16, color: Colors.white),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 25),
-
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(10),
-                        border:
-                            Border.all(color: Colors.grey.withValues(alpha: 0.4)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Expanded(
-                            child: TextField(
-                              decoration: InputDecoration(
-                                border: InputBorder.none,
-                                hintText: "Type your message...",
-                              ),
-                            ),
-                          ),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF007BFF),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            onPressed: () {},
-                            child: const Text("Send"),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+      body: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) {
+          return Stack(
+            children: [
+              // 🌊 SAME INDUSTRIAL GRADIENT (LIKE PRODUCT SCREEN)
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.teal.shade700,
+                      Colors.teal.shade400,
+                      Colors.cyan.shade300,
+                    ],
+                    stops: [
+                      0.2,
+                      0.6 + 0.2 * sin(_controller.value * pi * 2),
+                      1.0,
+                    ],
+                  ),
                 ),
               ),
+
+              // ✨ FLOATING CIRCLES
+              ...List.generate(6, (i) {
+                final size = 80.0 + i * 20;
+                return Positioned(
+                  left: (i * 150) % MediaQuery.of(context).size.width,
+                  top: 120 +
+                      60 *
+                          sin((_controller.value * 2 * pi) + i.toDouble()),
+                  child: Container(
+                    width: size,
+                    height: size,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color.fromARGB(255, 192, 16, 16).withValues(alpha: 0.08),
+                    ),
+                  ),
+                );
+              }),
+
+              // 🧊 MAIN CONTENT
+              Column(
+                children: [
+                  // 🔹 HEADER (SAME STYLE)
+                  Container(
+                    height: 70,
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.95),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 10,
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.arrow_back),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              "Trade&Aid",
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.search),
+                              onPressed: () {},
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.notifications_none),
+                              onPressed: () {},
+                            ),
+                            const SizedBox(width: 10),
+                            const CircleAvatar(
+                              radius: 22,
+                              backgroundImage:
+                                  AssetImage('assets/profile.png'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // 🧊 GLASS CARD
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(30),
+                      child: Container(
+                        padding: const EdgeInsets.all(30),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.95),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 14,
+                              offset: Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Escalated Dispute Resolution",
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                "Review and resolve disputes that community admins were unable to handle.",
+                                style: TextStyle(fontSize: 16),
+                              ),
+
+                              const SizedBox(height: 30),
+                              _sectionTitle("Dispute Details"),
+                              _detailRow("Dispute ID", "#12345"),
+                              _detailRow("Date Reported", "2024-07-15"),
+                              _detailRow("Community", "Community A"),
+                              _detailRow("Status", "Escalated"),
+                              _detailRow("Parties Involved", "User A vs User B"),
+                              _detailRow(
+                                  "Transaction", "Transaction ID: 87580"),
+
+                              const SizedBox(height: 30),
+                              _sectionTitle("Community Admin Actions"),
+                              _detailRow("Admin Decision", "Pending"),
+                              _detailRow("Actions Taken", "None"),
+                              _detailRow(
+                                  "Evidence", "Review logs and communications"),
+
+                              const SizedBox(height: 30),
+                              _sectionTitle("Communication"),
+
+                              _messageBubble(
+                                sender: "Community Admin",
+                                message:
+                                    "We’ve reviewed the evidence and believe User A violated guidelines.",
+                                isLeft: true,
+                              ),
+
+                              Padding(
+  padding: const EdgeInsets.only(right: 40), // 👈 adjust this value
+  child: _messageBubble(
+    sender: "Admin",
+    message: "Thank you. We’ll review and respond shortly.",
+    isLeft: false, // stays on right
+  ),
+),
+
+                              const SizedBox(height: 25),
+
+                              // 💬 INPUT
+                              Container(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 10),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color:
+                                        Colors.grey.withValues(alpha: 0.4),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Expanded(
+                                      child: TextField(
+                                        decoration: InputDecoration(
+                                          border: InputBorder.none,
+                                          hintText: "Type your message...",
+                                        ),
+                                      ),
+                                    ),
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                            Colors.teal.shade600,
+                                            foregroundColor: Colors.black,
+                                      ),
+                                      onPressed: () {},
+                                      child: const Text("Send"),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  // 🔹 HELPERS
+
+  Widget _sectionTitle(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _detailRow(String title, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 200,
+            child: Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
+          Expanded(child: Text(value)),
         ],
       ),
     );
   }
 
-  Widget _buildDetailRow(String title, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 180,
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
+  Widget _messageBubble({
+    required String sender,
+    required String message,
+    required bool isLeft,
+  }) {
+    return Align(
+      alignment: isLeft ? Alignment.centerLeft : Alignment.centerRight,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 420),
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color:
+              isLeft ? Colors.grey.shade200 : Colors.teal.shade600,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          crossAxisAlignment:
+              isLeft ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+          children: [
+            Text(
+              sender,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: isLeft ? Colors.black87 : Colors.white,
               ),
             ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                color: Colors.black87,
+            const SizedBox(height: 4),
+            Text(
+              message,
+              style: TextStyle(
+                color: isLeft ? Colors.black87 : Colors.white,
+                fontSize: 15,
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

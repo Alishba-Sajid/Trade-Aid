@@ -1,217 +1,202 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 
-class AdminRotationScreen extends StatelessWidget {
+const Color dark = Color(0xFF0B2F2A);
+const Color surface = Color(0xFFFFFFFF);
+const Color subtleGrey = Color(0xFFF2F2F2);
+const Color accent = Color(0xFF119E90);
+
+class AdminRotationScreen extends StatefulWidget {
   const AdminRotationScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final List<Map<String, dynamic>> rotationData = [
-      {
-        "community": "Tech Enthusiasts Group",
-        "status": "Active",
-        "progress": 75,
-      },
-      {
-        "community": "Local Book Club",
-        "status": "Pending",
-        "progress": 0,
-      },
-      {
-        "community": "Photography Club",
-        "status": "Completed",
-        "progress": 100,
-      },
-      {
-        "community": "Gardens",
-        "status": "Pending",
-        "progress": 100,
-      },
-    ];
+  State<AdminRotationScreen> createState() => _AdminRotationScreenState();
+}
 
-    Color statusColor(String status) {
-      switch (status) {
-        case "Active":
-          return const Color(0xFF4CAF50); // Green
-        case "Pending":
-          return const Color(0xFFFFC107); // Yellow
-        case "Completed":
-          return const Color(0xFF2196F3); // Blue
-        default:
-          return Colors.grey;
-      }
+class _AdminRotationScreenState extends State<AdminRotationScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  final List<Map<String, dynamic>> rotationData = [
+    {"community": "Tech Enthusiasts Group", "status": "Active", "progress": 75},
+    {"community": "Local Book Club", "status": "Pending", "progress": 0},
+    {"community": "Photography Club", "status": "Completed", "progress": 100},
+    {"community": "Gardens", "status": "Pending", "progress": 40},
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _controller =
+        AnimationController(vsync: this, duration: const Duration(seconds: 12))
+          ..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Color statusColor(String status) {
+    switch (status) {
+      case "Active":
+        return accent;
+      case "Pending":
+        return Colors.orange;
+      case "Completed":
+        return Colors.blue;
+      default:
+        return Colors.grey;
     }
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Padding(
-        padding: const EdgeInsets.fromLTRB(40, 30, 40, 30),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 🔹 Page Title
-            const Text(
-              "Admin Rotation",
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              "Election Progress",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black54,
-              ),
-            ),
-            const SizedBox(height: 25),
-
-            // 🔹 Table Container (Header + Rows)
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.grey.withValues(alpha:0.3),
-                  width: 1,
-                ),
-              ),
-              child: Column(
-                children: [
-                  // 🔹 Table Header
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(12),
-                        topRight: Radius.circular(12),
-                      ),
-                    ),
-                    child: const Row(
-                      children: [
-                        Expanded(
-                          flex: 4,
-                          child: Text(
-                            "Community",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 2,
-                          child: Text(
-                            "Election Status",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 3,
-                          child: Text(
-                            "Progress",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // 🔹 Table Body
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: rotationData.length,
-                    separatorBuilder: (context, index) => Divider(
-                      height: 0,
-                      color: Colors.grey.withValues(alpha: 0.3),
-                    ),
-                    itemBuilder: (context, index) {
-                      final item = rotationData[index];
-                      return Container(
-                        color: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 14,
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            // Community
-                            Expanded(
-                              flex: 4,
-                              child: Text(
-                                item["community"],
-                                style: const TextStyle(fontSize: 15),
-                              ),
-                            ),
-
-                            // Election Status Chip
-                            Expanded(
-                              flex: 2,
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Container(
-                                  constraints:
-                                      const BoxConstraints(maxWidth: 130),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: statusColor(item["status"])
-                                        .withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    item["status"],
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      color: statusColor(item["status"]),
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-
-                            // Progress Bar
-                            Expanded(
-                              flex: 3,
-                              child: SizedBox(
-                                height: 10,
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(6),
-                                  child: LinearProgressIndicator(
-                                    value: item["progress"] / 100,
-                                    backgroundColor:
-                                        Colors.grey.withValues(alpha: 0.2),
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      statusColor(item["status"]),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+      body: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) {
+          return Container(
+            padding: const EdgeInsets.all(30),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.teal.shade700,
+                  Colors.teal.shade300,
+                ],
+                stops: [
+                  0.3,
+                  0.7 + 0.2 * sin(_controller.value * pi * 2),
                 ],
               ),
             ),
-          ],
+
+            /// ✅ FULL WIDTH FIX IS HERE 👇
+            child: SizedBox(
+              width: double.infinity, // ⭐ THIS MAKES IT FULL PAGE
+              child: Container(
+                padding: const EdgeInsets.all(30),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.95),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Admin Rotation",
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: dark,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      "Election Progress Overview",
+                      style: TextStyle(color: Colors.black54),
+                    ),
+                    const SizedBox(height: 25),
+
+                    /// 📊 TABLE
+                    Expanded(
+  child: SingleChildScrollView(
+    scrollDirection: Axis.horizontal,
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(
+        minWidth: 1400, // ✅ FORCE FULL-WIDTH TABLE
+      ),
+      child: DataTable(
+        headingRowColor: WidgetStateProperty.all(subtleGrey),
+        columnSpacing: 140,
+        dataRowMinHeight: 70,
+        dataRowMaxHeight: 70,
+
+        columns: const [
+          DataColumn(
+            label: Text(
+              "Community",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: dark,
+              ),
+            ),
+          ),
+          DataColumn(
+            label: Text(
+              "Status",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: dark,
+              ),
+            ),
+          ),
+          DataColumn(
+            label: Text(
+              "Progress",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: dark,
+              ),
+            ),
+          ),
+        ],
+
+        rows: rotationData.map((item) {
+          return DataRow(
+            cells: [
+              DataCell(Text(item["community"])),
+              DataCell(_statusBadge(item["status"])),
+              DataCell(
+                SizedBox(
+                  width: 400, // keeps progress aligned nicely
+                  child: LinearProgressIndicator(
+                    value: item["progress"] / 100,
+                    minHeight: 10,
+                    backgroundColor: subtleGrey,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      statusColor(item["status"]),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        }).toList(),
+      ),
+    ),
+  ),
+),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _statusBadge(String status) {
+    final Color bg = status == "Active"
+        ? accent.withValues(alpha: 0.2)
+        : status == "Pending"
+            ? Colors.orange.withValues(alpha: 0.2)
+            : Colors.blue.withValues(alpha: 0.2);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        status,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: statusColor(status),
         ),
       ),
     );

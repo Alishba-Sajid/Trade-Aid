@@ -143,7 +143,7 @@ class _ProductResourceState extends State<ProductResource>
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 12),
                               decoration: BoxDecoration(
-                                color: Colors.grey.shade100,
+                                 color: const Color.fromARGB(255, 238, 235, 235),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: const Row(
