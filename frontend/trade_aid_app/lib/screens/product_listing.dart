@@ -102,7 +102,7 @@ Future<void> _fetchProducts() async {
 
     final profileResponse = await supabase
         .from('profiles')
-        .select('user_id, full_name, address')
+        .select('user_id, full_name, address, profile_image_url')
         .inFilter('user_id', userIds); // only 2 args here
 
     final profileList = profileResponse as List;
@@ -116,6 +116,7 @@ Future<void> _fetchProducts() async {
 
       map['sellerName'] = profile?['full_name'];
       map['sellerAddress'] = profile?['address'];
+      map['sellerProfileImageUrl'] = profile?['profile_image_url'];
 
       return Product.fromJson(map);
     }).toList();

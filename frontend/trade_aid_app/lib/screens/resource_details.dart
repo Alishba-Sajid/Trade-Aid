@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/resource.dart';
 import '../providers/cart_provider.dart';
 import '../widgets/app_bar.dart';
@@ -87,7 +88,12 @@ class _ResourceDetailsScreenState extends State<ResourceDetailsScreen> {
                   const SizedBox(height: 18),
                   _buildInfoGrid(availableTime, availability),
                   const SizedBox(height: 18),
-                  _SellerCard(ownerName: ownerName, address: ownerAddressFull),
+                  _SellerCard(
+                    ownerName: ownerName,
+                    address: ownerAddressFull,
+                    ownerUserId: resource.ownerUserId,
+                    initialProfileImageUrl: resource.ownerProfileImageUrl,
+                  ),
                   const SizedBox(height: 18),
                   _buildTermsAndConditions(),
                 ],
@@ -436,7 +442,15 @@ class _ResourceDetailsScreenState extends State<ResourceDetailsScreen> {
 class _SellerCard extends StatefulWidget {
   final String ownerName;
   final String address;
-  const _SellerCard({required this.ownerName, required this.address});
+  final String ownerUserId;
+  final String? initialProfileImageUrl;
+
+  const _SellerCard({
+    required this.ownerName,
+    required this.address,
+    required this.ownerUserId,
+    this.initialProfileImageUrl,
+  });
 
   @override
   State<_SellerCard> createState() => _SellerCardState();
@@ -444,9 +458,38 @@ class _SellerCard extends StatefulWidget {
 
 class _SellerCardState extends State<_SellerCard> {
   bool isExpanded = false;
+  String? _profileImageUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _profileImageUrl = widget.initialProfileImageUrl;
+    _fetchProfileImageIfNeeded();
+  }
+
+  Future<void> _fetchProfileImageIfNeeded() async {
+    final existing = _profileImageUrl?.trim();
+    if (existing != null && existing.isNotEmpty) return;
+
+    try {
+      final supabase = Supabase.instance.client;
+      final resp = await supabase
+          .from('profiles')
+          .select('profile_image_url')
+          .eq('user_id', widget.ownerUserId)
+          .maybeSingle();
+
+      final url = (resp?['profile_image_url'] as String?)?.trim();
+      if (!mounted) return;
+      setState(() => _profileImageUrl = url);
+    } catch (_) {
+      // keep fallback avatar (UI unchanged)
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final imageUrl = _profileImageUrl?.trim();
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -467,7 +510,12 @@ class _SellerCardState extends State<_SellerCard> {
               CircleAvatar(
                 radius: 32,
                 backgroundColor: accent.withOpacity(.12),
-                child: const Icon(Icons.person, color: accent, size: 30),
+                backgroundImage: (imageUrl != null && imageUrl.isNotEmpty)
+                    ? NetworkImage(imageUrl)
+                    : null,
+                child: (imageUrl != null && imageUrl.isNotEmpty)
+                    ? null
+                    : const Icon(Icons.person, color: accent, size: 30),
               ),
               const SizedBox(width: 18),
               Expanded(

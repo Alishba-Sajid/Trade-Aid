@@ -1,6 +1,7 @@
 class Resource {
   final String id;
   final String name;
+  final String ownerUserId;
   final List<String> images;
   final String description;
   final String ownerName;
@@ -8,10 +9,12 @@ class Resource {
   final double pricePerHour;
   final List<String> availableDays;
   final String availableTime;
+  final String? ownerProfileImageUrl;
 
   Resource({
     required this.id,
     required this.name,
+    required this.ownerUserId,
     required this.images,
     required this.description,
     required this.ownerName,
@@ -19,6 +22,7 @@ class Resource {
     required this.pricePerHour,
     required this.availableDays,
     required this.availableTime,
+    this.ownerProfileImageUrl,
   });
 factory Resource.fromJson(
   Map<String, dynamic> json,
@@ -30,6 +34,7 @@ factory Resource.fromJson(
   return Resource(
     id: json['id'],
     name: json['name'] ?? '', // ✅ NOW USING NAME COLUMN
+    ownerUserId: json['user_id'],
     images: (json['images'] as List?)
             ?.map((e) => e.toString())
             .toList() ??
@@ -43,5 +48,6 @@ factory Resource.fromJson(
             .toList() ??
         [],
     availableTime: "$start - $end",
+    ownerProfileImageUrl: profile?['profile_image_url'],
   );
 }}
