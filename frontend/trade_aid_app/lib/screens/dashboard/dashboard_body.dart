@@ -37,6 +37,8 @@ class DashboardBody extends StatefulWidget {
 }
 
 class _DashboardBodyState extends State<DashboardBody> {
+  RealtimeChannel? wishChannel;
+RealtimeChannel? communityChannel;
 
   int activeWishCount = 0;
   List<Map<String, dynamic>> nearbyCommunities = [];
@@ -45,6 +47,88 @@ class _DashboardBodyState extends State<DashboardBody> {
   bool locationDeniedForever = false;
   bool loadingNearby = true;
 
+
+void _subscribeWishRequests() {
+
+  wishChannel?.unsubscribe();
+
+  final supabase = Supabase.instance.client;
+
+  wishChannel = supabase.channel('wish_requests_channel')
+    ..onPostgresChanges(
+      event: PostgresChangeEvent.insert,
+      schema: 'public',
+      table: 'wish_requests',
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'community_id',
+        value: widget.communityId,
+      ),
+      callback: (payload) {
+
+        if (!mounted) return;
+
+       _fetchActiveWishCount();
+
+      },
+    )
+    ..subscribe();
+}
+void _subscribeNearbyCommunities() {
+
+  final supabase = Supabase.instance.client;
+
+  communityChannel = supabase.channel('community_channel')
+    ..onPostgresChanges(
+      event: PostgresChangeEvent.insert,
+      schema: 'public',
+      table: 'communities',
+      callback: (payload) {
+
+        _fetchNearbyCommunities();
+
+      },
+    )
+    ..subscribe();
+}
+Future<void> _loadDashboardData() async {
+  await _fetchActiveWishCount();
+  await _checkLocationPermission();
+}
+Future<void> _initializeDashboard() async {
+
+  final supabase = Supabase.instance.client;
+
+  final session = supabase.auth.currentSession;
+
+  if (session != null) {
+
+    // Load existing dashboard data
+    await _loadDashboardData();
+
+    // Start realtime listeners
+    _subscribeWishRequests();
+    _subscribeNearbyCommunities();
+
+  } else {
+
+    supabase.auth.onAuthStateChange.listen((data) async {
+
+      if (data.event == AuthChangeEvent.signedIn) {
+
+        // Load existing records first
+        await _loadDashboardData();
+
+        // Then listen for new realtime events
+        _subscribeWishRequests();
+        _subscribeNearbyCommunities();
+
+      }
+
+    });
+
+  }
+}
   Future<void> _fetchActiveWishCount() async {
     if (widget.communityId.isEmpty) return;
 
@@ -256,24 +340,28 @@ class _DashboardBodyState extends State<DashboardBody> {
   }
 
   @override
-  void initState() {
-    super.initState();
+void initState() {
+  super.initState();
+  _initializeDashboard();
+}
+@override
+void didUpdateWidget(covariant DashboardBody oldWidget) {
+  super.didUpdateWidget(oldWidget);
+
+  if (widget.communityId != oldWidget.communityId &&
+      widget.communityId.isNotEmpty) {
+
     _fetchActiveWishCount();
-    _checkLocationPermission();
+    _fetchNearbyCommunities();
   }
+}
 
-  @override
-  void didUpdateWidget(covariant DashboardBody oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    if (widget.communityId != oldWidget.communityId &&
-        widget.communityId.isNotEmpty) {
-
-      _fetchActiveWishCount();
-      _fetchNearbyCommunities();
-    }
-  }
-
+@override
+void dispose() {
+  wishChannel?.unsubscribe();
+  communityChannel?.unsubscribe();
+  super.dispose();
+}
 
   @override
   Widget build(BuildContext context) {

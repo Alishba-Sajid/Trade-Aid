@@ -76,9 +76,10 @@ Future<void> _fetchProducts() async {
       );
     } else {
       // Wish Item tab: only products reserved for the current user (requester)
-      query = query
-          .not('wish_request_id', 'is', null)
-          .eq('reserved_for', user.id);
+     query = query
+    .not('wish_request_id', 'is', null)
+    .gt('expires_at', DateTime.now().toIso8601String())
+    .or('reserved_for.eq.${user.id},user_id.eq.${user.id}');
     }
 
     // ---------------- FETCH PRODUCTS ----------------
