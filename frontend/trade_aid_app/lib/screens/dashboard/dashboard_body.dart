@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'community_dialog.dart';
 import '../wish_request.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:geolocator/geolocator.dart';
 
 // 🌿 Premium Color Constants
 const LinearGradient appGradient = LinearGradient(
@@ -93,7 +92,7 @@ void _subscribeNearbyCommunities() {
 }
 Future<void> _loadDashboardData() async {
   await _fetchActiveWishCount();
-  await _checkLocationPermission();
+    await _fetchNearbyCommunities();
 }
 Future<void> _initializeDashboard() async {
 
@@ -155,77 +154,62 @@ Future<void> _initializeDashboard() async {
       debugPrint("Error fetching wish count: $e");
     }
   }
+Future<void> _fetchNearbyCommunities() async {
+  try {
 
-  Future<void> _checkLocationPermission() async {
-    LocationPermission permission = await Geolocator.checkPermission();
+    final supabase = Supabase.instance.client;
+    final userId = supabase.auth.currentUser?.id;
 
-    if (permission == LocationPermission.always ||
-        permission == LocationPermission.whileInUse) {
+    if (userId == null) return;
 
-      locationPermissionGranted = true;
-      await _fetchNearbyCommunities();
+    final profile = await supabase
+        .from('profiles')
+        .select('home_latitude, home_longitude')
+        .eq('user_id', userId)
+        .maybeSingle();
 
-    } else if (permission == LocationPermission.deniedForever) {
+    if (profile == null ||
+        profile['home_latitude'] == null ||
+        profile['home_longitude'] == null) {
 
-      locationDeniedForever = true;
-    }
-
-    if (mounted) {
       setState(() {
         loadingNearby = false;
+        nearbyCommunities = [];
       });
+
+      return;
     }
-  }
 
-  Future<void> _fetchNearbyCommunities() async {
+    final double userLat = profile['home_latitude'];
+    final double userLng = profile['home_longitude'];
 
-    try {
-
-      Position userLocation = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-
-      final supabase = Supabase.instance.client;
-
-      final response = await supabase.rpc('get_nearby_communities', params: {
-        'user_lat': userLocation.latitude,
-        'user_lng': userLocation.longitude,
+    final response = await supabase.rpc(
+      'get_nearby_communities',
+      params: {
+        'user_lat': userLat,
+        'user_lng': userLng,
         'radius_km': 1.0,
         'current_community': widget.communityId,
-      });
+      },
+    );
 
-      if (!mounted) return;
+    if (!mounted) return;
 
-      setState(() {
-        nearbyCommunities = List<Map<String, dynamic>>.from(response);
-      });
+    setState(() {
+      loadingNearby = false;
+      nearbyCommunities = List<Map<String, dynamic>>.from(response);
+    });
 
-    } catch (e) {
-      debugPrint("Error fetching nearby communities: $e");
-    }
+  } catch (e) {
+    debugPrint("Error fetching nearby communities: $e");
+
+    setState(() {
+      loadingNearby = false;
+      nearbyCommunities = [];
+    });
   }
+}
 
-  Future<void> _requestLocationPermission() async {
-
-    LocationPermission permission = await Geolocator.requestPermission();
-
-    if (permission == LocationPermission.always ||
-        permission == LocationPermission.whileInUse) {
-
-      setState(() {
-        locationPermissionGranted = true;
-        loadingNearby = true;
-      });
-
-      await _fetchNearbyCommunities();
-
-    } else if (permission == LocationPermission.deniedForever) {
-
-      setState(() {
-        locationDeniedForever = true;
-      });
-    }
-  }
 
   Future<void> _joinCommunity(Map<String, dynamic> community) async {
 
@@ -550,12 +534,10 @@ void dispose() {
 
               SizedBox(
   height: 130,
-  child: loadingNearby
-      ? const Center(child: CircularProgressIndicator())
-      : !locationPermissionGranted
-          ? _buildEnableLocationCard()
-          : nearbyCommunities.isEmpty
-              ? _buildNoNearbyCommunities()
+ child: loadingNearby
+    ? const Center(child: CircularProgressIndicator())
+    : nearbyCommunities.isEmpty
+                      ? _buildNoNearbyCommunities()
               : ListView(
                   scrollDirection: Axis.horizontal,
                   children: nearbyCommunities.map((community) =>
@@ -588,51 +570,7 @@ void dispose() {
       ),
     );
   }
-Widget _buildEnableLocationCard() {
-  return Container(
-    width: 220,
-    margin: const EdgeInsets.only(right: 16),
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: Colors.black.withOpacity(0.05)),
-      boxShadow: [
-        BoxShadow(
-          color: dark.withOpacity(0.05),
-          blurRadius: 12,
-          offset: const Offset(0, 6),
-        ),
-      ],
-    ),
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Icon(Icons.location_on, color: accent, size: 30),
-        const SizedBox(height: 8),
-        const Text(
-          'Enable location to discover nearby communities',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 10),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: accent,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          ),
-          onPressed: locationDeniedForever
-              ? Geolocator.openAppSettings
-              : _requestLocationPermission,
-          child: Text(
-            locationDeniedForever ? 'Open Settings' : 'Enable Location',
-            style: const TextStyle(fontSize: 12),
-          ),
-        ),
-      ],
-    ),
-  );
-}
+
   Widget _buildNoNearbyCommunities() {
     return Container(
       width: 200,
