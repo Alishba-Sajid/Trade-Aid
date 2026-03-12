@@ -94,6 +94,7 @@ Future<void> _loadDashboardData() async {
   await _fetchActiveWishCount();
     await _fetchNearbyCommunities();
 }
+
 Future<void> _initializeDashboard() async {
 
   final supabase = Supabase.instance.client;
