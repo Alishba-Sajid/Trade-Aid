@@ -10,19 +10,20 @@ import 'admin_rotation.dart';
 import 'community_election.dart';
 import 'settings.dart';
 
-/// 🌿 THEME COLORS
+/// INDUSTRIAL THEME COLORS
 const LinearGradient appGradient = LinearGradient(
   colors: [
-    Color.fromARGB(255, 15, 119, 124),
-    Color.fromARGB(255, 17, 158, 144),
+    Color(0xFF0B2F2A),
+    Color(0xFF119E90),
   ],
   begin: Alignment.bottomLeft,
   end: Alignment.topRight,
 );
 
 const Color surface = Color(0xFFFFFFFF);
-const Color backgroundLight = Color(0xFFF8FAFA);
+const Color backgroundLight = Color(0xFFF4F7F7);
 const Color accentTeal = Color(0xFF119E90);
+const Color borderColor = Color(0xFFE4E8E8);
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -106,7 +107,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 /// SIDEBAR
                 Container(
                   width: 260,
-                  decoration: const BoxDecoration(gradient: appGradient),
+                  decoration: const BoxDecoration(
+                    gradient: appGradient,
+                    border: Border(
+                      right: BorderSide(color: Color(0x22000000)),
+                    ),
+                  ),
                   padding: const EdgeInsets.fromLTRB(24, 30, 16, 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -237,7 +243,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
             const SizedBox(height: 40),
 
-            /// LINE GRAPH
             const Text(
               "Community Growth",
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -248,277 +253,217 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Container(
               height: 320,
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: surface,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: const [
-                  BoxShadow(color: Colors.black12, blurRadius: 8),
-                ],
-              ),
+              decoration: _cardDecoration(),
               child: LineChart(
-  LineChartData(
-    minY: 0,
-    maxY: 300,
-
-    gridData: FlGridData(show: true),
-    borderData: FlBorderData(show: false),
-
-    titlesData: FlTitlesData(
-
-      bottomTitles: AxisTitles(
-        sideTitles: SideTitles(
-          showTitles: true,
-          reservedSize: 30,
-          interval: 1,
-          getTitlesWidget: (value, meta) {
-
-            const months = [
-              "Jan",
-              "Feb",
-              "Mar",
-              "Apr",
-              "May",
-              "Jun"
-            ];
-
-            if (value.toInt() >= 0 && value.toInt() < months.length) {
-              return Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(months[value.toInt()]),
-              );
-            }
-            return const Text("");
-          },
-        ),
-      ),
-
-      leftTitles: AxisTitles(
-        sideTitles: SideTitles(
-          showTitles: true,
-          reservedSize: 40,
-          interval: 50,
-        ),
-      ),
-
-      rightTitles: AxisTitles(
-        sideTitles: SideTitles(showTitles: false),
-      ),
-
-      topTitles: AxisTitles(
-        sideTitles: SideTitles(showTitles: false),
-      ),
-    ),
-
-    lineBarsData: [
-      LineChartBarData(
-        isCurved: true,
-        color: accentTeal,
-        barWidth: 3,
-        spots: const [
-          FlSpot(0, 80),
-          FlSpot(1, 120),
-          FlSpot(2, 150),
-          FlSpot(3, 170),
-          FlSpot(4, 210),
-          FlSpot(5, 250),
-        ],
-      ),
-    ],
-  ),
-)
-            ),
-
-            const SizedBox(height: 40),
-
-Row(
-  crossAxisAlignment: CrossAxisAlignment.start,
-  children: [
-
-    /// PIE CHART
-    Expanded(
-      child: Container(
-        height: 320,
-        padding: const EdgeInsets.all(20),
-        margin: const EdgeInsets.only(right: 10),
-        decoration: BoxDecoration(
-          color: surface,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: const [
-            BoxShadow(color: Colors.black12, blurRadius: 8),
-          ],
-        ),
-
-        child: Column(
-          children: [
-
-            const Text(
-              "Community Categories",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            Expanded(
-              child: PieChart(
-                PieChartData(
-                  centerSpaceRadius: 40,
-                  sectionsSpace: 2,
-                  sections: [
-                    PieChartSectionData(
-                      value: 40,
-                      title: "40%",
-                      color: Colors.green,
-                      radius: 60,
+                LineChartData(
+                  minY: 0,
+                  maxY: 400,
+                  gridData: FlGridData(
+                    show: true,
+                    drawVerticalLine: false,
+                    getDrawingHorizontalLine: (value) {
+                      return FlLine(
+                        color: Colors.grey.withValues(alpha: 0.2),
+                        strokeWidth: 1,
+                      );
+                    },
+                  ),
+                  borderData: FlBorderData(show: false),
+                  titlesData: FlTitlesData(
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        interval: 1,
+                        reservedSize: 30,
+                        getTitlesWidget: (value, meta) {
+                          const months = [
+                            "Jan","Feb","Mar","Apr","May","Jun",
+                            "Jul","Aug","Sep","Oct","Nov","Dec"
+                          ];
+                          if (value.toInt() >= 0 &&
+                              value.toInt() < months.length) {
+                            return Text(months[value.toInt()]);
+                          }
+                          return const Text("");
+                        },
+                      ),
                     ),
-                    PieChartSectionData(
-                      value: 30,
-                      title: "30%",
-                      color: Colors.orange,
-                      radius: 60,
+                    leftTitles: AxisTitles(
+                      sideTitles:
+                          SideTitles(showTitles: true, reservedSize: 40),
                     ),
-                    PieChartSectionData(
-                      value: 20,
-                      title: "20%",
-                      color: Colors.blue,
-                      radius: 60,
-                    ),
-                    PieChartSectionData(
-                      value: 10,
-                      title: "10%",
-                      color: Colors.red,
-                      radius: 60,
+                    rightTitles:
+                        AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    topTitles:
+                        AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  ),
+                  lineBarsData: [
+                    LineChartBarData(
+                      isCurved: true,
+                      color: accentTeal,
+                      barWidth: 3,
+                      dotData: FlDotData(show: false),
+                      belowBarData: BarAreaData(
+                        show: true,
+                        gradient: LinearGradient(
+                          colors: [
+                            accentTeal.withValues(alpha: 0.25),
+                            accentTeal.withValues(alpha: 0.02),
+                          ],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                      ),
+                      spots: const [
+                        FlSpot(0, 80),
+                        FlSpot(1, 120),
+                        FlSpot(2, 150),
+                        FlSpot(3, 170),
+                        FlSpot(4, 210),
+                        FlSpot(5, 250),
+                        FlSpot(6, 230),
+                        FlSpot(7, 260),
+                        FlSpot(8, 280),
+                        FlSpot(9, 300),
+                        FlSpot(10, 320),
+                        FlSpot(11, 350),
+                      ],
                     ),
                   ],
                 ),
               ),
             ),
 
-            const SizedBox(height: 10),
+            const SizedBox(height: 40),
 
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _LegendItem(color: Colors.green, text: "Farming"),
-                _LegendItem(color: Colors.orange, text: "Crafts"),
-                _LegendItem(color: Colors.blue, text: "Food"),
-                _LegendItem(color: Colors.red, text: "Services"),
+
+                /// PIE
+                Expanded(
+                  child: Container(
+                    height: 320,
+                    padding: const EdgeInsets.all(20),
+                    margin: const EdgeInsets.only(right: 10),
+                    decoration: _cardDecoration(),
+                    child: Column(
+                      children: [
+                        const Text(
+                          "Community Categories",
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 20),
+                        Expanded(
+                          child: PieChart(
+                            PieChartData(
+                              centerSpaceRadius: 40,
+                              sectionsSpace: 2,
+                              sections: [
+                                PieChartSectionData(
+                                    value: 40,
+                                    title: "40%",
+                                    color: Colors.green,
+                                    radius: 60),
+                                PieChartSectionData(
+                                    value: 30,
+                                    title: "30%",
+                                    color: Colors.orange,
+                                    radius: 60),
+                                PieChartSectionData(
+                                    value: 20,
+                                    title: "20%",
+                                    color: Colors.blue,
+                                    radius: 60),
+                                PieChartSectionData(
+                                    value: 10,
+                                    title: "10%",
+                                    color: Colors.red,
+                                    radius: 60),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        const Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _LegendItem(color: Colors.green, text: "Farming"),
+                            _LegendItem(color: Colors.orange, text: "Crafts"),
+                            _LegendItem(color: Colors.blue, text: "Food"),
+                            _LegendItem(color: Colors.red, text: "Services"),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                /// BAR
+                Expanded(
+                  child: Container(
+                    height: 320,
+                    padding: const EdgeInsets.all(20),
+                    margin: const EdgeInsets.only(left: 10),
+                    decoration: _cardDecoration(),
+                    child: BarChart(
+                      BarChartData(
+                        maxY: 300,
+                        borderData: FlBorderData(show: false),
+                        gridData: FlGridData(show: true),
+                        titlesData: FlTitlesData(
+                          bottomTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              interval: 1,
+                              reservedSize: 30,
+                              getTitlesWidget: (value, meta) {
+                                const months = [
+                                  "Jan","Feb","Mar","Apr","May","Jun"
+                                ];
+                                if (value.toInt() >= 0 &&
+                                    value.toInt() < months.length) {
+                                  return Text(months[value.toInt()]);
+                                }
+                                return const Text("");
+                              },
+                            ),
+                          ),
+                          leftTitles: AxisTitles(
+                              sideTitles:
+                                  SideTitles(showTitles: true, reservedSize: 40)),
+                          rightTitles: AxisTitles(
+                              sideTitles: SideTitles(showTitles: false)),
+                          topTitles: AxisTitles(
+                              sideTitles: SideTitles(showTitles: false)),
+                        ),
+                        barGroups: [
+                          BarChartGroupData(x: 0, barRods: [
+                            BarChartRodData(toY: 120, color: accentTeal)
+                          ]),
+                          BarChartGroupData(x: 1, barRods: [
+                            BarChartRodData(toY: 150, color: accentTeal)
+                          ]),
+                          BarChartGroupData(x: 2, barRods: [
+                            BarChartRodData(toY: 180, color: accentTeal)
+                          ]),
+                          BarChartGroupData(x: 3, barRods: [
+                            BarChartRodData(toY: 210, color: accentTeal)
+                          ]),
+                          BarChartGroupData(x: 4, barRods: [
+                            BarChartRodData(toY: 170, color: accentTeal)
+                          ]),
+                          BarChartGroupData(x: 5, barRods: [
+                            BarChartRodData(toY: 240, color: accentTeal)
+                          ]),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
-          ],
-        ),
-      ),
-    ),
-
-    /// BAR CHART
-    Expanded(
-      child: Container(
-        height: 320,
-        padding: const EdgeInsets.all(20),
-        margin: const EdgeInsets.only(left: 10),
-        decoration: BoxDecoration(
-          color: surface,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: const [
-            BoxShadow(color: Colors.black12, blurRadius: 8),
-          ],
-        ),
-
-        child: Column(
-          children: [
-
-            const Text(
-              "Monthly Sales",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            Expanded(
-              child: BarChart(
-  BarChartData(
-    maxY: 300,
-    borderData: FlBorderData(show: false),
-    gridData: FlGridData(show: true),
-
-    titlesData: FlTitlesData(
-
-      bottomTitles: AxisTitles(
-        sideTitles: SideTitles(
-          showTitles: true,
-          reservedSize: 30,
-          interval: 1,
-          getTitlesWidget: (value, meta) {
-
-            const months = [
-              "Jan",
-              "Feb",
-              "Mar",
-              "Apr",
-              "May",
-              "Jun"
-            ];
-
-            if (value.toInt() >= 0 && value.toInt() < months.length) {
-              return Text(months[value.toInt()]);
-            }
-
-            return const Text("");
-          },
-        ),
-      ),
-
-      leftTitles: AxisTitles(
-        sideTitles: SideTitles(
-          showTitles: true,
-          reservedSize: 40,
-          interval: 50,
-        ),
-      ),
-
-      rightTitles: AxisTitles(
-        sideTitles: SideTitles(showTitles: false),
-      ),
-
-      topTitles: AxisTitles(
-        sideTitles: SideTitles(showTitles: false),
-      ),
-    ),
-
-    barGroups: [
-      BarChartGroupData(x: 0, barRods: [
-        BarChartRodData(toY: 120, color: accentTeal)
-      ]),
-      BarChartGroupData(x: 1, barRods: [
-        BarChartRodData(toY: 150, color: accentTeal)
-      ]),
-      BarChartGroupData(x: 2, barRods: [
-        BarChartRodData(toY: 180, color: accentTeal)
-      ]),
-      BarChartGroupData(x: 3, barRods: [
-        BarChartRodData(toY: 210, color: accentTeal)
-      ]),
-      BarChartGroupData(x: 4, barRods: [
-        BarChartRodData(toY: 170, color: accentTeal)
-      ]),
-      BarChartGroupData(x: 5, barRods: [
-        BarChartRodData(toY: 240, color: accentTeal)
-      ]),
-    ],
-  ),
-)
-            ),
-          ],
-        ),
-      ),
-    ),
-  ],
-)
           ],
         ),
       ),
@@ -526,7 +471,21 @@ Row(
   }
 }
 
-/// INFO CARD
+BoxDecoration _cardDecoration() {
+  return BoxDecoration(
+    color: surface,
+    borderRadius: BorderRadius.circular(14),
+    border: Border.all(color: borderColor),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withValues(alpha: 0.05),
+        blurRadius: 10,
+        offset: const Offset(0, 4),
+      ),
+    ],
+  );
+}
+
 class _InfoCard extends StatelessWidget {
   final String title;
   final String value;
@@ -539,13 +498,7 @@ class _InfoCard extends StatelessWidget {
       width: 260,
       height: 150,
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: surface,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 8),
-        ],
-      ),
+      decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -564,7 +517,6 @@ class _InfoCard extends StatelessWidget {
   }
 }
 
-/// PIE LEGEND
 class _LegendItem extends StatelessWidget {
   final Color color;
   final String text;

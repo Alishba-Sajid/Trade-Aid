@@ -157,12 +157,14 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                               WidgetStateProperty.all(subtleGrey),
                           columnSpacing: 50,
                           columns: const [
-                            DataColumn(label: Text("User", style: TextStyle(fontWeight: FontWeight.bold))),
-                            DataColumn(label: Text("Email", style: TextStyle(fontWeight: FontWeight.bold))),
-                            DataColumn(label: Text("Status", style: TextStyle(fontWeight: FontWeight.bold))),
-                            DataColumn(label: Text("Trust", style: TextStyle(fontWeight: FontWeight.bold))),
-                            DataColumn(label: Text("Joined", style: TextStyle(fontWeight: FontWeight.bold))),
-                            DataColumn(label: Text("Actions", style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text("id", style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text("user_id", style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text("full_name", style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text("gender", style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text("phone", style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text("address", style: TextStyle(fontWeight: FontWeight.bold))),
+                            
+
                           ],
                           rows: filteredUsers.map((user) {
                             return DataRow(cells: [

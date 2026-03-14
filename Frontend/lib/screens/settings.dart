@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-const Color surface = Color(0xFFFFFFFF);
-const Color accentTeal = Color(0xFF119E90);
 const Color backgroundLight = Color(0xFFF8FAFA);
+const Color accentTeal = Color(0xFF119E90);
+const Color borderColor = Color(0xFFE4E8E8);
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -19,146 +19,136 @@ class SettingsScreen extends StatelessWidget {
 
             const Text(
               "System Settings",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
             ),
 
-            const SizedBox(height: 30),
+            const SizedBox(height: 25),
 
-            Wrap(
-              spacing: 20,
-              runSpacing: 20,
-              children: const [
+            _sectionTitle("General"),
 
-                SettingsCard(
-                  title: "General Settings",
-                  icon: Icons.settings,
-                  items: [
-                    "Platform Name",
-                    "Admin Email",
-                    "Contact Number",
-                    "Upload Logo",
-                  ],
-                ),
+            SettingsTile(
+              icon: Icons.settings,
+              title: "Platform Name",
+            ),
+            SettingsTile(
+              icon: Icons.email_outlined,
+              title: "Admin Email",
+            ),
+            SettingsTile(
+              icon: Icons.phone,
+              title: "Contact Number",
+            ),
 
-                SettingsCard(
-                  title: "Security Settings",
-                  icon: Icons.security,
-                  items: [
-                    "Change Password",
-                    "Two Factor Authentication",
-                    "Session Timeout",
-                  ],
-                ),
+            const SizedBox(height: 25),
 
-                SettingsCard(
-                  title: "Notification Settings",
-                  icon: Icons.notifications,
-                  items: [
-                    "Email Notifications",
-                    "New User Alerts",
-                    "Dispute Alerts",
-                  ],
-                ),
+            _sectionTitle("Security"),
 
-                SettingsCard(
-                  title: "Payment Settings",
-                  icon: Icons.payment,
-                  items: [
-                    "Default Currency",
-                    "Transaction Fee",
-                    "Payment Gateway",
-                  ],
-                ),
+            SettingsTile(
+              icon: Icons.lock_outline,
+              title: "Change Password",
+            ),
+            SettingsTile(
+              icon: Icons.security,
+              title: "Two-Factor Authentication",
+            ),
 
-                SettingsCard(
-                  title: "System Maintenance",
-                  icon: Icons.build,
-                  items: [
-                    "Maintenance Mode",
-                    "Backup Database",
-                    "Clear Cache",
-                  ],
-                ),
+            const SizedBox(height: 25),
 
-              ],
+            _sectionTitle("Notifications"),
+
+            SettingsTile(
+              icon: Icons.notifications_outlined,
+              title: "Email Notifications",
+            ),
+            SettingsTile(
+              icon: Icons.person_add_alt,
+              title: "New User Alerts",
+            ),
+            SettingsTile(
+              icon: Icons.warning_amber_outlined,
+              title: "Dispute Alerts",
+            ),
+
+            const SizedBox(height: 25),
+
+            _sectionTitle("Payments"),
+
+            SettingsTile(
+              icon: Icons.attach_money,
+              title: "Default Currency",
+            ),
+            SettingsTile(
+              icon: Icons.percent,
+              title: "Transaction Fee",
+            ),
+            SettingsTile(
+              icon: Icons.payment,
+              title: "Payment Gateway",
+            ),
+
+            const SizedBox(height: 25),
+
+            _sectionTitle("System"),
+
+            SettingsTile(
+              icon: Icons.build_outlined,
+              title: "Maintenance Mode",
+            ),
+            SettingsTile(
+              icon: Icons.backup,
+              title: "Backup Database",
+            ),
+            SettingsTile(
+              icon: Icons.cleaning_services,
+              title: "Clear Cache",
             ),
           ],
         ),
       ),
     );
   }
+
+  Widget _sectionTitle(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: accentTeal,
+        ),
+      ),
+    );
+  }
 }
 
-class SettingsCard extends StatelessWidget {
-  final String title;
+class SettingsTile extends StatelessWidget {
   final IconData icon;
-  final List<String> items;
+  final String title;
 
-  const SettingsCard({
+  const SettingsTile({
     super.key,
-    required this.title,
     required this.icon,
-    required this.items,
+    required this.title,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 320,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: surface,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 8),
-        ],
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: borderColor),
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-
-          Row(
-            children: [
-              Icon(icon, color: accentTeal),
-              const SizedBox(width: 10),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 15),
-
-          ...items.map(
-            (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  const Icon(Icons.circle, size: 6, color: Colors.grey),
-                  const SizedBox(width: 8),
-                  Text(item),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 10),
-
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: () {},
-              child: const Text(
-                "Configure",
-                style: TextStyle(color: accentTeal),
-              ),
-            ),
-          )
-        ],
+      child: ListTile(
+        leading: Icon(icon, color: accentTeal),
+        title: Text(title),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        onTap: () {},
       ),
     );
   }
