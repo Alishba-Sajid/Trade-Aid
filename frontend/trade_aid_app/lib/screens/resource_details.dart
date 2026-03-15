@@ -552,7 +552,7 @@ class _SellerCardState extends State<_SellerCard> {
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => ChatScreen(sellerName: widget.ownerName),
+                    builder: (_) => ChatScreen(sellerName: widget.ownerName,receiverId: widget.ownerUserId,),
                   ),
                 ),
                 borderRadius: BorderRadius.circular(16),

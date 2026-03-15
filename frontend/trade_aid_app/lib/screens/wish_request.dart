@@ -389,7 +389,8 @@ Future<void> _fetchCommunityWishRequests() async {
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) => ChatScreen(
-                                    sellerName: request['requester'],
+                                         sellerName: request['requester'],
+      receiverId: request['requesterId'],
                                   ),
                                 ),
                               );

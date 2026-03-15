@@ -4,6 +4,7 @@ class Product {
   final String description;
   final double price;
   final String sellerUserId;
+  
   final String? condition;
   final String? usedTime;
   final List<String> images;

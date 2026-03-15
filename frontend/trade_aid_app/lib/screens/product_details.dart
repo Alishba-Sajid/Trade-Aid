@@ -130,12 +130,15 @@ class _SellerCardState extends State<_SellerCard> {
                 ),
               ),
               InkWell(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ChatScreen(sellerName: sellerName),
-                  ),
-                ),
+  onTap: () => Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => ChatScreen(
+        sellerName: sellerName,
+        receiverId: widget.product.sellerUserId,
+      ),
+    ),
+  ),
                 borderRadius: BorderRadius.circular(16),
                 child: Container(
                   padding: const EdgeInsets.all(12),

@@ -139,11 +139,11 @@ class _LoginScreenState extends State<LoginScreen>
       }
 
       // 2️⃣ Check if approved member
-      final membership = await supabase
-          .from('community_members')
-          .select()
-          .eq('user_id', userId)
-          .maybeSingle();
+     final membership = await supabase
+    .from('community_members')
+    .select('community_id')
+    .eq('user_id', userId)
+    .maybeSingle();
 
       if (membership != null) {
         Navigator.pushReplacementNamed(context, '/dashboard');

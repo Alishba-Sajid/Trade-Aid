@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
-import 'voice_call_screen.dart';
-import 'video_call_screen.dart';
 import '/models/member_profile.dart';
 import '/services/member_profile.dart';
 
@@ -54,26 +52,6 @@ class _MemberProfileScreenState extends State<MemberProfileScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _ActionButton(
-                      icon: Icons.call_rounded,
-                      label: "Voice",
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const VoiceCallScreen(),
-                        ),
-                      ),
-                    ),
-                    _ActionButton(
-                      icon: Icons.videocam_rounded,
-                      label: "Video",
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const VideoCallScreen(),
-                        ),
-                      ),
-                    ),
                     _ActionButton(
                       icon: Icons.chat_bubble_outline_rounded,
                       label: "Message",
