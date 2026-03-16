@@ -23,6 +23,7 @@ class ChatScreen extends StatefulWidget {
   final String receiverId;
   final String? profileImage;
   final String? address;
+  
 
   const ChatScreen({
     super.key,
@@ -57,20 +58,34 @@ class _ChatScreenState extends State<ChatScreen> {
     _initConversation();
   }
 
-  Future<void> _initConversation() async {
-    final id = await _chatService.getOrCreateConversation(widget.receiverId);
+Future<void> _initConversation() async {
+  final id = await _chatService.getOrCreateConversation(widget.receiverId);
 
-    setState(() {
-      chatId = id;
-    });
-  }
+  setState(() {
+    chatId = id;
+  });
+
+  await _chatService.markMessagesAsSeen(id);
+}
 
   /// SEND TEXT
-  void _sendMessage(String text) {
-    if (text.trim().isEmpty || chatId == null) return;
+Future<void> _sendMessage(String text) async {
 
-    _chatService.sendMessage(chatId!, text);
-  }
+  if (chatId == null) return;
+
+  await _chatService.sendMessage(chatId!, text);
+
+  /// auto scroll after sending
+  Future.delayed(const Duration(milliseconds: 100), () {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    }
+  });
+}
 
   /// START RECORDING
   Future<void> _startRecording() async {
@@ -316,18 +331,23 @@ _deleteRecording();
                 onPressed: _startRecording,
               ),
 
-              IconButton(
-                icon: const Icon(Icons.send, color: Color(0xFF119E90)),
-                onPressed: () {
+IconButton(
+  icon: const Icon(Icons.send, color: Color(0xFF119E90)),
+  onPressed: () async {
 
-                  if (_recordedFile != null) {
-                    _sendVoice();
-                  } else {
-                    _sendMessage(_controller.text);
-                    _controller.clear();
-                  }
-                },
-              ),
+    if (_recordedFile != null) {
+      await _sendVoice();
+      return;
+    }
+
+    final text = _controller.text.trim();
+
+    if (text.isEmpty) return;
+
+    _controller.clear();
+    _sendMessage(text);
+  },
+),
             ],
           ),
         ),
@@ -425,59 +445,63 @@ _deleteRecording();
   }
 
   /// CHAT BODY
-  @override
-  Widget build(BuildContext context) {
+ @override
+Widget build(BuildContext context) {
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF0F9F8),
-      body: Column(
-        children: [
+  return Scaffold(
+    backgroundColor: const Color(0xFFF0F9F8),
+    body: Column(
+      children: [
 
-          _buildPremiumHeader(context),
+        _buildPremiumHeader(context),
 
-          Expanded(
-            child: chatId == null
-                ? const Center(child: CircularProgressIndicator())
-                : StreamBuilder<List<ChatMessage>>(
-                    stream: _chatService.getMessages(chatId!),
-                    builder: (context, snapshot) {
+        Expanded(
+          child: chatId == null
+              ? const Center(child: CircularProgressIndicator())
+              : StreamBuilder<List<ChatMessage>>(
+                  stream: _chatService.getMessages(chatId!),
+                  builder: (context, snapshot) {
 
-                      if (!snapshot.hasData) {
-                        return const Center(
-                            child: CircularProgressIndicator());
+                    if (!snapshot.hasData) {
+                      return const Center(
+                          child: CircularProgressIndicator());
+                    }
+
+                    final messages = snapshot.data!;
+
+                    /// ✅ Auto scroll to latest message
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (_scrollController.hasClients) {
+                        _scrollController.jumpTo(
+                          _scrollController.position.maxScrollExtent,
+                        );
                       }
+                    });
 
-                      final messages = snapshot.data!.reversed.toList();
+                    return ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 20),
+                      itemCount: messages.length,
+                      itemBuilder: (context, index) {
 
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (_scrollController.hasClients) {
-                          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-                        }
-                      });
+                        final msg = messages[index];
 
-                      return ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 20),
-                        itemCount: messages.length,
-                        itemBuilder: (context, index) {
+                        return MessageBubble(
+                          isMe: msg.isMe,
+                          message: msg.text,
+                          mediaUrl: msg.mediaUrl,
+                          createdAt: msg.createdAt,
+                          status: msg.status,
+                        );
+                      },
+                    );
+                  },
+                ),
+        ),
 
-                          final msg = messages[index];
-
-                          return MessageBubble(
-                            isMe: msg.isMe,
-                            message: msg.text,
-                            mediaUrl: msg.mediaUrl,
-                          );
-                        },
-                      );
-                    },
-                  ),
-          ),
-
-          _buildChatInput(),
-        ],
-      ),
-    );
-  }
-}
+        _buildChatInput(),
+      ],
+    ),
+  );
+}}

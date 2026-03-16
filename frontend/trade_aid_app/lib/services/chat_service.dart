@@ -18,6 +18,7 @@ class ChatService {
       .eq('user_id', userId)
       .maybeSingle();
 
+
   if (data == null) {
     return null;
   }
@@ -102,16 +103,15 @@ print(data);
   // ─────────────────────────────
   // STREAM MESSAGES
   // ─────────────────────────────
-  Stream<List<ChatMessage>> getMessages(String chatId) {
-    return _supabase
-        .from('messages')
-        .stream(primaryKey: ['id'])
-        .eq('conversation_id', chatId)
-        .order('created_at')
-        .map((data) =>
-            data.map((msg) => ChatMessage.fromJson(msg)).toList());
-  }
-
+ Stream<List<ChatMessage>> getMessages(String chatId) {
+  return _supabase
+      .from('messages')
+      .stream(primaryKey: ['id'])
+      .eq('conversation_id', chatId)
+      .order('created_at', ascending: true)
+      .map((data) =>
+          data.map((msg) => ChatMessage.fromJson(msg)).toList());
+}
   // ─────────────────────────────
   // SEND MESSAGE
   // ─────────────────────────────
@@ -137,5 +137,18 @@ print(data);
     'sender_id': userId,
     'media_url': mediaUrl,
   });
+}
+  // ─────────────────────────────
+  // MARK AS SEEN
+  // ─────────────────────────────
+ Future<void> markMessagesAsSeen(String chatId) async {
+  final userId = _supabase.auth.currentUser!.id;
+
+  await _supabase
+      .from('messages')
+      .update({'status': 'seen'})
+      .eq('conversation_id', chatId)
+      .neq('sender_id', userId)
+      .neq('status', 'seen');
 }
 }
