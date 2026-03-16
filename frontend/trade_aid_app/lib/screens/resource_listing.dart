@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'post_wish_request.dart';
+import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/resource.dart';
+import '../providers/cart_provider.dart';
 
 // 🌿 Premium Color Constants
 const LinearGradient appGradient = LinearGradient(
-  colors: [Color(0xFF2E9499), Color(0xFF119E90)],
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
+  colors: [
+    Color.fromARGB(255, 15, 119, 124),
+    Color.fromARGB(255, 17, 158, 144),
+  ],
+  begin: Alignment.bottomLeft,
+  end: Alignment.topRight,
 );
 
 const Color dark = Color(0xFF004D40);
@@ -15,41 +20,30 @@ const Color light = Color(0xFFF0F9F8);
 const Color accent = Color(0xFF119E90);
 
 class ResourceListingScreen extends StatefulWidget {
-  const ResourceListingScreen({super.key});
+  final String communityId;
+
+  const ResourceListingScreen({
+    super.key,
+    required this.communityId,
+  });
 
   @override
   State<ResourceListingScreen> createState() => _ResourceListingScreenState();
 }
-
 class _ResourceListingScreenState extends State<ResourceListingScreen> {
   String searchQuery = '';
+  List<Resource> resources = [];
+  bool isLoading = true;
 
-  final List<Resource> resources = [
-    Resource(
-      id: 'lawn1',
-      name: 'Spacious Lawn',
-      images: ['assets/lawn.jpg'],
-      description:
-          'A spacious, well-maintained lawn suited for family gatherings, weddings and corporate events.',
-      ownerName: 'Hania Bhatti',
-      ownerAddress: 'H 256, Block C, Street 2, Gulberg Greens',
-      pricePerHour: 2000,
-      availableDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-      availableTime: '8:00am - 12:00pm',
-    ),
-    Resource(
-      id: 'wash1',
-      name: 'Washing Machine',
-      images: ['assets/washing_machine.jpg', 'assets/machine2.png'],
-      description:
-          'High efficiency washing machine available for hourly booking.',
-      ownerName: 'Ali Khan',
-      ownerAddress: 'House 12, Sector B, Bahria Town',
-      pricePerHour: 300,
-      availableDays: ['Mon', 'Tue', 'Wed', 'Thu'],
-      availableTime: '09:00 - 21:00',
-    ),
-  ];
+  // ✅ Add your toggleResource method here
+  Future<void> toggleResource(String resourceId, bool enable) async {
+    final supabase = Supabase.instance.client;
+    await supabase
+        .from('resources')
+        .update({'is_enabled': enable})
+        .eq('id', resourceId);
+    _fetchResources(); // refresh the list
+  }
 
   List<Resource> get filteredResources {
     if (searchQuery.trim().isEmpty) return resources;
@@ -60,6 +54,84 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
           r.ownerName.toLowerCase().contains(q) ||
           r.ownerAddress.toLowerCase().contains(q);
     }).toList();
+  }
+  Future<void> _fetchResources() async {
+    setState(() => isLoading = true);
+
+    // If we don't have a valid community yet, don't hit Supabase.
+    if (widget.communityId.isEmpty) {
+      debugPrint('RESOURCE LISTING: No communityId provided, skipping fetch.');
+      setState(() {
+        resources = [];
+        isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      final supabase = Supabase.instance.client;
+
+      // 1️⃣ Fetch resources for this community
+      final resourceResponse = await supabase
+          .from('resources')
+          .select()
+          .eq('community_id', widget.communityId)
+          .eq('is_enabled', true);
+
+      final resourceList = resourceResponse as List;
+
+      if (resourceList.isEmpty) {
+        setState(() {
+          resources = [];
+          isLoading = false;
+        });
+        return;
+      }
+
+      // 2️⃣ Extract unique user IDs
+      final userIds = resourceList
+          .map((r) => r['user_id'])
+          .where((id) => id != null)
+          .map((id) => id.toString())
+          .toSet()
+          .toList();
+
+      // 3️⃣ Fetch profiles for those users
+      final profileResponse = await supabase
+          .from('profiles')
+          .select('user_id, full_name, address')
+          .inFilter('user_id', userIds);
+
+      final profileList = profileResponse as List;
+
+      // 4️⃣ Create profile lookup map
+      final profileMap = {
+        for (var p in profileList) p['user_id'].toString(): p
+      };
+
+      // 5️⃣ Merge resources with profile data
+      final List<Resource> fetched = resourceList.map((json) {
+        final map = json as Map<String, dynamic>;
+
+        final profile = profileMap[map['user_id']?.toString()];
+
+        return Resource.fromJson(map, profile);
+      }).toList();
+
+      setState(() {
+        resources = fetched;
+        isLoading = false;
+      });
+    } catch (e) {
+      debugPrint("RESOURCE ERROR: $e");
+      setState(() => isLoading = false);
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchResources();
   }
 
   @override
@@ -77,16 +149,18 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
             child: _buildSearchBar(),
           ),
           Expanded(
-            child: items.isEmpty
-                ? _buildNoResourcesFound()
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: items.length,
-                    itemBuilder: (context, index) {
-                      final r = items[index];
-                      return _buildPremiumResourceCard(context, r);
-                    },
-                  ),
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator(color: accent))
+                : items.isEmpty
+                    ? _buildNoResourcesFound()
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: items.length,
+                        itemBuilder: (context, index) {
+                          final r = items[index];
+                          return _buildPremiumResourceCard(context, r);
+                        },
+                      ),
           ),
         ],
       ),
@@ -97,7 +171,9 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
   Widget _buildPremiumAppBar(BuildContext context) {
     return Container(
       height: 100,
-      decoration: const BoxDecoration(gradient: appGradient),
+      decoration: const BoxDecoration(
+        gradient: appGradient,
+      ),
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -202,10 +278,16 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
                               });
                             },
                             itemBuilder: (context, index) {
-                              return Image.asset(
+                              return Image.network(
                                 r.images[index],
                                 fit: BoxFit.cover,
-                                alignment: Alignment.center,
+                                width: double.infinity,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Center(
+                                    child: Icon(Icons.broken_image,
+                                        size: 40, color: Colors.grey),
+                                  );
+                                },
                               );
                             },
                           ),
@@ -220,7 +302,8 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
                               children: List.generate(
                                 r.images.length,
                                 (index) => Container(
-                                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                                  margin: const EdgeInsets.symmetric(
+                                      horizontal: 3),
                                   width: currentImageIndex == index ? 8 : 6,
                                   height: currentImageIndex == index ? 8 : 6,
                                   decoration: BoxDecoration(
@@ -274,12 +357,14 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
                   r.description,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.poppins(fontSize: 12, color: Colors.black54),
+                  style:
+                      GoogleFonts.poppins(fontSize: 12, color: Colors.black54),
                 ),
 
                 const SizedBox(height: 10),
 
-                _infoRow(Icons.calendar_today, "Days", r.availableDays.join(', ')),
+                _infoRow(
+                    Icons.calendar_today, "Days", r.availableDays.join(', ')),
                 _infoRow(Icons.access_time, "Time", r.availableTime),
                 _infoRow(Icons.person_outline, "Owner", r.ownerName),
 
@@ -289,39 +374,54 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pushNamed(
-                            context,
-                            '/booking',
-                            arguments: {'resourceId': r.id, 'resourceName': r.name},
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: accent,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: appGradient,
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Text(
-                          "Book",
-                          style: TextStyle(fontWeight: FontWeight.w600),
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pushNamed(
+                              context,
+                              '/booking',
+                              arguments: {
+                                'resourceId': r.id,
+                                'resourceName': r.name
+                              },
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shadowColor: Colors.transparent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text(
+                            "Book",
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(width: 10),
                     Container(
                       decoration: BoxDecoration(
-                        color: accent,
+                        gradient: appGradient,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: IconButton(
                         onPressed: () {
+                          context.read<CartProvider>().addResource(r);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('${r.name} added to cart.')),
+                            SnackBar(
+                              content: Text('${r.name} added to cart'),
+                              behavior: SnackBarBehavior.floating,
+                            ),
                           );
+                          Navigator.pushNamed(context, '/cart');
                         },
                         icon: const Icon(
                           Icons.shopping_cart_outlined,
@@ -372,39 +472,17 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Icon(Icons.search_off, size: 64, color: dark.withOpacity(0.2)),
+            const SizedBox(height: 16),
             Text(
-              "No resources found for \"$searchQuery\"",
+              searchQuery.isEmpty
+                  ? "No resources available yet."
+                  : "No resources found for \"$searchQuery\"",
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: dark,
-              ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const PostWishRequestScreen(),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: accent,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: const Text(
-                "Create Wish Request",
-                style: TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
           ],

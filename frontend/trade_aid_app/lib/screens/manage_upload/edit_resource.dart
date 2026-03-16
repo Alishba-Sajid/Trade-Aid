@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '/widgets/time_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 const LinearGradient appGradient = LinearGradient(
   colors: [
@@ -43,31 +44,44 @@ class _EditUploadResourceScreenState extends State<EditUploadResourceScreen> {
   TimeOfDay? _endTime;
   String? _description;
   String? _rate;
+  String? _name;
+
+String? _timeTo24Format(TimeOfDay? t) {
+  if (t == null) return null;
+  final hour = t.hour.toString().padLeft(2, '0');
+  final minute = t.minute.toString().padLeft(2, '0');
+  return "$hour:$minute";
+}
 
   @override
   void initState() {
     super.initState();
+    _name = widget.resource['title'];
     _description = widget.resource['description'];
     _rate = widget.resource['rate']?.toString();
     _startTime = widget.resource['startTime'];
     _endTime = widget.resource['endTime'];
 
-    _availableDays = {
-      'MON': false,
-      'TUE': false,
-      'WED': false,
-      'THU': false,
-      'FRI': false,
-      'SAT': false,
-      'SUN': false,
-      ...?widget.resource['days'],
-    };
+final List selectedDays =
+    (widget.resource['availableDays'] as List?) ?? [];
 
-    if (widget.resource['images'] != null) {
-      for (int i = 0; i < widget.resource['images'].length && i < 3; i++) {
-        _images[i] = XFile(widget.resource['images'][i]);
-      }
-    }
+_availableDays = {
+  'MON': selectedDays.contains('MON'),
+  'TUE': selectedDays.contains('TUE'),
+  'WED': selectedDays.contains('WED'),
+  'THU': selectedDays.contains('THU'),
+  'FRI': selectedDays.contains('FRI'),
+  'SAT': selectedDays.contains('SAT'),
+  'SUN': selectedDays.contains('SUN'),
+};
+
+   if (widget.resource['images'] != null) {
+  final List imagesFromDb = widget.resource['images'];
+
+  for (int i = 0; i < imagesFromDb.length && i < 3; i++) {
+    _images[i] = XFile(imagesFromDb[i]); // Works for URL too
+  }
+}
   }
 
   // ---------------- IMAGE HANDLING ----------------
@@ -199,12 +213,19 @@ class _EditUploadResourceScreenState extends State<EditUploadResourceScreen> {
                 borderRadius: BorderRadius.circular(14),
                 child: Stack(
                   children: [
-                    Image.file(
-                      File(img.path),
-                      fit: BoxFit.cover,
-                      height: 150,
-                      width: double.infinity,
-                    ),
+                    img.path.startsWith('http')
+    ? Image.network(
+        img.path,
+        fit: BoxFit.cover,
+        height: 150,
+        width: double.infinity,
+      )
+    : Image.file(
+        File(img.path),
+        fit: BoxFit.cover,
+        height: 150,
+        width: double.infinity,
+      ),
                     Positioned.fill(
                       child: Material(
                         color: Colors.transparent,
@@ -301,24 +322,32 @@ class _EditUploadResourceScreenState extends State<EditUploadResourceScreen> {
   }
 
   // ---------------- SUBMIT ----------------
-  void _submit() async {
-    FocusScope.of(context).unfocus();
-    if (!_formKey.currentState!.validate()) return;
-    _formKey.currentState!.save();
+ void _submit() async {
+  FocusScope.of(context).unfocus();
 
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 1));
-    setState(() => _isLoading = false);
+  if (!_formKey.currentState!.validate()) return;
+  _formKey.currentState!.save();
 
-    final updated = {
-      ...widget.resource,
+  setState(() => _isLoading = true);
+
+  try {
+    final supabase = Supabase.instance.client;
+
+    await supabase.from('resources').update({
+      'name': _name,
       'description': _description,
-      'rate': _rate,
-      'days': _availableDays,
-      'startTime': _startTime,
-      'endTime': _endTime,
-      'images': _images.whereType<XFile>().map((e) => e.path).toList(),
-    };
+      'rate': double.tryParse(_rate ?? "0"),
+      'available_days': _availableDays.entries
+    .where((e) => e.value)
+    .map((e) => e.key)
+    .toList(),
+      'start_time': _timeTo24Format(_startTime),
+'end_time': _timeTo24Format(_endTime),
+      'images': _images
+          .whereType<XFile>()
+          .map((e) => e.path)
+          .toList(),
+    }).eq('id', widget.resource['id']);
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -327,8 +356,30 @@ class _EditUploadResourceScreenState extends State<EditUploadResourceScreen> {
       ),
     );
 
-    Navigator.pop(context, updated);
+    Navigator.pop(context, {
+  ...widget.resource,
+  'title': _name,
+  'description': _description,
+  'pricePerHour': double.tryParse(_rate ?? "0"),
+  'availableDays': _availableDays.entries
+      .where((e) => e.value)
+      .map((e) => e.key)
+      .toList(),
+  'startTime': _startTime,
+  'endTime': _endTime,
+  'images': _images.whereType<XFile>().map((e) => e.path).toList(),
+});
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Colors.red,
+        content: Text('Update failed: $e'),
+      ),
+    );
   }
+
+  setState(() => _isLoading = false);
+}
 
   @override
   Widget build(BuildContext context) {
@@ -384,7 +435,9 @@ class _EditUploadResourceScreenState extends State<EditUploadResourceScreen> {
           ),
         ),
         body: SafeArea(
-          child: SingleChildScrollView(
+         child: Form(
+  key: _formKey,
+  child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -403,6 +456,18 @@ class _EditUploadResourceScreenState extends State<EditUploadResourceScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
+
+_sectionHeading("RESOURCE NAME"),
+                const SizedBox(height: 8),
+                TextFormField(
+                  initialValue: _name,
+                  maxLines: 1,
+                  decoration: _modernInput("Enter Resource Name"),
+                  validator: (v) => v == null || v.isEmpty ? "Required" : null,
+                  onSaved: (v) => _name = v,
+                ),
+                const SizedBox(height: 16),                            
+
                 _sectionHeading("DETAILS"),
                 const SizedBox(height: 8),
                 TextFormField(
@@ -563,6 +628,6 @@ class _EditUploadResourceScreenState extends State<EditUploadResourceScreen> {
           ),
         ),
       ),
-    );
+    ));
   }
 }

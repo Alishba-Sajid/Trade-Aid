@@ -1,6 +1,9 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'providers/cart_provider.dart';
 
 // screens
 import 'screens/splash_screen.dart';
@@ -43,15 +46,18 @@ import 'models/resource.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 🔥 Initialize Supabase
   await Supabase.initialize(
-    url:
-        'https://gidxrziissmkkavoaolj.supabase.co', // paste your Supabase Project URL
+    url: 'https://gidxrziissmkkavoaolj.supabase.co',
     anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpZHhyemlpc3Nta2thdm9hb2xqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMDUzOTYsImV4cCI6MjA4NzU4MTM5Nn0.5_6Ywl7je00tB8uGVKnf3_sZ3-USoghGJfTGS7iJBhE', // paste your Supabase anon public key
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpZHhyemlpc3Nta2thdm9hb2xqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMDUzOTYsImV4cCI6MjA4NzU4MTM5Nn0.5_6Ywl7je00tB8uGVKnf3_sZ3-USoghGJfTGS7iJBhE',
   );
 
-  runApp(const TradeAidApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => CartProvider(),
+      child: const TradeAidApp(),
+    ),
+  );
 }
 
 class TradeAidApp extends StatelessWidget {
@@ -59,8 +65,6 @@ class TradeAidApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Check if user session exists
-
     return MaterialApp(
       title: 'Trade & Aid',
       debugShowCheckedModeBanner: false,
@@ -72,7 +76,6 @@ class TradeAidApp extends StatelessWidget {
         ),
       ),
 
-      // Route user based on session
       home: const SplashScreen(),
 
       routes: {
@@ -83,7 +86,6 @@ class TradeAidApp extends StatelessWidget {
         '/location_permission': (_) => const LocationPermissionScreen(),
         '/select_community': (_) => const SelectCommunityScreen(),
         '/dashboard': (_) => const DashboardScreen(),
-        '/resources': (_) => const ResourceListingScreen(),
         '/cart': (_) => const CartScreen(),
         '/profile': (_) => const ProfileScreen(),
         '/personal_details': (_) => const PersonalDetailsScreen(),
@@ -97,60 +99,95 @@ class TradeAidApp extends StatelessWidget {
         '/notifications': (_) => const NotificationsScreen(),
         '/blocked_users': (_) => const BlockedUsersScreen(),
         '/help_support': (_) => const HelpSupportScreen(),
-        '/wish_request': (_) => const WishRequestsScreen(),
         '/chat_list': (_) => const ChatListScreen(),
         '/waiting_approval': (_) => const WaitingApprovalScreen(),
         '/chat_screen': (_) => const ChatScreen(sellerName: 'Seller'),
       },
 
       onGenerateRoute: (settings) {
+
         if (settings.name == '/product_post') {
+          final raw = settings.arguments;
+          final Map<String, dynamic> args = raw is Map<String, dynamic>
+              ? raw
+              : (raw is String ? {'communityId': raw} : <String, dynamic>{});
+
+          return MaterialPageRoute(
+            builder: (_) => ProductPostScreen(
+              communityId: (args['communityId'] as String?) ?? '',
+              wishId: args['wishId'] as String?,
+              makePublicAfter48Hours: args['makePublicAfter48Hours'] as bool?,
+              requesterId: args['requesterId'] as String?,
+            ),
+            settings: settings,
+          );
+        }
+
+        if (settings.name == '/product_listing') {
           final communityId = settings.arguments as String;
 
           return MaterialPageRoute(
-            builder: (_) => ProductPostScreen(communityId: communityId),
+            builder: (_) => ProductListingScreen(
+              communityId: communityId,
+            ),
             settings: settings,
           );
         }
 
         if (settings.name == '/product_details') {
           final args = settings.arguments as Map<String, dynamic>;
+
           return MaterialPageRoute(
             builder: (_) =>
                 ProductDetailsScreen(product: args['product'] as Product),
             settings: settings,
           );
         }
-        {
-    if (settings.name == '/product_listing') {
-      final communityId = settings.arguments as String;
-
-      return MaterialPageRoute(
-        builder: (_) => ProductListingScreen(
-          communityId: communityId,
-        ),
-      );
-    }
 
         if (settings.name == '/resource_post') {
           final communityId = settings.arguments as String;
 
           return MaterialPageRoute(
-            builder: (_) => ResourcePostScreen(communityId: communityId),
+            builder: (_) => ResourcePostScreen(
+              communityId: communityId,
+            ),
             settings: settings,
           );
         }
+
+        if (settings.name == '/resource_listing') {
+          final communityId = settings.arguments as String;
+
+          return MaterialPageRoute(
+            builder: (_) => ResourceListingScreen(
+              communityId: communityId,
+            ),
+            settings: settings,
+          );
+        }
+
         if (settings.name == '/resource_details') {
           final args = settings.arguments as Map<String, dynamic>;
+
           return MaterialPageRoute(
             builder: (_) =>
                 ResourceDetailsScreen(resource: args['resource'] as Resource),
             settings: settings,
           );
         }
+     
+     if (settings.name == '/wish_request') {
+  final communityId = settings.arguments as String; // Pass the ID dynamically
+
+  return MaterialPageRoute(
+    builder: (_) => WishRequestsScreen(communityId: communityId),
+    settings: settings,
+  );
+}
 
         if (settings.name == '/booking') {
           final args = settings.arguments as Map<String, dynamic>;
+
           return MaterialPageRoute(
             builder: (_) => BookingScreen(
               resourceId: args['resourceId'],
@@ -160,14 +197,13 @@ class TradeAidApp extends StatelessWidget {
           );
         }
 
-    return MaterialPageRoute(
-      builder: (_) => const Scaffold(
-        body: Center(
-          child: Text("Page not found"),
-        ),
-        ),
+        return MaterialPageRoute(
+          builder: (_) => const Scaffold(
+            body: Center(
+              child: Text("Page not found"),
+            ),
+          ),
         );
-        }
       },
     );
   }

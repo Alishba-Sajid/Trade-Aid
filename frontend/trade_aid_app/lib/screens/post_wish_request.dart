@@ -1,22 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/app_bar.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// =======================
-/// POST WISH REQUEST SCREEN
-/// =======================
+// COLORS
+const Color darkPrimary = Color(0xFF004D40);
+const Color accentTeal = Color(0xFF119E90);
+const Color backgroundLight = Color(0xFFF0F9F8);
+
+const LinearGradient appGradient = LinearGradient(
+  colors: [Color(0xFF2E9499), Color(0xFF119E90)],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+);
+
 class PostWishRequestScreen extends StatefulWidget {
-  const PostWishRequestScreen({super.key});
+  final String communityId;
+  const PostWishRequestScreen({
+    super.key,
+    required this.communityId,
+  });
 
-  @override
-  State<PostWishRequestScreen> createState() =>
-      _PostWishRequestScreenState();
+
+@override
+  State<PostWishRequestScreen> createState() => _PostWishRequestScreenState();
 }
 
 class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
-    /// STATE & CONTROLLERS
- 
   bool isHighUrgency = false;
+
   final TextEditingController _itemController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
 
@@ -54,7 +66,6 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
         actions: [
           Row(
             children: [
-              /// CANCEL BUTTON
               Expanded(
                 child: Container(
                   height: 48,
@@ -89,8 +100,6 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
                 ),
               ),
               const SizedBox(width: 12),
-
-              /// POST BUTTON
               Expanded(
                 child: SizedBox(
                   height: 48,
@@ -122,38 +131,105 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
     );
   }
 
-  /// BACKEND READY HANDLER
+  /// MAIN POST FUNCTION
+  Future<void> _handlePost() async {
+    final itemName = _itemController.text.trim();
+    final description = _descController.text.trim();
+    final urgent = isHighUrgency;
 
-  void _handlePost() {
-   
-    /// Send API request with:
-    /// - item: _itemController.text
-    /// - description: _descController.text
-    /// - urgent: isHighUrgency
+    String? communityId;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text("Wish posted successfully!"),
-        backgroundColor: darkPrimary,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    if (itemName.isEmpty) return;
+
+    try {
+      final supabase = Supabase.instance.client;
+      final user = supabase.auth.currentUser;
+
+      if (user == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("User not logged in")),
+        );
+        return;
+      }
+
+      final userId = user.id;
+
+      /// FETCH COMMUNITY
+      final member = await supabase
+          .from('community_members')
+          .select('community_id')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (member == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("You are not in any community")),
+        );
+        return;
+      }
+
+      communityId = member['community_id'];
+/// INSERT WISH REQUEST
+await supabase.from('wish_requests').insert({
+  'community_id': communityId,
+  'user_id': userId,
+  'item_name': itemName,
+  'description': description,
+  'urgent': urgent,
+});
+
+
+/// FETCH USER NAME FROM PROFILE
+/// FETCH USER NAME FROM PROFILE
+final profile = await supabase
+    .from('profiles')
+    .select('full_name')
+    .eq('user_id', userId)
+    .single();
+
+final userName = profile['full_name'];
+
+debugPrint("USER ID: ${user.id}");
+     
+/// INSERT COMMUNITY NOTIFICATION
+await supabase.from('notifications').insert({
+  'community_id': communityId,
+  'title': 'New Wish Request',
+  'message': '$userName requested $itemName',
+  'type': 'wish_request',
+});
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Wish posted successfully")),
+      );
+
+      _itemController.clear();
+      _descController.clear();
+
+      setState(() {
+        isHighUrgency = false;
+      });
+    } catch (e) {
+      debugPrint("POST ERROR: $e");
+      debugPrint("Community ID: $communityId");
+
+      ScaffoldMessenger.of(context).showSnackBar(
+       SnackBar(content: Text("Error : $e")),
+      );
+    }
   }
 
   /// UI
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Column(
         children: [
-          /// ✅ REUSABLE APP BAR (UI SAME)
           AppBarWidget(
             title: "Create Wish",
             onBack: () => Navigator.pop(context),
           ),
-
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
@@ -163,18 +239,15 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
                   _buildSectionHeader(
                       "What do you need?", Icons.lightbulb_outline),
                   const SizedBox(height: 16),
-
                   _buildCustomTextField(
                     controller: _itemController,
                     hint: "e.g. Iron, Ladder, Drill Machine",
                     label: "Item Name",
                   ),
-
                   const SizedBox(height: 24),
                   _buildSectionHeader(
                       "Add some details", Icons.description_outlined),
                   const SizedBox(height: 16),
-
                   _buildCustomTextField(
                     controller: _descController,
                     hint: "Describe your need",
@@ -182,10 +255,7 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
                     maxLines: 4,
                     maxLength: 150,
                   ),
-
                   const SizedBox(height: 24),
-
-                  /// URGENCY TOGGLE
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -246,7 +316,6 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
     );
   }
 
-  /// SECTION HEADER
   Widget _buildSectionHeader(String title, IconData icon) {
     return Row(
       children: [
@@ -264,7 +333,6 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
     );
   }
 
-  /// TEXT FIELD
   Widget _buildCustomTextField({
     required TextEditingController controller,
     required String hint,
@@ -290,8 +358,7 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
           maxLength: maxLength,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle:
-                GoogleFonts.poppins(color: Colors.grey[400]),
+            hintStyle: GoogleFonts.poppins(color: Colors.grey[400]),
             filled: true,
             fillColor: backgroundLight.withOpacity(0.5),
             border: OutlineInputBorder(
@@ -305,7 +372,6 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
     );
   }
 
-  /// POST BUTTON
   Widget _buildPostButton() {
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),

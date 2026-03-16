@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../screens/post_wish_request.dart';
 import '../widgets/app_bar.dart';
 import '../screens/chat/chat_screen.dart';
@@ -19,30 +20,92 @@ const Color darkPrimary = Color(0xFF0F777C);
 const Color accentTeal = Color(0xFF119E90);
 
 class WishRequestsScreen extends StatefulWidget {
-  const WishRequestsScreen({super.key});
+  final String communityId;
+
+  const WishRequestsScreen({super.key, required this.communityId});
 
   @override
   State<WishRequestsScreen> createState() => _WishRequestsScreenState();
 }
 
 class _WishRequestsScreenState extends State<WishRequestsScreen> {
-  final List<Map<String, dynamic>> requests = [
-    {
-      'requester': 'Ali Khan',
-      'item': 'Iron',
-      'description': 'Need a steam iron for 2 hours for formal clothes.',
-      'timeAgo': '10 mins ago',
-      'urgency': 'High',
-    },
-    {
-      'requester': 'Saba Ahmed',
-      'item': 'Tubelight',
-      'description':
-          'My kitchen light fused. Does anyone have a spare LED tubelight?',
-      'timeAgo': '1 hour ago',
-      'urgency': 'Normal',
-    },
-  ];
+  List<Map<String, dynamic>> requests = [];
+  bool loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCommunityWishRequests();
+  }
+
+  Future<void> _fetchCommunityWishRequests() async {
+    setState(() => loading = true);
+
+    try {
+      final supabase = Supabase.instance.client;
+
+final List data = await supabase
+    .from('wish_requests')
+    .select('id,item_name,description,urgent,user_id,created_at')
+    .eq('community_id', widget.communityId)
+    .gte(
+      'created_at',
+      DateTime.now()
+          .subtract(const Duration(days: 7))
+          .toIso8601String(),
+    )
+    .order('created_at', ascending: false);
+
+      if (data.isEmpty) {
+        setState(() {
+          requests = [];
+          loading = false;
+        });
+        return;
+      }
+
+      final mapped = await Future.wait((data).map((r) async {
+        final profile = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('user_id', r['user_id'])
+            .maybeSingle();
+
+        return {
+          'id': r['id'],
+          'requester': profile?['full_name'] ?? 'Unknown',
+          'requesterId': r['user_id'],
+          'item': r['item_name'],
+          'description': r['description'],
+          'urgency': r['urgent'] == true ? 'High' : 'Normal',
+          'timeAgo': _formatTimeAgo(DateTime.parse(r['created_at'])),
+        };
+      }).toList());
+
+      setState(() {
+        requests = mapped;
+        loading = false;
+      });
+    } catch (e) {
+      debugPrint("Error fetching requests: $e");
+      setState(() {
+        loading = false;
+        requests = [];
+      });
+    }
+  }
+
+  String _formatTimeAgo(DateTime createdAt) {
+    final diff = DateTime.now().difference(createdAt);
+
+    if (diff.inMinutes < 60) {
+      return "${diff.inMinutes} mins ago";
+    } else if (diff.inHours < 24) {
+      return "${diff.inHours} hours ago";
+    } else {
+      return "${diff.inDays} days ago";
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,11 +115,18 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
         title: 'Wish Requests',
         onBack: () => Navigator.pop(context),
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(20, 30, 20, 100),
-        itemCount: requests.length,
-        itemBuilder: (context, index) => _buildRequestCard(requests[index]),
-      ),
+
+      body: loading
+          ? const Center(child: CircularProgressIndicator())
+          : requests.isEmpty
+              ? const Center(child: Text("No requests in your community"))
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(20, 30, 20, 100),
+                  itemCount: requests.length,
+                  itemBuilder: (context, index) =>
+                      _buildRequestCard(requests[index]),
+                ),
+
       floatingActionButton: Container(
         decoration: BoxDecoration(
           gradient: appGradient,
@@ -76,9 +146,11 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const PostWishRequestScreen(),
+                  builder: (_) => PostWishRequestScreen(
+                    communityId: widget.communityId,
+                  ),
                 ),
-              );
+              ).then((_) => _fetchCommunityWishRequests());
             },
             borderRadius: BorderRadius.circular(16),
             child: Padding(
@@ -136,6 +208,8 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+
+                      /// Requester row
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -172,7 +246,10 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
                           ),
                         ],
                       ),
+
                       const SizedBox(height: 12),
+
+                      /// Wish Item
                       Text(
                         "Wish: ${request['item']}",
                         style: GoogleFonts.poppins(
@@ -181,125 +258,104 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
                           color: darkPrimary,
                         ),
                       ),
+
                       const SizedBox(height: 6),
+
+                      /// Description
                       Text(
-                        request['description'],
+                        request['description'] ?? "",
                         style: GoogleFonts.poppins(
                           fontSize: 13,
                           color: Colors.grey[700],
                           height: 1.5,
                         ),
                       ),
+
                       const SizedBox(height: 20),
+
+                      /// Buttons Row
                       Row(
                         children: [
                           Expanded(
                             child: ElevatedButton(
                               onPressed: () async {
-                                bool? makePublic = await showDialog<bool>(
+
+                                showDialog<bool>(
                                   context: context,
                                   builder: (context) => Dialog(
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(18),
                                     ),
-                                    backgroundColor: Colors.white,
                                     child: Padding(
                                       padding: const EdgeInsets.all(20),
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Text(
+                                          const Text(
                                             "Make Product Public?",
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontSize: 18,
                                               fontWeight: FontWeight.w700,
                                               color: darkPrimary,
                                             ),
                                           ),
                                           const SizedBox(height: 10),
-                                          Text(
+                                          const Text(
                                             "Do you want to make this product public after 48 hours?",
                                             textAlign: TextAlign.center,
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.grey,
-                                            ),
                                           ),
                                           const SizedBox(height: 24),
+
                                           Row(
                                             children: [
                                               Expanded(
                                                 child: OutlinedButton(
-                                                  onPressed: () =>
-                                                      Navigator.pop(
-                                                        context,
-                                                        false,
-                                                      ),
-                                                  style: OutlinedButton.styleFrom(
-                                                    side: const BorderSide(
-                                                      color: darkPrimary,
-                                                    ),
-                                                    shape: RoundedRectangleBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            10,
-                                                          ),
-                                                    ),
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          vertical: 12,
-                                                        ),
-                                                  ),
-                                                  child: const Text(
-                                                    "No",
-                                                    style: TextStyle(
-                                                      color: darkPrimary,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
-                                                  ),
+                                                  onPressed: () {
+                                                    Navigator.pop(context);
+                                                    Navigator.pushNamed(
+                                                      context,
+                                                      '/product_post',
+                                                      arguments: {
+                                                        'wishId': request['id'],
+                                                        'makePublicAfter48Hours': false,
+                                                        'communityId': widget.communityId,
+                                                        'requesterId': request['requesterId'],
+                                                      },
+                                                    );
+                                                  },
+                                                  child: const Text("No"),
                                                 ),
                                               ),
+
                                               const SizedBox(width: 12),
+
                                               Expanded(
                                                 child: Container(
                                                   decoration: BoxDecoration(
                                                     gradient: appGradient,
                                                     borderRadius:
-                                                        BorderRadius.circular(
-                                                          10,
-                                                        ),
+                                                        BorderRadius.circular(10),
                                                   ),
                                                   child: ElevatedButton(
-                                                    onPressed: () =>
-                                                        Navigator.pop(
-                                                          context,
-                                                          true,
-                                                        ),
+                                                    onPressed: () {
+                                                      Navigator.pop(context);
+                                                      Navigator.pushNamed(
+                                                        context,
+                                                        '/product_post',
+                                                        arguments: {
+                                                          'wishId': request['id'],
+                                                          'makePublicAfter48Hours': true,
+                                                          'communityId': widget.communityId,
+                                                          'requesterId': request['requesterId'],
+                                                        },
+                                                      );
+                                                    },
                                                     style: ElevatedButton.styleFrom(
                                                       backgroundColor:
                                                           Colors.transparent,
-                                                      shadowColor:
-                                                          Colors.transparent,
-                                                      padding:
-                                                          const EdgeInsets.symmetric(
-                                                            vertical: 12,
-                                                          ),
-                                                      shape: RoundedRectangleBorder(
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              10,
-                                                            ),
-                                                      ),
+                                                      shadowColor: Colors.transparent,
                                                     ),
-                                                    child: const Text(
-                                                      "Yes",
-                                                      style: TextStyle(
-                                                        color: Colors.white,
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                      ),
-                                                    ),
+                                                    child: const Text("Yes"),
                                                   ),
                                                 ),
                                               ),
@@ -310,16 +366,6 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
                                     ),
                                   ),
                                 );
-
-                                if (makePublic == null) return;
-
-                                Navigator.pushNamed(
-                                  context,
-                                  '/product_post',
-                                  arguments: {
-                                    'makePublicAfter48Hours': makePublic,
-                                  },
-                                );
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: accentTeal.withOpacity(0.1),
@@ -328,9 +374,8 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
                               ),
                               child: Text(
                                 "Upload Product",
@@ -341,17 +386,22 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
                               ),
                             ),
                           ),
+
                           const SizedBox(width: 12),
-                          _buildSmallIconButton(Icons.chat_bubble_outline, () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => ChatScreen(
-                                  sellerName: request['requester'],
+
+                          _buildSmallIconButton(
+                            Icons.chat_bubble_outline,
+                            () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ChatScreen(
+                                    sellerName: request['requester'],
+                                  ),
                                 ),
-                              ),
-                            );
-                          }),
+                              );
+                            },
+                          ),
                         ],
                       ),
                     ],

@@ -25,15 +25,17 @@ const Color light = Color(0xFFE0F2F1);
 
 class DashboardDrawer extends StatelessWidget {
   final String communityName;
+  final String inviteLink;
   final bool isAdmin; // added for role-based
 
   const DashboardDrawer({
-    super.key,
-    required this.communityName,
-    this.isAdmin = false,
-  });
+  super.key,
+  required this.communityName,
+  required this.inviteLink,
+  this.isAdmin = false,
+});
 
-  final String inviteLink = 'https://tradeaid.app/invite/eco123';
+
 
   void onCopy(BuildContext context) {
     Clipboard.setData(ClipboardData(text: inviteLink));
