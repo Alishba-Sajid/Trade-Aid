@@ -151,4 +151,19 @@ print(data);
       .neq('sender_id', userId)
       .neq('status', 'seen');
 }
+Future<void> deleteMessage(String messageId, String? mediaUrl) async {
+
+  if (mediaUrl != null) {
+    final path = mediaUrl.split('/').last;
+
+    await _supabase.storage
+        .from('chat-media')
+        .remove([path]);
+  }
+
+  await _supabase
+      .from('messages')
+      .delete()
+      .eq('id', messageId);
+}
 }

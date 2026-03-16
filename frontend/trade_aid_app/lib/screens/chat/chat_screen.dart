@@ -37,6 +37,11 @@ class ChatScreen extends StatefulWidget {
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
+
+
+
+ 
+
 class _ChatScreenState extends State<ChatScreen> {
 
   final ChatService _chatService = ChatService();
@@ -44,6 +49,8 @@ class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
 
   String? chatId;
+  List<ChatMessage> _messages = [];
+  StreamSubscription<List<ChatMessage>>? _messagesSubscription;
 
   /// RECORDING VARIABLES
   bool _isRecording = false;
@@ -58,6 +65,16 @@ class _ChatScreenState extends State<ChatScreen> {
     _initConversation();
   }
 
+  @override
+  void dispose() {
+    _messagesSubscription?.cancel();
+    _timer?.cancel();
+    _recorder?.dispose();
+    _controller.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
 Future<void> _initConversation() async {
   final id = await _chatService.getOrCreateConversation(widget.receiverId);
 
@@ -66,6 +83,13 @@ Future<void> _initConversation() async {
   });
 
   await _chatService.markMessagesAsSeen(id);
+
+  // Listen to messages stream
+  _messagesSubscription = _chatService.getMessages(id).listen((messages) {
+    setState(() {
+      _messages = messages;
+    });
+  });
 }
 
   /// SEND TEXT
@@ -76,17 +100,45 @@ Future<void> _sendMessage(String text) async {
   await _chatService.sendMessage(chatId!, text);
 
   /// auto scroll after sending
-  Future.delayed(const Duration(milliseconds: 100), () {
+  WidgetsBinding.instance.addPostFrameCallback((_) {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 250),
+  _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 250),
         curve: Curves.easeOut,
       );
     }
   });
 }
+Future<void> _deleteMessage(String messageId, {String? mediaUrl}) async {
+  // Find the message index
+  final index = _messages.indexWhere((m) => m.id == messageId);
+  if (index == -1) return;
 
+  final msg = _messages[index];
+
+  // Remove from list immediately for instant UI update
+  setState(() {
+    _messages.removeAt(index);
+  });
+
+  // Delete from database
+  try {
+    await _chatService.deleteMessage(messageId, mediaUrl);
+  } catch (e) {
+    // If delete fails, add the message back
+    setState(() {
+      _messages.insert(index, msg);
+    });
+    // Show error to user
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to delete message')),
+      );
+    }
+    debugPrint("Error deleting message: $e");
+  }
+}
   /// START RECORDING
   Future<void> _startRecording() async {
 
@@ -166,6 +218,17 @@ Future<void> _sendVoice() async {
 await _chatService.sendMedia(chatId!, url);
 
 _deleteRecording();
+
+  /// auto scroll after sending
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0.0, // Scroll to bottom (newest message) in reverse ListView
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    }
+  });
 }
 
   /// CAMERA + GALLERY PICKER
@@ -260,6 +323,17 @@ _deleteRecording();
                         .getPublicUrl(path);
 
                     await _chatService.sendMedia(chatId!, url);
+
+                    /// auto scroll after sending
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (_scrollController.hasClients) {
+                        _scrollController.animateTo(
+                          0.0, // Scroll to bottom (newest message) in reverse ListView
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeOut,
+                        );
+                      }
+                    });
                   },
                   child: const Text("Send"),
                 ),
@@ -458,43 +532,24 @@ Widget build(BuildContext context) {
         Expanded(
           child: chatId == null
               ? const Center(child: CircularProgressIndicator())
-              : StreamBuilder<List<ChatMessage>>(
-                  stream: _chatService.getMessages(chatId!),
-                  builder: (context, snapshot) {
+              : ListView.builder(
+                  controller: _scrollController,
+                  reverse: false,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                  itemCount: _messages.length,
+                  itemBuilder: (context, index) {
+                    final msg = _messages[index];
 
-                    if (!snapshot.hasData) {
-                      return const Center(
-                          child: CircularProgressIndicator());
-                    }
-
-                    final messages = snapshot.data!;
-
-                    /// ✅ Auto scroll to latest message
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (_scrollController.hasClients) {
-                        _scrollController.jumpTo(
-                          _scrollController.position.maxScrollExtent,
-                        );
-                      }
-                    });
-
-                    return ListView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 20),
-                      itemCount: messages.length,
-                      itemBuilder: (context, index) {
-
-                        final msg = messages[index];
-
-                        return MessageBubble(
-                          isMe: msg.isMe,
-                          message: msg.text,
-                          mediaUrl: msg.mediaUrl,
-                          createdAt: msg.createdAt,
-                          status: msg.status,
-                        );
-                      },
+                    return KeyedSubtree(
+                      key: ValueKey(msg.id), // important for Flutter to track items
+                      child: MessageBubble(
+                        isMe: msg.isMe,
+                        message: msg.text,
+                        mediaUrl: msg.mediaUrl,
+                        createdAt: msg.createdAt,
+                        status: msg.status,
+                        onDelete: () => _deleteMessage(msg.id, mediaUrl: msg.mediaUrl),
+                      ),
                     );
                   },
                 ),
