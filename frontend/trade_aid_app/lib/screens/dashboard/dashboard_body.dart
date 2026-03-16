@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'community_dialog.dart';
 import '../wish_request.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:geolocator/geolocator.dart';
 
 // 🌿 Premium Color Constants
 const LinearGradient appGradient = LinearGradient(
@@ -37,12 +36,85 @@ class DashboardBody extends StatefulWidget {
 }
 
 class _DashboardBodyState extends State<DashboardBody> {
+  RealtimeChannel? wishChannel;
+  RealtimeChannel? communityChannel;
+
   int activeWishCount = 0;
   List<Map<String, dynamic>> nearbyCommunities = [];
 
   bool locationPermissionGranted = false;
   bool locationDeniedForever = false;
   bool loadingNearby = true;
+
+  void _subscribeWishRequests() {
+    wishChannel?.unsubscribe();
+
+    final supabase = Supabase.instance.client;
+
+    wishChannel = supabase.channel('wish_requests_channel')
+      ..onPostgresChanges(
+        event: PostgresChangeEvent.insert,
+        schema: 'public',
+        table: 'wish_requests',
+        filter: PostgresChangeFilter(
+          type: PostgresChangeFilterType.eq,
+          column: 'community_id',
+          value: widget.communityId,
+        ),
+        callback: (payload) {
+          if (!mounted) return;
+
+          _fetchActiveWishCount();
+        },
+      )
+      ..subscribe();
+  }
+
+  void _subscribeNearbyCommunities() {
+    final supabase = Supabase.instance.client;
+
+    communityChannel = supabase.channel('community_channel')
+      ..onPostgresChanges(
+        event: PostgresChangeEvent.insert,
+        schema: 'public',
+        table: 'communities',
+        callback: (payload) {
+          _fetchNearbyCommunities();
+        },
+      )
+      ..subscribe();
+  }
+
+  Future<void> _loadDashboardData() async {
+    await _fetchActiveWishCount();
+    await _fetchNearbyCommunities();
+  }
+
+  Future<void> _initializeDashboard() async {
+    final supabase = Supabase.instance.client;
+
+    final session = supabase.auth.currentSession;
+
+    if (session != null) {
+      // Load existing dashboard data
+      await _loadDashboardData();
+
+      // Start realtime listeners
+      _subscribeWishRequests();
+      _subscribeNearbyCommunities();
+    } else {
+      supabase.auth.onAuthStateChange.listen((data) async {
+        if (data.event == AuthChangeEvent.signedIn) {
+          // Load existing records first
+          await _loadDashboardData();
+
+          // Then listen for new realtime events
+          _subscribeWishRequests();
+          _subscribeNearbyCommunities();
+        }
+      });
+    }
+  }
 
   Future<void> _fetchActiveWishCount() async {
     if (widget.communityId.isEmpty) return;
@@ -69,37 +141,38 @@ class _DashboardBodyState extends State<DashboardBody> {
     }
   }
 
-  Future<void> _checkLocationPermission() async {
-    LocationPermission permission = await Geolocator.checkPermission();
-
-    if (permission == LocationPermission.always ||
-        permission == LocationPermission.whileInUse) {
-      locationPermissionGranted = true;
-      await _fetchNearbyCommunities();
-    } else if (permission == LocationPermission.deniedForever) {
-      locationDeniedForever = true;
-    }
-
-    if (mounted) {
-      setState(() {
-        loadingNearby = false;
-      });
-    }
-  }
-
   Future<void> _fetchNearbyCommunities() async {
     try {
-      Position userLocation = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-
       final supabase = Supabase.instance.client;
+      final userId = supabase.auth.currentUser?.id;
+
+      if (userId == null) return;
+
+      final profile = await supabase
+          .from('profiles')
+          .select('home_latitude, home_longitude')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (profile == null ||
+          profile['home_latitude'] == null ||
+          profile['home_longitude'] == null) {
+        setState(() {
+          loadingNearby = false;
+          nearbyCommunities = [];
+        });
+
+        return;
+      }
+
+      final double userLat = profile['home_latitude'];
+      final double userLng = profile['home_longitude'];
 
       final response = await supabase.rpc(
         'get_nearby_communities',
         params: {
-          'user_lat': userLocation.latitude,
-          'user_lng': userLocation.longitude,
+          'user_lat': userLat,
+          'user_lng': userLng,
           'radius_km': 1.0,
           'current_community': widget.communityId,
         },
@@ -108,27 +181,15 @@ class _DashboardBodyState extends State<DashboardBody> {
       if (!mounted) return;
 
       setState(() {
+        loadingNearby = false;
         nearbyCommunities = List<Map<String, dynamic>>.from(response);
       });
     } catch (e) {
       debugPrint("Error fetching nearby communities: $e");
-    }
-  }
 
-  Future<void> _requestLocationPermission() async {
-    LocationPermission permission = await Geolocator.requestPermission();
-
-    if (permission == LocationPermission.always ||
-        permission == LocationPermission.whileInUse) {
       setState(() {
-        locationPermissionGranted = true;
-        loadingNearby = true;
-      });
-
-      await _fetchNearbyCommunities();
-    } else if (permission == LocationPermission.deniedForever) {
-      setState(() {
-        locationDeniedForever = true;
+        loadingNearby = false;
+        nearbyCommunities = [];
       });
     }
   }
@@ -244,8 +305,7 @@ class _DashboardBodyState extends State<DashboardBody> {
   @override
   void initState() {
     super.initState();
-    _fetchActiveWishCount();
-    _checkLocationPermission();
+    _initializeDashboard();
   }
 
   @override
@@ -257,6 +317,13 @@ class _DashboardBodyState extends State<DashboardBody> {
       _fetchActiveWishCount();
       _fetchNearbyCommunities();
     }
+  }
+
+  @override
+  void dispose() {
+    wishChannel?.unsubscribe();
+    communityChannel?.unsubscribe();
+    super.dispose();
   }
 
   @override
@@ -445,11 +512,9 @@ class _DashboardBodyState extends State<DashboardBody> {
                 const SizedBox(height: 13),
 
                 SizedBox(
-                  height: 150,
+                  height: 130,
                   child: loadingNearby
                       ? const Center(child: CircularProgressIndicator())
-                      : !locationPermissionGranted
-                      ? _buildEnableLocationCard()
                       : nearbyCommunities.isEmpty
                       ? _buildNoNearbyCommunities()
                       : ListView(
@@ -484,52 +549,6 @@ class _DashboardBodyState extends State<DashboardBody> {
         fontWeight: FontWeight.bold,
         color: dark,
         letterSpacing: 0.2,
-      ),
-    );
-  }
-
-  Widget _buildEnableLocationCard() {
-    return Container(
-      width: 220,
-      margin: const EdgeInsets.only(right: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.black.withOpacity(0.05)),
-        boxShadow: [
-          BoxShadow(
-            color: dark.withOpacity(0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.location_on, color: accent, size: 30),
-          const SizedBox(height: 8),
-          const Text(
-            'Enable location to discover nearby communities',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 10),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: accent,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            ),
-            onPressed: locationDeniedForever
-                ? Geolocator.openAppSettings
-                : _requestLocationPermission,
-            child: Text(
-              locationDeniedForever ? 'Open Settings' : 'Enable Location',
-              style: const TextStyle(fontSize: 12),
-            ),
-          ),
-        ],
       ),
     );
   }

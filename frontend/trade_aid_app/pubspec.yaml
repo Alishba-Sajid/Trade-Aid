@@ -22,6 +22,10 @@ dependencies:
   supabase_flutter: ^2.5.6
   provider: ^6.1.2
   lottie: ^3.3.2
+  record: ^6.0.0
+  path_provider: ^2.1.3
+  just_audio: ^0.9.37
+  app_links: ^3.4.1
   
 
 
@@ -37,21 +41,7 @@ flutter:
   assets:
     - assets/logo.png
     - assets/branding.png
-    - assets/candles.jpg
-    - assets/diffuser.jpg
-    - assets/soap.jpg
-    - assets/jacket1.png
-    - assets/jacket2.png
-    - assets/scarf.jpg
-    - assets/tote.png
-    - assets/vase1.png
-    - assets/vase2.png
-    - assets/vase3.png
-    - assets/yoga.jpg
-    - assets/lawn.jpg
-    - assets/washing_machine.jpg
     - assets/user_placeholder.jpg
-    - assets/fridge.jpg
     - assets/cart_illustration.png
     - assets/seller.jpg
     - assets/easypaisa.png
@@ -65,7 +55,6 @@ flutter:
     - assets/verify_code.jpg
     - assets/verify-code.png
     - assets/reset_pass.png
-    - assets/machine2.png
     - assets/help.png
     
 

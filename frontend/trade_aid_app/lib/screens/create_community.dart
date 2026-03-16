@@ -68,6 +68,15 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
         desiredAccuracy: LocationAccuracy.high,
       );
 
+      // 🔹 Mirror user location to profile
+      await supabase
+          .from('profiles')
+          .update({
+            'home_latitude': userLocation.latitude,
+            'home_longitude': userLocation.longitude,
+          })
+          .eq('user_id', user.id);
+
       // 🔹 Insert community
       final response = await supabase
           .from('communities')
@@ -84,13 +93,13 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
 
       final communityId = response['id'];
       // 🔹 Generate invite link
-final inviteLink = "https://tradeaid.app/community/$communityId";
+      final inviteLink = "https://tradeaid.app/community/$communityId";
 
-// 🔹 Save invite link in database
-await supabase
-    .from('communities')
-    .update({'invite_link': inviteLink})
-    .eq('id', communityId);
+      // 🔹 Save invite link in database
+      await supabase
+          .from('communities')
+          .update({'invite_link': inviteLink})
+          .eq('id', communityId);
 
       // 🔹 Ensure creator is inserted into community_members
       final existingCreator = await supabase
@@ -109,7 +118,6 @@ await supabase
         });
       }
 
-    
       // 🔹 Show success dialog
       showDialog(
         context: context,

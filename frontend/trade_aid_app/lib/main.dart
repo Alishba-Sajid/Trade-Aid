@@ -34,14 +34,14 @@ import 'screens/profile/terms&conditions.dart';
 import 'screens/welcomeT&C.dart';
 import 'screens/profile/history_screen.dart';
 import 'screens/forgotpass/forget_pass_screen.dart';
-import 'screens/forgotpass/verifycode_screen.dart';
 import 'screens/forgotpass/newpass_screen.dart';
-import 'screens/chat/chat_screen.dart';
 import 'screens/waiting_approval_screen.dart';
 
 // models
 import 'models/product.dart';
 import 'models/resource.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -60,12 +60,32 @@ Future<void> main() async {
   );
 }
 
-class TradeAidApp extends StatelessWidget {
+class TradeAidApp extends StatefulWidget {
   const TradeAidApp({super.key});
+
+  @override
+  State<TradeAidApp> createState() => _TradeAidAppState();
+}
+
+class _TradeAidAppState extends State<TradeAidApp> {
+  @override
+  void initState() {
+    super.initState();
+
+    // Listen for Supabase password recovery event
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      final event = data.event;
+
+      if (event == AuthChangeEvent.passwordRecovery) {
+        navigatorKey.currentState?.pushNamed('/new-password');
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'Trade & Aid',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -94,18 +114,15 @@ class TradeAidApp extends StatelessWidget {
         '/welcome_terms': (_) => const WelcomeTermsScreen(),
         '/history': (_) => const HistoryScreen(),
         '/forgot_password': (_) => const ForgotPasswordScreen(),
-        '/verify-code': (_) => const VerifyCodeScreen(),
         '/new-password': (_) => const NewPasswordScreen(),
         '/notifications': (_) => const NotificationsScreen(),
         '/blocked_users': (_) => const BlockedUsersScreen(),
         '/help_support': (_) => const HelpSupportScreen(),
         '/chat_list': (_) => const ChatListScreen(),
         '/waiting_approval': (_) => const WaitingApprovalScreen(),
-        '/chat_screen': (_) => const ChatScreen(sellerName: 'Seller'),
       },
 
       onGenerateRoute: (settings) {
-
         if (settings.name == '/product_post') {
           final raw = settings.arguments;
           final Map<String, dynamic> args = raw is Map<String, dynamic>
@@ -127,9 +144,7 @@ class TradeAidApp extends StatelessWidget {
           final communityId = settings.arguments as String;
 
           return MaterialPageRoute(
-            builder: (_) => ProductListingScreen(
-              communityId: communityId,
-            ),
+            builder: (_) => ProductListingScreen(communityId: communityId),
             settings: settings,
           );
         }
@@ -148,9 +163,7 @@ class TradeAidApp extends StatelessWidget {
           final communityId = settings.arguments as String;
 
           return MaterialPageRoute(
-            builder: (_) => ResourcePostScreen(
-              communityId: communityId,
-            ),
+            builder: (_) => ResourcePostScreen(communityId: communityId),
             settings: settings,
           );
         }
@@ -159,9 +172,7 @@ class TradeAidApp extends StatelessWidget {
           final communityId = settings.arguments as String;
 
           return MaterialPageRoute(
-            builder: (_) => ResourceListingScreen(
-              communityId: communityId,
-            ),
+            builder: (_) => ResourceListingScreen(communityId: communityId),
             settings: settings,
           );
         }
@@ -175,15 +186,15 @@ class TradeAidApp extends StatelessWidget {
             settings: settings,
           );
         }
-     
-     if (settings.name == '/wish_request') {
-  final communityId = settings.arguments as String; // Pass the ID dynamically
 
-  return MaterialPageRoute(
-    builder: (_) => WishRequestsScreen(communityId: communityId),
-    settings: settings,
-  );
-}
+        if (settings.name == '/wish_request') {
+          final communityId = settings.arguments as String;
+
+          return MaterialPageRoute(
+            builder: (_) => WishRequestsScreen(communityId: communityId),
+            settings: settings,
+          );
+        }
 
         if (settings.name == '/booking') {
           final args = settings.arguments as Map<String, dynamic>;
@@ -198,11 +209,8 @@ class TradeAidApp extends StatelessWidget {
         }
 
         return MaterialPageRoute(
-          builder: (_) => const Scaffold(
-            body: Center(
-              child: Text("Page not found"),
-            ),
-          ),
+          builder: (_) =>
+              const Scaffold(body: Center(child: Text("Page not found"))),
         );
       },
     );

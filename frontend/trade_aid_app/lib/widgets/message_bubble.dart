@@ -1,32 +1,157 @@
 import 'package:flutter/material.dart';
-import '../constants/app_colors.dart';
+import 'package:just_audio/just_audio.dart';
 
-class MessageBubble extends StatelessWidget {
+class MessageBubble extends StatefulWidget {
+
   final bool isMe;
   final String message;
+  final String? mediaUrl;
 
   const MessageBubble({
     super.key,
     required this.isMe,
     required this.message,
+    this.mediaUrl,
   });
 
   @override
+  State<MessageBubble> createState() => _MessageBubbleState();
+}
+
+class _MessageBubbleState extends State<MessageBubble> {
+  final AudioPlayer _player = AudioPlayer();
+  bool _isPlaying = false;
+  Duration _duration = Duration.zero;
+  Duration _position = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.mediaUrl != null && widget.mediaUrl!.endsWith('.m4a')) {
+      _loadAudio();
+    }
+  }
+
+  @override
+  void dispose() {
+    _player.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadAudio() async {
+    try {
+      await _player.setUrl(widget.mediaUrl!);
+      _duration = _player.duration ?? Duration.zero;
+      _player.positionStream.listen((pos) {
+        setState(() {
+          _position = pos;
+        });
+      });
+      _player.playerStateStream.listen((state) {
+        setState(() {
+          _isPlaying = state.playing;
+        });
+      });
+    } catch (e) {
+      debugPrint("Audio load error: $e");
+    }
+  }
+
+  void _togglePlay() async {
+    if (_isPlaying) {
+      await _player.pause();
+    } else {
+      await _player.play();
+    }
+  }
+
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes;
+    final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
+  @override
   Widget build(BuildContext context) {
+
+    final isImage = widget.mediaUrl != null && (widget.mediaUrl!.endsWith('.jpg') || widget.mediaUrl!.endsWith('.png'));
+    final isAudio = widget.mediaUrl != null && widget.mediaUrl!.endsWith('.m4a');
+
     return Align(
-      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: widget.isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        padding: const EdgeInsets.all(14),
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.all(8),
+        constraints:
+            BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
         decoration: BoxDecoration(
-          color: isMe ? accent : Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          color: widget.isMe ? Colors.green[200] : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 2,
+              offset: Offset(1, 1),
+            ),
+          ],
         ),
-        child: Text(
-          message,
-          style: TextStyle(
-            color: isMe ? Colors.white : dark,
-          ),
+        child: Column(
+          crossAxisAlignment:
+              widget.isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          children: [
+
+            if (isImage)
+              GestureDetector(
+                onTap: () {
+                  showDialog(
+                      context: context,
+                      builder: (_) => Dialog(
+                            child: Image.network(widget.mediaUrl!),
+                          ));
+                },
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    widget.mediaUrl!,
+                    width: 200,
+                    height: 200,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+
+            if (isAudio)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: Icon(_isPlaying ? Icons.stop : Icons.play_arrow),
+                    onPressed: _togglePlay,
+                  ),
+
+                  Expanded(
+                    child: LinearProgressIndicator(
+                      value: _duration.inSeconds > 0 ? _position.inSeconds / _duration.inSeconds : 0.0,
+                      backgroundColor: Colors.grey[300],
+                      color: Colors.teal,
+                    ),
+                  ),
+
+                  const SizedBox(width: 8),
+
+                  Text(
+                    _formatDuration(_duration),
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+
+            if (widget.message.isNotEmpty)
+              Text(
+                widget.message,
+                style: const TextStyle(fontSize: 16),
+              ),
+          ],
         ),
       ),
     );

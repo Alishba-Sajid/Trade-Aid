@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/product.dart';
 import '../providers/cart_provider.dart';
 import 'payment_option.dart';
@@ -34,12 +35,41 @@ class _SellerCard extends StatefulWidget {
 
 class _SellerCardState extends State<_SellerCard> {
   bool isExpanded = false;
+  String? _profileImageUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _profileImageUrl = widget.product.sellerProfileImageUrl;
+    _fetchSellerProfileImageIfNeeded();
+  }
+
+  Future<void> _fetchSellerProfileImageIfNeeded() async {
+    final existing = _profileImageUrl?.trim();
+    if (existing != null && existing.isNotEmpty) return;
+
+    try {
+      final supabase = Supabase.instance.client;
+      final resp = await supabase
+          .from('profiles')
+          .select('profile_image_url')
+          .eq('user_id', widget.product.sellerUserId)
+          .maybeSingle();
+
+      final url = (resp?['profile_image_url'] as String?)?.trim();
+      if (!mounted) return;
+      setState(() => _profileImageUrl = url);
+    } catch (_) {
+      // keep fallback avatar (UI unchanged)
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final sellerName = widget.product.sellerName ?? 'Community Member';
     final address =
      widget.product.sellerAddress ?? 'Sample Address Line, Gulberg Greens';
+    final imageUrl = _profileImageUrl?.trim();
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -61,7 +91,12 @@ class _SellerCardState extends State<_SellerCard> {
               CircleAvatar(
                 radius: 32,
                 backgroundColor: accent.withOpacity(.12),
-                child: const Icon(Icons.person, color: accent, size: 30),
+                backgroundImage: (imageUrl != null && imageUrl.isNotEmpty)
+                    ? NetworkImage(imageUrl)
+                    : null,
+                child: (imageUrl != null && imageUrl.isNotEmpty)
+                    ? null
+                    : const Icon(Icons.person, color: accent, size: 30),
               ),
               const SizedBox(width: 18),
               Expanded(
@@ -95,12 +130,15 @@ class _SellerCardState extends State<_SellerCard> {
                 ),
               ),
               InkWell(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ChatScreen(sellerName: sellerName),
-                  ),
-                ),
+  onTap: () => Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => ChatScreen(
+        sellerName: sellerName,
+        receiverId: widget.product.sellerUserId,
+      ),
+    ),
+  ),
                 borderRadius: BorderRadius.circular(16),
                 child: Container(
                   padding: const EdgeInsets.all(12),

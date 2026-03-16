@@ -99,7 +99,7 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
       // 3️⃣ Fetch profiles for those users
       final profileResponse = await supabase
           .from('profiles')
-          .select('user_id, full_name, address')
+          .select('user_id, full_name, address, profile_image_url')
           .inFilter('user_id', userIds);
 
       final profileList = profileResponse as List;

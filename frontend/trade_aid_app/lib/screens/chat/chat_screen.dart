@@ -1,11 +1,14 @@
-import 'package:flutter/material.dart';
-import '../../widgets/message_bubble.dart';
-import '../../widgets/chat_input_bar.dart';
-import 'member_profile_screen.dart';
-import 'voice_call_screen.dart';
-import 'video_call_screen.dart';
+import 'dart:async';
+import 'dart:io';
 
-// backend
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../widgets/message_bubble.dart';
+
 import '../../services/chat_service.dart';
 import '../../models/chat_message.dart';
 
@@ -16,139 +19,325 @@ const LinearGradient appGradient = LinearGradient(
 );
 
 class ChatScreen extends StatefulWidget {
-  final String sellerName; // ✅ REQUIRED BY ProductDetailsScreen
+  final String sellerName;
+  final String receiverId;
+  final String? profileImage;
+  final String? address;
 
-  const ChatScreen({super.key, required this.sellerName});
+  const ChatScreen({
+    super.key,
+    required this.sellerName,
+    required this.receiverId,
+    this.profileImage,
+    this.address,
+  });
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
+
   final ChatService _chatService = ChatService();
+  final TextEditingController _controller = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
-  // later can come from auth / product / room
-  final String chatId = 'chat_room_id';
+  String? chatId;
 
-  // ───────── MENU HANDLER ─────────
-  void _handleMenuSelection(String value, BuildContext context) {
-    switch (value) {
-      case 'view_profile':
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const MemberProfileScreen()),
-        );
-        break;
-      case 'block':
-        _showBlockConfirmation(context);
-        break;
-      case 'mute':
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Notifications Muted")));
-        break;
+  /// RECORDING VARIABLES
+  bool _isRecording = false;
+  Duration _recordDuration = Duration.zero;
+  Timer? _timer;
+  AudioRecorder? _recorder;
+  String? _recordedFile;
+
+  @override
+  void initState() {
+    super.initState();
+    _initConversation();
+  }
+
+  Future<void> _initConversation() async {
+    final id = await _chatService.getOrCreateConversation(widget.receiverId);
+
+    setState(() {
+      chatId = id;
+    });
+  }
+
+  /// SEND TEXT
+  void _sendMessage(String text) {
+    if (text.trim().isEmpty || chatId == null) return;
+
+    _chatService.sendMessage(chatId!, text);
+  }
+
+  /// START RECORDING
+  Future<void> _startRecording() async {
+
+    _recorder = AudioRecorder();
+
+    if (await _recorder!.hasPermission()) {
+
+      final dir = await getTemporaryDirectory();
+      final path =
+          '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+      await _recorder!.start(const RecordConfig(), path: path);
+
+      setState(() {
+        _isRecording = true;
+        _recordDuration = Duration.zero;
+        _recordedFile = path;
+      });
+
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+        setState(() {
+          _recordDuration += const Duration(seconds: 1);
+        });
+      });
     }
   }
 
-  // ───────── BLOCK DIALOG ─────────
-  void _showBlockConfirmation(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text("Block ${widget.sellerName}?"),
-        content: const Text(
-          "You will no longer receive messages or calls from this contact.",
+  /// STOP RECORDING
+  Future<void> _stopRecording() async {
+    _timer?.cancel();
+    await _recorder?.stop();
+  }
+
+  /// DELETE RECORDING
+  void _deleteRecording() {
+    _timer?.cancel();
+
+    if (_recordedFile != null) {
+      File(_recordedFile!).delete();
+    }
+
+    setState(() {
+      _isRecording = false;
+      _recordDuration = Duration.zero;
+      _recordedFile = null;
+    });
+  }
+
+  /// SEND VOICE NOTE
+Future<void> _sendVoice() async {
+
+  if (_recordedFile == null) return;
+
+  // STOP recorder first
+  await _stopRecording();
+
+  final file = File(_recordedFile!);
+  final bytes = await file.readAsBytes();
+
+  final fileName = "${DateTime.now().millisecondsSinceEpoch}.m4a";
+  final storagePath = "voice_notes/$fileName";
+
+  await Supabase.instance.client.storage
+      .from('chat-media')
+      .uploadBinary(
+        storagePath,
+        bytes,
+        fileOptions: const FileOptions(
+          contentType: 'audio/m4a',
+          upsert: true,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("CANCEL", style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+      );
+
+  final url = Supabase.instance.client.storage
+      .from('chat-media')
+      .getPublicUrl(storagePath);
+await _chatService.sendMedia(chatId!, url);
+
+_deleteRecording();
+}
+
+  /// CAMERA + GALLERY PICKER
+  Future<void> _pickMedia() async {
+
+    final picker = ImagePicker();
+
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text("Camera"),
+                onTap: () async {
+
+                  Navigator.pop(context);
+
+                  final file =
+                      await picker.pickImage(source: ImageSource.camera);
+
+                  if (file != null) _previewImage(file);
+                },
               ),
-            ),
-            onPressed: () {
-              Navigator.pop(context);
-              _showBlockedSnackbar(context);
-            },
-            child: const Text("BLOCK", style: TextStyle(color: Colors.white)),
+
+              ListTile(
+                leading: const Icon(Icons.photo),
+                title: const Text("Gallery"),
+                onTap: () async {
+
+                  Navigator.pop(context);
+
+                  final file =
+                      await picker.pickImage(source: ImageSource.gallery);
+
+                  if (file != null) _previewImage(file);
+                },
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  // ───────── BLOCK SNACKBAR ─────────
-  void _showBlockedSnackbar(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: Colors.black87,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        content: Row(
+  /// IMAGE PREVIEW
+  void _previewImage(XFile file) {
+
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.block, color: Colors.white, size: 20),
-            const SizedBox(width: 12),
-            Text("You have blocked ${widget.sellerName}"),
+
+            Image.file(File(file.path)),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Cancel"),
+                ),
+
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF119E90)),
+                  onPressed: () async {
+
+                    Navigator.pop(context);
+
+                    final bytes = await file.readAsBytes();
+
+                    final fileName =
+                        DateTime.now().millisecondsSinceEpoch.toString();
+
+                    final path = 'chat_media/$fileName.jpg';
+
+                    await Supabase.instance.client.storage
+                        .from('chat-media')
+                        .uploadBinary(path, bytes);
+
+                    final url = Supabase.instance.client.storage
+                        .from('chat-media')
+                        .getPublicUrl(path);
+
+                    await _chatService.sendMedia(chatId!, url);
+                  },
+                  child: const Text("Send"),
+                ),
+              ],
+            )
           ],
         ),
       ),
     );
   }
 
-  // ───────── SEND MESSAGE ─────────
-  void _sendMessage(String text) {
-    _chatService.sendMessage(chatId, text);
-  }
+  /// CHAT INPUT
+  Widget _buildChatInput() {
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF0F9F8),
-      body: Column(
-        children: [
-          _buildPremiumHeader(context),
+    return Column(
+      children: [
 
-          // ✅ BACKEND DRIVEN MESSAGE LIST (UI UNCHANGED)
-          Expanded(
-            child: StreamBuilder<List<ChatMessage>>(
-              stream: _chatService.getMessages(chatId),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+        if (_isRecording)
+          Container(
+            padding: const EdgeInsets.all(12),
+            color: Colors.red.withOpacity(0.1),
+            child: Row(
+              children: [
 
-                final messages = snapshot.data!;
+                const Icon(Icons.mic, color: Colors.red),
 
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 20,
-                  ),
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    final msg = messages[index];
-                    return MessageBubble(isMe: msg.isMe, message: msg.text);
-                  },
-                );
-              },
+                const SizedBox(width: 10),
+
+                Text(
+                  "${_recordDuration.inMinutes}:${(_recordDuration.inSeconds % 60).toString().padLeft(2, '0')}",
+                ),
+
+                const Spacer(),
+
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: _deleteRecording,
+                )
+              ],
             ),
           ),
 
-          // ✅ SAME UI, BACKEND CONNECTED
-          ChatInputBar(onSend: _sendMessage),
-        ],
-      ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 6)],
+          ),
+          child: Row(
+            children: [
+
+              IconButton(
+                icon: const Icon(Icons.add, color: Color(0xFF119E90)),
+                onPressed: _pickMedia,
+              ),
+
+              Expanded(
+                child: TextField(
+                  controller: _controller,
+                  decoration: const InputDecoration(
+                    hintText: "Type a message...",
+                    border: InputBorder.none,
+                  ),
+                ),
+              ),
+
+              IconButton(
+                icon: const Icon(Icons.mic, color: Color(0xFF119E90)),
+                onPressed: _startRecording,
+              ),
+
+              IconButton(
+                icon: const Icon(Icons.send, color: Color(0xFF119E90)),
+                onPressed: () {
+
+                  if (_recordedFile != null) {
+                    _sendVoice();
+                  } else {
+                    _sendMessage(_controller.text);
+                    _controller.clear();
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
-  // ───────── HEADER (UI UNCHANGED) ─────────
+  /// HEADER (UNCHANGED)
   Widget _buildPremiumHeader(BuildContext context) {
+
     return Container(
       height: 130,
       decoration: const BoxDecoration(
@@ -161,93 +350,133 @@ class _ChatScreenState extends State<ChatScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Row(
             children: [
+
               IconButton(
                 icon: const Icon(Icons.arrow_back, color: Colors.white),
                 onPressed: () => Navigator.pop(context),
               ),
-              const CircleAvatar(
+
+              CircleAvatar(
                 radius: 20,
-                backgroundImage: NetworkImage(
-                  'https://i.pravatar.cc/150?img=11',
-                ),
+                backgroundColor: Colors.white,
+                backgroundImage: (widget.profileImage != null &&
+                        widget.profileImage!.isNotEmpty)
+                    ? NetworkImage(widget.profileImage!)
+                    : null,
+                child: (widget.profileImage == null ||
+                        widget.profileImage!.isEmpty)
+                    ? const Icon(Icons.person, color: Colors.grey)
+                    : null,
               ),
+
               const SizedBox(width: 12),
+
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+
                     Text(
                       widget.sellerName,
                       style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold),
                     ),
-                    const Text(
-                      "Online",
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
+
+                    Text(
+                      widget.address ?? "Community Member",
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.call_outlined, color: Colors.white),
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const VoiceCallScreen()),
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.videocam_outlined, color: Colors.white),
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const VideoCallScreen()),
-                ),
-              ),
+
               PopupMenuButton<String>(
                 icon: const Icon(Icons.more_vert, color: Colors.white),
-                onSelected: (value) => _handleMenuSelection(value, context),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
+                onSelected: (value) {},
                 itemBuilder: (context) => const [
+
                   PopupMenuItem(
                     value: 'view_profile',
-                    child: ListTile(
-                      leading: Icon(
-                        Icons.person_outline,
-                        color: Color(0xFF119E90),
-                      ),
-                      title: Text('View Profile'),
-                    ),
+                    child: Text('View Profile'),
                   ),
+
                   PopupMenuItem(
                     value: 'mute',
-                    child: ListTile(
-                      leading: Icon(
-                        Icons.notifications_off_outlined,
-                        color: Color(0xFF119E90),
-                      ),
-                      title: Text('Mute'),
-                    ),
+                    child: Text('Mute'),
                   ),
+
                   PopupMenuItem(
                     value: 'block',
-                    child: ListTile(
-                      leading: Icon(Icons.block, color: Colors.redAccent),
-                      title: Text(
-                        'Block User',
-                        style: TextStyle(color: Colors.redAccent),
-                      ),
-                    ),
+                    child: Text('Block User'),
                   ),
                 ],
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// CHAT BODY
+  @override
+  Widget build(BuildContext context) {
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF0F9F8),
+      body: Column(
+        children: [
+
+          _buildPremiumHeader(context),
+
+          Expanded(
+            child: chatId == null
+                ? const Center(child: CircularProgressIndicator())
+                : StreamBuilder<List<ChatMessage>>(
+                    stream: _chatService.getMessages(chatId!),
+                    builder: (context, snapshot) {
+
+                      if (!snapshot.hasData) {
+                        return const Center(
+                            child: CircularProgressIndicator());
+                      }
+
+                      final messages = snapshot.data!.reversed.toList();
+
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (_scrollController.hasClients) {
+                          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+                        }
+                      });
+
+                      return ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 20),
+                        itemCount: messages.length,
+                        itemBuilder: (context, index) {
+
+                          final msg = messages[index];
+
+                          return MessageBubble(
+                            isMe: msg.isMe,
+                            message: msg.text,
+                            mediaUrl: msg.mediaUrl,
+                          );
+                        },
+                      );
+                    },
+                  ),
+          ),
+
+          _buildChatInput(),
+        ],
       ),
     );
   }

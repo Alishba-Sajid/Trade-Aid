@@ -76,9 +76,10 @@ Future<void> _fetchProducts() async {
       );
     } else {
       // Wish Item tab: only products reserved for the current user (requester)
-      query = query
-          .not('wish_request_id', 'is', null)
-          .eq('reserved_for', user.id);
+     query = query
+    .not('wish_request_id', 'is', null)
+    .gt('expires_at', DateTime.now().toIso8601String())
+    .or('reserved_for.eq.${user.id},user_id.eq.${user.id}');
     }
 
     // ---------------- FETCH PRODUCTS ----------------
@@ -101,7 +102,7 @@ Future<void> _fetchProducts() async {
 
     final profileResponse = await supabase
         .from('profiles')
-        .select('user_id, full_name, address')
+        .select('user_id, full_name, address, profile_image_url')
         .inFilter('user_id', userIds); // only 2 args here
 
     final profileList = profileResponse as List;
@@ -115,6 +116,7 @@ Future<void> _fetchProducts() async {
 
       map['sellerName'] = profile?['full_name'];
       map['sellerAddress'] = profile?['address'];
+      map['sellerProfileImageUrl'] = profile?['profile_image_url'];
 
       return Product.fromJson(map);
     }).toList();

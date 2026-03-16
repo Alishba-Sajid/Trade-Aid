@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
 import 'dashboard_body.dart';
 import 'dashboard_drawer.dart';
 import 'notification_screen.dart';
@@ -24,6 +23,7 @@ const Color light = Color(0xFFE0F2F1);
 class DashboardScreen extends StatefulWidget {
   final bool isAdmin;
    final String inviteLink;
+   
   const DashboardScreen({super.key, this.isAdmin = false, this.inviteLink = ''});
 
   @override
@@ -32,6 +32,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _currentIndex = 0;
+  bool _hasNotifications = false;
 
   String? _communityId;
   String _communityName = 'Community';
@@ -44,7 +45,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _checkLoggedInUser();
-    _fetchUserCommunity(); // fetch community automatically
+    _fetchUserCommunity(); 
+    _checkNotifications();
+
   }
 
   @override
@@ -69,6 +72,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
       print("❌ No user logged in");
     }
   }
+
+Future<void> _checkNotifications() async {
+  final supabase = Supabase.instance.client;
+  final user = supabase.auth.currentUser;
+
+  if (user == null) return;
+
+  try {
+    // Get user's community
+    final member = await supabase
+        .from('community_members')
+        .select('community_id')
+        .eq('user_id', user.id)
+        .single();
+
+    final communityId = member['community_id'];
+
+    // Get last seen time
+    final profile = await supabase
+        .from('profiles')
+        .select('last_notification_seen')
+        .eq('user_id', user.id)
+        .single();
+
+    final lastSeen = profile['last_notification_seen'];
+
+    // Fetch new notifications after last seen
+    final data = await supabase
+        .from('notifications')
+        .select('id')
+        .eq('community_id', communityId)
+        .gt('created_at', lastSeen ?? '1970-01-01');
+
+    setState(() {
+      _hasNotifications = data.isNotEmpty;
+    });
+  } catch (e) {
+    print("Notification check error: $e");
+  }
+}
+
 Future<void> _fetchUserCommunity() async {
   final supabase = Supabase.instance.client;
   final user = supabase.auth.currentUser;
@@ -291,19 +335,47 @@ Future<void> _fetchUserCommunity() async {
           style: TextStyle(color: dark, fontWeight: FontWeight.w600),
         ),
         iconTheme: const IconThemeData(color: dark),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const NotificationsScreen(),
-                ),
-              );
-            },
+ actions: [
+    Stack(
+      children: [
+      IconButton(
+  icon: const Icon(Icons.notifications_none),
+  onPressed: () async {
+    final user = Supabase.instance.client.auth.currentUser;
+
+    if (user != null) {
+      await Supabase.instance.client
+          .from('profiles')
+          .update({
+            'last_notification_seen': DateTime.now().toIso8601String()
+          })
+          .eq('user_id', user.id);
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const NotificationsScreen(),
+      ),
+    ).then((_) => _checkNotifications());
+  },
+),
+        if (_hasNotifications)
+          Positioned(
+            right: 10,
+            top: 10,
+            child: Container(
+              height: 10,
+              width: 10,
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+            ),
           ),
-        ],
+      ],
+    ),
+  ],
       ),
       body: DashboardBody(
         userName: _userName,

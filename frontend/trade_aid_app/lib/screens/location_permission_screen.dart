@@ -114,6 +114,15 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen>
         desiredAccuracy: LocationAccuracy.high,
       );
 
+      // 3.1️⃣ Store user coordinates into profile
+      final user = supabase.auth.currentUser;
+      if (user != null) {
+        await supabase.from('profiles').update({
+          'home_latitude': userLocation.latitude,
+          'home_longitude': userLocation.longitude,
+        }).eq('user_id', user.id);
+      }
+
       // 4️⃣ Fetch all communities
       final response = await supabase.from('communities').select();
       final List<Map<String, dynamic>> communities =

@@ -24,6 +24,7 @@ class UserRequest {
   final double rating;
   final String communityId;
   final String requesterId;
+  final String? profileImageUrl;
 
   UserRequest({
     required this.id,
@@ -32,6 +33,7 @@ class UserRequest {
     required this.rating,
     required this.communityId,
     required this.requesterId,
+    required this.profileImageUrl,
   });
 }
 
@@ -91,7 +93,7 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
       final pendingRequests = await supabase
           .from('community_join_requests')
           .select(
-            'id, status, created_at, requester_id, community_id, requester:profiles(full_name, address)',
+            'id, status, created_at, requester_id, community_id, requester:profiles(full_name, address, profile_image_url)',
           )
           .inFilter('community_id', communityIds)
           .eq('status', 'pending');
@@ -99,14 +101,16 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
       final List<UserRequest> tempRequests = [];
 
       for (var req in pendingRequests) {
+        final requester = (req['requester'] as Map?)?.cast<String, dynamic>();
         tempRequests.add(
           UserRequest(
             id: req['id'].toString(),
-            name: req['requester']['full_name'] ?? 'Unknown',
-            location: req['requester']['address'] ?? '',
+            name: requester?['full_name'] ?? 'Unknown',
+            location: requester?['address'] ?? '',
             rating: 0,
             communityId: req['community_id'],
             requesterId: req['requester_id'],
+            profileImageUrl: requester?['profile_image_url'],
           ),
         );
       }
@@ -292,15 +296,22 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
                           topRight: Radius.circular(20),
                         ),
                       ),
-                      child: const Center(
+                      child: Center(
                         child: CircleAvatar(
                           radius: 40,
                           backgroundColor: Colors.white,
-                          child: Icon(
-                            Icons.person,
-                            size: 45,
-                            color: AppColors.accentTeal,
-                          ),
+                          backgroundImage: (data.profileImageUrl != null &&
+                                  data.profileImageUrl!.trim().isNotEmpty)
+                              ? NetworkImage(data.profileImageUrl!.trim())
+                              : null,
+                          child: (data.profileImageUrl != null &&
+                                  data.profileImageUrl!.trim().isNotEmpty)
+                              ? null
+                              : const Icon(
+                                  Icons.person,
+                                  size: 45,
+                                  color: AppColors.accentTeal,
+                                ),
                         ),
                       ),
                     ),
@@ -402,6 +413,7 @@ class _RequestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final imageUrl = data.profileImageUrl?.trim();
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -423,10 +435,18 @@ class _RequestCard extends StatelessWidget {
               onTap: onProfileTap,
               child: Row(
                 children: [
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 26,
                     backgroundColor: Color(0xFFE0E0E0),
-                    child: Icon(Icons.person, color: AppColors.accentTeal),
+                    backgroundImage: (imageUrl != null && imageUrl.isNotEmpty)
+                        ? NetworkImage(imageUrl)
+                        : null,
+                    child: (imageUrl != null && imageUrl.isNotEmpty)
+                        ? null
+                        : const Icon(
+                            Icons.person,
+                            color: AppColors.accentTeal,
+                          ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(

@@ -37,64 +37,57 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
     super.initState();
     _fetchCommunityWishRequests();
   }
+Future<void> _fetchCommunityWishRequests() async {
+  setState(() => loading = true);
 
-  Future<void> _fetchCommunityWishRequests() async {
-    setState(() => loading = true);
+  try {
+    final supabase = Supabase.instance.client;
 
-    try {
-      final supabase = Supabase.instance.client;
+    final data = await supabase
+        .from('wish_requests')
+        .select('id,item_name,description,urgent,user_id,created_at')
+        .eq('community_id', widget.communityId)
+        .gte(
+          'created_at',
+          DateTime.now().subtract(const Duration(days: 7)).toIso8601String(),
+        )
+        .order('created_at', ascending: false);
 
-final List data = await supabase
-    .from('wish_requests')
-    .select('id,item_name,description,urgent,user_id,created_at')
-    .eq('community_id', widget.communityId)
-    .gte(
-      'created_at',
-      DateTime.now()
-          .subtract(const Duration(days: 7))
-          .toIso8601String(),
-    )
-    .order('created_at', ascending: false);
+    final List<Map<String, dynamic>> dataList =
+        List<Map<String, dynamic>>.from(data);
 
-      if (data.isEmpty) {
-        setState(() {
-          requests = [];
-          loading = false;
-        });
-        return;
-      }
+    debugPrint("Fetched wish requests: ${dataList.length}");
 
-      final mapped = await Future.wait((data).map((r) async {
-        final profile = await supabase
-            .from('profiles')
-            .select('full_name')
-            .eq('user_id', r['user_id'])
-            .maybeSingle();
+    final mapped = await Future.wait(dataList.map((r) async {
+      final profile = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('user_id', r['user_id'])
+          .maybeSingle();
 
-        return {
-          'id': r['id'],
-          'requester': profile?['full_name'] ?? 'Unknown',
-          'requesterId': r['user_id'],
-          'item': r['item_name'],
-          'description': r['description'],
-          'urgency': r['urgent'] == true ? 'High' : 'Normal',
-          'timeAgo': _formatTimeAgo(DateTime.parse(r['created_at'])),
-        };
-      }).toList());
+      return {
+        'id': r['id'],
+        'requester': profile?['full_name'] ?? 'Unknown',
+        'requesterId': r['user_id'],
+        'item': r['item_name'],
+        'description': r['description'],
+        'urgency': r['urgent'] == true ? 'High' : 'Normal',
+        'timeAgo': _formatTimeAgo(DateTime.parse(r['created_at'])),
+      };
+    }).toList());
 
-      setState(() {
-        requests = mapped;
-        loading = false;
-      });
-    } catch (e) {
-      debugPrint("Error fetching requests: $e");
-      setState(() {
-        loading = false;
-        requests = [];
-      });
-    }
+    setState(() {
+      requests = mapped;
+      loading = false;
+    });
+  } catch (e) {
+    debugPrint("Error fetching requests: $e");
+    setState(() {
+      requests = [];
+      loading = false;
+    });
   }
-
+}
   String _formatTimeAgo(DateTime createdAt) {
     final diff = DateTime.now().difference(createdAt);
 
@@ -396,7 +389,8 @@ final List data = await supabase
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) => ChatScreen(
-                                    sellerName: request['requester'],
+                                         sellerName: request['requester'],
+      receiverId: request['requesterId'],
                                   ),
                                 ),
                               );
