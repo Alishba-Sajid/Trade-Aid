@@ -115,17 +115,36 @@ Future<List<Map<String, dynamic>>> getRecentChats() async {
    // ─────────────────────────────
   // STREAM MESSAGES FOR RECENT MSGS
   // ─────────────────────────────
-Stream<List<Map<String, dynamic>>> getRecentChatsStream() {
+Stream<List<Map<String, dynamic>>> getRecentChatsStream() async* {
   final userId = _supabase.auth.currentUser!.id;
 
-  return _supabase
+  // 🔹 preload profiles once
+  final profiles = await _supabase
+      .from('profiles')
+      .select('user_id, full_name, profile_image_url, address');
+
+  final profileMap = {
+    for (var p in profiles) p['user_id']: p
+  };
+
+  yield* _supabase
       .from('conversations')
       .stream(primaryKey: ['id'])
       .order('last_message_at', ascending: false)
       .map((data) {
-        return data.where((chat) =>
-            chat['user1_id'] == userId ||
-            chat['user2_id'] == userId).toList();
+
+        final filtered = data.where((chat) =>
+            (chat['user1_id'] == userId ||
+             chat['user2_id'] == userId) &&
+            chat['last_message_at'] != null).toList();
+
+        return filtered.map((chat) {
+          return {
+            ...chat,
+            'user1': profileMap[chat['user1_id']],
+            'user2': profileMap[chat['user2_id']],
+          };
+        }).toList();
       });
 }
   // ─────────────────────────────
@@ -224,5 +243,25 @@ Future<void> deleteMessage(String messageId, String? mediaUrl) async {
       .from('messages')
       .delete()
       .eq('id', messageId);
+}
+// ─────────────────────────────
+// GLOBAL UNREAD INDICATOR STREAM
+// ─────────────────────────────
+Stream<bool> hasUnreadMessages() {
+  final userId = _supabase.auth.currentUser!.id;
+
+  return _supabase
+      .from('conversations')
+      .stream(primaryKey: ['id'])
+      .map((data) {
+
+        final hasUnread = data.any((chat) =>
+            (chat['user1_id'] == userId ||
+             chat['user2_id'] == userId) &&
+            (chat['unread_count'] ?? 0) > 0 &&
+            chat['last_sender_id'] != userId);
+
+        return hasUnread;
+      });
 }
 }

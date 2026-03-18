@@ -199,8 +199,8 @@ void _listenToConversationChanges() {
 
   /// ====================== Recent Chats ======================
   Widget _buildRecentChats() {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-  future: _chatService.getRecentChats(),
+   return StreamBuilder<List<Map<String, dynamic>>>(
+  stream: _chatService.getRecentChatsStream(),
       builder: (context, snapshot) {
 
       if (snapshot.connectionState == ConnectionState.waiting) {
@@ -251,15 +251,20 @@ final filteredChats = chats.where((chat) {
        return Stack(
   children: [
 
-    ListTile(
-      leading: CircleAvatar(
-        backgroundImage: profile['profile_image_url'] != null
-            ? NetworkImage(profile['profile_image_url'])
-            : null,
-        child: profile['profile_image_url'] == null
-            ? const Icon(Icons.person)
-            : null,
-      ),
+    ListTile(leading: CircleAvatar(
+  radius: 26,
+  backgroundColor: accent.withOpacity(0.15),
+
+  backgroundImage: (profile['profile_image_url'] != null &&
+          profile['profile_image_url'].toString().isNotEmpty)
+      ? NetworkImage(profile['profile_image_url'])
+      : null,
+
+  child: (profile['profile_image_url'] == null ||
+          profile['profile_image_url'].toString().isEmpty)
+      ? const Icon(Icons.person, color: Colors.grey)
+      : null,
+),
 
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -362,14 +367,20 @@ if (!snapshot.hasData || snapshot.data!.isEmpty) {
             final member = filteredMembers[index];
 
             return ListTile(
-              leading: CircleAvatar(
-                backgroundImage: member.imageUrl != null
-                    ? NetworkImage(member.imageUrl!)
-                    : null,
-                child: member.imageUrl == null
-                    ? const Icon(Icons.person)
-                    : null,
-              ),
+            leading: CircleAvatar(
+  radius: 26,
+  backgroundColor: accent.withOpacity(0.15),
+
+  backgroundImage: (member.imageUrl != null &&
+          member.imageUrl!.isNotEmpty)
+      ? NetworkImage(member.imageUrl!)
+      : null,
+
+  child: (member.imageUrl == null ||
+          member.imageUrl!.isEmpty)
+      ? const Icon(Icons.person, color: Colors.grey)
+      : null,
+),
              title: Column(
   crossAxisAlignment: CrossAxisAlignment.start,
   children: [

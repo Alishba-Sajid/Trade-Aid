@@ -7,6 +7,7 @@ import 'notification_screen.dart';
 import '../chat/chat_list_screen.dart';
 import '../cart_screen.dart';
 import '../profile/profile.dart';
+import '/services/chat_service.dart';
 
 const LinearGradient appGradient = LinearGradient(
   colors: [
@@ -390,9 +391,41 @@ Future<void> _fetchUserCommunity() async {
         selectedItemColor: appGradient.colors[1],
         unselectedItemColor: Colors.black45,
         type: BottomNavigationBarType.fixed,
-        items: const [
+        items:  [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Chat'),
+          BottomNavigationBarItem(
+  label: 'Chat',
+  icon: StreamBuilder<bool>(
+    stream: ChatService().hasUnreadMessages(),
+    builder: (context, snapshot) {
+
+      final hasUnread = snapshot.data ?? false;
+
+      return Stack(
+        clipBehavior: Clip.none,
+        children: [
+
+          const Icon(Icons.chat),
+
+          /// 🔴 GLOBAL UNREAD DOT
+          if (hasUnread)
+            Positioned(
+              right: -2,
+              top: -2,
+              child: Container(
+                width: 10,
+                height: 10,
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+        ],
+      );
+    },
+  ),
+),
           BottomNavigationBarItem(icon: Icon(Icons.add_box), label: 'Post'),
           BottomNavigationBarItem(
               icon: Icon(Icons.shopping_cart), label: 'Cart'),
