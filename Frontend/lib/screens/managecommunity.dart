@@ -1,67 +1,50 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'viewcommunitydetails.dart';
 
 class ManageCommunityScreen extends StatefulWidget {
   const ManageCommunityScreen({super.key});
 
   @override
-  State<ManageCommunityScreen> createState() => _ManageCommunityScreenState();
+  State<ManageCommunityScreen> createState() =>
+      _ManageCommunityScreenState();
 }
 
 class _ManageCommunityScreenState extends State<ManageCommunityScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
+  final supabase = Supabase.instance.client;
+
   String searchQuery = '';
   String selectedAdmin = 'All';
 
-  final List<String> adminOptions = const [
-    'All',
-    'Sana Zafar',
-    'Nimrah Shoaib',
-    'Zafar Ullah',
-    'Shoukat Ali',
-  ];
+  List<Map<String, dynamic>> communityData = [];
 
-  final List<Map<String, dynamic>> communityData = const [
-    {
-      "id": "KE-5247",
-      "name": "Oakenwood Community",
-      "members": 120,
-      "admin": "Sana Zafar",
-      "items": 500,
-      "beneficiaries": 300
-    },
-    {
-      "id": "CA-8912",
-      "name": "Sunnyvale Residents",
-      "members": 85,
-      "admin": "Nimrah Shoaib",
-      "items": 350,
-      "beneficiaries": 200
-    },
-    {
-      "id": "TX-3456",
-      "name": "Airport Neighbors",
-      "members": 200,
-      "admin": "Zafar Ullah",
-      "items": 700,
-      "beneficiaries": 450
-    },
-    {
-      "id": "NY-7890",
-      "name": "Gulistan Locals",
-      "members": 150,
-      "admin": "Shoukat Ali",
-      "items": 600,
-      "beneficiaries": 350
-    },
-  ];
+  /// 🔥 FETCH DATA
+  Future<void> fetchCommunities() async {
+    final response =
+        await supabase.from('community_management').select();
+
+    setState(() {
+      communityData = List<Map<String, dynamic>>.from(response);
+    });
+  }
+
+  /// 🔽 ADMIN FILTER LIST
+  List<String> get adminOptions {
+    final admins =
+        communityData.map((e) => e['admin'].toString()).toSet();
+    return ['All', ...admins];
+  }
 
   @override
   void initState() {
     super.initState();
+
+    fetchCommunities();
+
     _controller =
         AnimationController(vsync: this, duration: const Duration(seconds: 12))
           ..repeat();
@@ -73,17 +56,18 @@ class _ManageCommunityScreenState extends State<ManageCommunityScreen>
     super.dispose();
   }
 
-  // ✅ SAFE FILTER LOGIC (NO WEB ERRORS)
+  /// 🔍 FILTER LOGIC
   List<Map<String, dynamic>> get filteredCommunities {
     final query = searchQuery.trim().toLowerCase();
 
     return communityData.where((data) {
       final name = (data['name'] ?? '').toString().toLowerCase();
       final admin = (data['admin'] ?? '').toString().toLowerCase();
-      final id = (data['id'] ?? '').toString().toLowerCase();
 
       final matchesSearch =
-          query.isEmpty || name.contains(query) || admin.contains(query) || id.contains(query);
+          query.isEmpty ||
+              name.contains(query) ||
+              admin.contains(query);
 
       final matchesAdmin =
           selectedAdmin == 'All' || data['admin'] == selectedAdmin;
@@ -100,7 +84,7 @@ class _ManageCommunityScreenState extends State<ManageCommunityScreen>
         builder: (context, _) {
           return Stack(
             children: [
-              // 🌊 Background
+              /// 🌊 Background
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -118,7 +102,7 @@ class _ManageCommunityScreenState extends State<ManageCommunityScreen>
                 ),
               ),
 
-              // 📦 Main Card
+              /// 📦 MAIN CARD
               Padding(
                 padding: const EdgeInsets.all(24),
                 child: Container(
@@ -144,7 +128,7 @@ class _ManageCommunityScreenState extends State<ManageCommunityScreen>
                       ),
                       const SizedBox(height: 16),
 
-                      // 🔍 Search + Admin Filter
+                      /// 🔍 SEARCH + FILTER
                       Row(
                         children: [
                           Expanded(
@@ -154,9 +138,10 @@ class _ManageCommunityScreenState extends State<ManageCommunityScreen>
                               decoration: InputDecoration(
                                 prefixIcon: const Icon(Icons.search),
                                 hintText:
-                                    "Search by community, admin, or ID",
+                                    "Search by community or admin",
                                 filled: true,
-                                 fillColor: const Color.fromARGB(255, 238, 235, 235),
+                                fillColor:
+                                    const Color.fromARGB(255, 238, 235, 235),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
                                   borderSide: BorderSide.none,
@@ -171,58 +156,70 @@ class _ManageCommunityScreenState extends State<ManageCommunityScreen>
 
                       const SizedBox(height: 20),
 
-                      // 📊 TABLE
+                      /// 📊 TABLE (SCROLL FIXED)
                       Expanded(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: ConstrainedBox(
-                            constraints:
-                                const BoxConstraints(minWidth: 1400),
-                            child: DataTable(
-                              columnSpacing: 70,
-                              headingRowColor:
-                                  WidgetStateColor.resolveWith(
-                                      (_) => Colors.grey.shade100),
-                              columns: const [
-                                DataColumn(label: Text("ID", style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text("Name", style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text("Members", style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text("Admin", style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text("Items", style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text("Beneficiaries", style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text("Actions", style: TextStyle(fontWeight: FontWeight.bold))),
-                              ],
-                              rows: filteredCommunities.map((data) {
-                                return DataRow(cells: [
-                                  DataCell(Text(data['id'].toString())),
-                                  DataCell(Text(data['name'].toString())),
-                                  DataCell(Text(data['members'].toString())),
-                                  DataCell(Text(data['admin'].toString())),
-                                  DataCell(Text(data['items'].toString())),
-                                  DataCell(Text(data['beneficiaries'].toString())),
-                                  DataCell(
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (_) =>
-                                                const CommunityDetails(),
+                        child: communityData.isEmpty
+                            ? const Center(
+                                child: CircularProgressIndicator())
+                            : SingleChildScrollView( // ✅ vertical
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal, // ✅ horizontal
+                                  child: ConstrainedBox(
+                                    constraints:
+                                        const BoxConstraints(minWidth: 1400),
+                                    child: DataTable(
+                                      columnSpacing: 70,
+                                      headingRowColor:
+                                          WidgetStateColor.resolveWith(
+                                              (_) =>
+                                                  Colors.grey.shade100),
+                                      columns: const [
+                                        DataColumn(label: Text("Name",style: TextStyle(
+                                              fontWeight: FontWeight.bold))),
+                                        DataColumn(label: Text("Members",style: TextStyle(
+                                              fontWeight: FontWeight.bold))),
+                                        DataColumn(label: Text("Admin",style: TextStyle(
+                                              fontWeight: FontWeight.bold))),
+                                        DataColumn(label: Text("Items",style: TextStyle(
+                                              fontWeight: FontWeight.bold))),
+                                        DataColumn(
+                                            label: Text("Beneficiaries",style: TextStyle(
+                                              fontWeight: FontWeight.bold))),
+                                        DataColumn(label: Text("Actions", style: TextStyle(
+                                              fontWeight: FontWeight.bold))),
+                                      ],
+                                      rows: filteredCommunities.map((data) {
+                                        return DataRow(cells: [
+                                          DataCell(
+                                              Text(data['name'].toString())),
+                                          DataCell(Text(
+                                              data['members'].toString())),
+                                          DataCell(
+                                              Text(data['admin'].toString())),
+                                          DataCell(
+                                              Text(data['items'].toString())),
+                                          DataCell(Text(data['beneficiaries']
+                                              .toString())),
+                                          DataCell(
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (_) =>
+                                                        const CommunityDetails(),
+                                                  ),
+                                                );
+                                              },
+                                              child: const Text("View"),
+                                            ),
                                           ),
-                                        );
-                                      },
-                                      child: const Text(
-                                        "View",
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold),
-                                      ),
+                                        ]);
+                                      }).toList(),
                                     ),
                                   ),
-                                ]);
-                              }).toList(),
-                            ),
-                          ),
-                        ),
+                                ),
+                              ),
                       ),
                     ],
                   ),
@@ -235,6 +232,7 @@ class _ManageCommunityScreenState extends State<ManageCommunityScreen>
     );
   }
 
+  /// 🔽 DROPDOWN
   Widget _buildDropdown() {
     return DropdownButtonHideUnderline(
       child: DropdownButton<String>(

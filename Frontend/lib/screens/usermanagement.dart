@@ -21,37 +21,31 @@ class _UserManagementScreenState extends State<UserManagementScreen>
 
   final supabase = Supabase.instance.client;
 
-  /// 🔹 USERS FROM DATABASE
+  /// USERS FROM DATABASE
   List<Map<String, dynamic>> users = [];
 
-  /// 🔹 FILTER STATES
-  String selectedStatus = "All";
+  /// FILTER STATES
   String selectedUser = "All";
   String searchText = "";
 
-  final List<String> statusOptions = ["All", "Active", "Suspended", "Banned"];
-
-  /// 🔹 FETCH USERS FROM SUPABASE
+  /// FETCH USERS FROM SUPABASE
   Future<void> fetchUsers() async {
-  final response = await supabase.from('profiles').select();
+    final response = await supabase.from('profiles').select();
 
-  debugPrint(response.toString()); // 👈 important
-
-  setState(() {
-    users = List<Map<String, dynamic>>.from(response);
-  });
-}
+    setState(() {
+      users = List<Map<String, dynamic>>.from(response);
+    });
+  }
 
   List<String> get userNames =>
       ["All", ...users.map((u) => u["full_name"] ?? "").toSet()];
 
-  /// 🔹 FILTER LOGIC
+  /// FILTER LOGIC
   List<Map<String, dynamic>> get filteredUsers {
     return users.where((u) {
       final name = (u["full_name"] ?? "").toString();
 
-      final matchesUser =
-          selectedUser == "All" || name == selectedUser;
+      final matchesUser = selectedUser == "All" || name == selectedUser;
 
       final matchesSearch =
           name.toLowerCase().contains(searchText.toLowerCase());
@@ -64,7 +58,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
   void initState() {
     super.initState();
 
-    fetchUsers(); // 🔹 Load users
+    fetchUsers();
 
     _controller =
         AnimationController(vsync: this, duration: const Duration(seconds: 12))
@@ -115,7 +109,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                   ),
                   const SizedBox(height: 20),
 
-                  /// 🔍 SEARCH + DROPDOWNS
+                  /// SEARCH + DROPDOWN
                   Row(
                     children: [
                       Expanded(
@@ -140,15 +134,14 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                       _dropdown(
                         value: selectedUser,
                         items: userNames,
-                        onChanged: (v) =>
-                            setState(() => selectedUser = v),
+                        onChanged: (v) => setState(() => selectedUser = v),
                       ),
                     ],
                   ),
 
                   const SizedBox(height: 25),
 
-                  /// 📊 TABLE
+                  /// DATA TABLE
                   Expanded(
                     child: users.isEmpty
                         ? const Center(child: CircularProgressIndicator())
@@ -162,37 +155,57 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                                     WidgetStateProperty.all(subtleGrey),
                                 columnSpacing: 50,
                                 columns: const [
-                                  DataColumn(label: Text("id", style: TextStyle(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text("user_id", style: TextStyle(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text("full_name", style: TextStyle(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text("gender", style: TextStyle(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text("phone", style: TextStyle(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text("address", style: TextStyle(fontWeight: FontWeight.bold))),
+                                  DataColumn(
+                                      label: Text("Full Name",
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold))),
+                                  DataColumn(
+                                      label: Text("Gender",
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold))),
+                                  DataColumn(
+                                      label: Text("Phone",
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold))),
+                                  DataColumn(
+                                      label: Text("Address",
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold))),
+                                  DataColumn(
+                                      label: Text("Action",
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold))),
                                 ],
-                               rows: filteredUsers.map((user) {
-  return DataRow(cells: [
-    DataCell(Text(user["id"].toString())),
-    DataCell(Text(user["user_id"].toString())),
-    DataCell(Text(user["full_name"] ?? "")),
-    DataCell(Text(user["gender"] ?? "")),
-    DataCell(Text(user["phone"] ?? "")),
-    DataCell(
-      TextButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => UserProfileScreen(
-                user: user.map((k, v) => MapEntry(k, v.toString())),
-              ),
-            ),
-          );
-        },
-        child: const Text("View"),
-      ),
-    ),
-  ]);
-}).toList(),
+
+                                /// TABLE ROWS
+                                rows: filteredUsers.map((user) {
+                                  return DataRow(cells: [
+                                    DataCell(Text(user["full_name"] ?? "")),
+                                    DataCell(Text(user["gender"] ?? "")),
+                                    DataCell(Text(user["phone"] ?? "")),
+                                    DataCell(Text(user["address"] ?? "")),
+
+                                    /// ACTION COLUMN
+                                    DataCell(
+                                      TextButton(
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  UserProfileScreen(
+                                                user: user.map((k, v) =>
+                                                    MapEntry(
+                                                        k, v.toString())),
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                        child: const Text("View"),
+                                      ),
+                                    ),
+                                  ]);
+                                }).toList(),
                               ),
                             ),
                           ),
@@ -206,7 +219,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
     );
   }
 
-  /// 🔽 DROPDOWN
+  /// DROPDOWN
   Widget _dropdown({
     required String value,
     required List<String> items,
