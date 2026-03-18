@@ -27,6 +27,7 @@ dependencies:
   just_audio: ^0.9.37
   app_links: ^3.4.1
   
+  
 
 
 dev_dependencies:
@@ -56,6 +57,8 @@ flutter:
     - assets/verify-code.png
     - assets/reset_pass.png
     - assets/help.png
+    - assets/google.png
+    
     
 
   fonts:

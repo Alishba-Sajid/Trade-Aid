@@ -1,5 +1,5 @@
+// lib/screens/login_screen.dart
 import 'package:flutter/material.dart';
-import '../widgets/social_auth_section.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -70,7 +70,6 @@ class _LoginScreenState extends State<LoginScreen>
     return null;
   }
 
-  // ✅ Replace snackbar with animated card
   void _showAnimatedCard(String message, {IconData? icon}) {
     final overlay = Overlay.of(context);
 
@@ -102,11 +101,19 @@ class _LoginScreenState extends State<LoginScreen>
 
       if (user != null) {
         if (!mounted) return;
-
         await _handlePostLoginFlow(user.id);
       }
     } on AuthException catch (e) {
-      _showAnimatedCard(e.message, icon: Icons.error);
+      final message = e.message.toLowerCase();
+
+      if (message.contains("invalid login credentials")) {
+        _showAnimatedCard(
+          "This account was created using Google. Please use social login.",
+          icon: Icons.info,
+        );
+      } else {
+        _showAnimatedCard(e.message, icon: Icons.error);
+      }
     } catch (e) {
       _showAnimatedCard("Login failed", icon: Icons.error);
     }
@@ -116,12 +123,10 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
-  // ✅ NEW LOGIC: Flow controller after login
   Future<void> _handlePostLoginFlow(String userId) async {
     final supabase = Supabase.instance.client;
 
     try {
-      // 1️⃣ Check if profile exists
       final profile = await supabase
           .from('profiles')
           .select()
@@ -138,19 +143,17 @@ class _LoginScreenState extends State<LoginScreen>
         return;
       }
 
-      // 2️⃣ Check if approved member
-     final membership = await supabase
-    .from('community_members')
-    .select('community_id')
-    .eq('user_id', userId)
-    .maybeSingle();
+      final membership = await supabase
+          .from('community_members')
+          .select('community_id')
+          .eq('user_id', userId)
+          .maybeSingle();
 
       if (membership != null) {
         Navigator.pushReplacementNamed(context, '/dashboard');
         return;
       }
 
-      // 3️⃣ Check if pending request
       final pendingRequest = await supabase
           .from('community_join_requests')
           .select()
@@ -159,16 +162,13 @@ class _LoginScreenState extends State<LoginScreen>
           .maybeSingle();
 
       if (pendingRequest != null) {
-        // ✅ Show only animated card, DO NOT navigate anywhere
         _showAnimatedCard(
           "Your community join request is still pending approval.",
           icon: Icons.pending,
         );
-        return; // Exit here to avoid showing location card
+        return;
       }
 
-      // 4️⃣ Only show location permission card if user hasn't done location/community step
-      // Assuming if profile exists but no membership and no pending request, they need location
       _showAnimatedCard(
         "Please allow location access to continue.",
         icon: Icons.location_on,
@@ -178,6 +178,45 @@ class _LoginScreenState extends State<LoginScreen>
     } catch (e) {
       _showAnimatedCard("Error determining flow: $e", icon: Icons.error);
     }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    try {
+      await supabase.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: 'io.supabase.flutter://login-callback',
+      );
+    } catch (e) {
+      _showAnimatedCard("Google login failed", icon: Icons.error);
+    }
+  }
+
+  Widget _buildField({
+    required TextEditingController controller,
+    required FocusNode focusNode,
+    required String label,
+    bool obscure = false,
+    Widget? suffix,
+    TextInputType keyboard = TextInputType.text,
+    String? Function(String?)? validator,
+    VoidCallback? onSubmit,
+  }) {
+    return TextFormField(
+      controller: controller,
+      focusNode: focusNode,
+      obscureText: obscure,
+      keyboardType: keyboard,
+      validator: validator,
+      textInputAction: onSubmit == null
+          ? TextInputAction.next
+          : TextInputAction.done,
+      onFieldSubmitted: (_) => onSubmit?.call(),
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        suffixIcon: suffix,
+      ),
+    );
   }
 
   @override
@@ -338,8 +377,42 @@ class _LoginScreenState extends State<LoginScreen>
                                 ),
                               ),
                               const SizedBox(height: 20),
-                              const SocialAuthSection(
-                                title: "Or login using social media",
+                              // ✅ Google-only button
+                              Center(
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  height: 50,
+                                  child: ElevatedButton.icon(
+                                    icon: Image.asset(
+                                      'assets/google.png',
+                                      height: 24,
+                                      width: 24,
+                                    ),
+                                    label: const Text(
+                                      "Continue with Google",
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    onPressed: _signInWithGoogle,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      foregroundColor: Colors.black87,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      side: const BorderSide(
+                                        color: Color.fromARGB(
+                                          255,
+                                          17,
+                                          158,
+                                          144,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
                               const SizedBox(height: 24),
                               Row(
@@ -379,37 +452,9 @@ class _LoginScreenState extends State<LoginScreen>
       ),
     );
   }
-
-  Widget _buildField({
-    required TextEditingController controller,
-    required FocusNode focusNode,
-    required String label,
-    bool obscure = false,
-    Widget? suffix,
-    TextInputType keyboard = TextInputType.text,
-    String? Function(String?)? validator,
-    VoidCallback? onSubmit,
-  }) {
-    return TextFormField(
-      controller: controller,
-      focusNode: focusNode,
-      obscureText: obscure,
-      keyboardType: keyboard,
-      validator: validator,
-      textInputAction: onSubmit == null
-          ? TextInputAction.next
-          : TextInputAction.done,
-      onFieldSubmitted: (_) => onSubmit?.call(),
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        suffixIcon: suffix,
-      ),
-    );
-  }
 }
 
-// ✅ Animated card widget
+// ✅ Keep AnimatedCard as-is
 class AnimatedCard extends StatefulWidget {
   final String message;
   final IconData? icon;
@@ -428,7 +473,6 @@ class _AnimatedCardState extends State<AnimatedCard>
   @override
   void initState() {
     super.initState();
-
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
@@ -438,7 +482,6 @@ class _AnimatedCardState extends State<AnimatedCard>
       begin: const Offset(0, 1),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-
     _controller.forward();
   }
 

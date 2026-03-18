@@ -1,9 +1,7 @@
-// lib/screens/create_account.dart
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../widgets/social_auth_section.dart';
 
-// ✅ Animated card widget (same as login screen)
+// ✅ Animated card widget
 class AnimatedCard extends StatefulWidget {
   final String message;
   final IconData? icon;
@@ -22,18 +20,15 @@ class _AnimatedCardState extends State<AnimatedCard>
   @override
   void initState() {
     super.initState();
-
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-
     _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
     _offsetAnim = Tween<Offset>(
       begin: const Offset(0, 1),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-
     _controller.forward();
   }
 
@@ -52,7 +47,6 @@ class _AnimatedCardState extends State<AnimatedCard>
         child: Material(
           elevation: 8,
           borderRadius: BorderRadius.circular(12),
-          color: Colors.white,
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
             decoration: BoxDecoration(
@@ -60,11 +54,9 @@ class _AnimatedCardState extends State<AnimatedCard>
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: const Color.fromARGB(255, 17, 158, 144),
-                width: 1,
               ),
             ),
             child: Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
                 if (widget.icon != null)
                   Icon(
@@ -98,7 +90,6 @@ class CreateAccountScreen extends StatefulWidget {
 class _CreateAccountScreenState extends State<CreateAccountScreen>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -127,6 +118,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
     );
 
     _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
+
     _slideAnim = Tween<Offset>(begin: const Offset(0, 0.15), end: Offset.zero)
         .animate(
           CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
@@ -140,19 +132,21 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+
     _emailFocus.dispose();
     _passwordFocus.dispose();
     _confirmPasswordFocus.dispose();
+
     _animController.dispose();
     super.dispose();
   }
 
-  // ✅ Show animated card
+  // ✅ Animated message
   void _showAnimatedCard(String message, {IconData? icon}) {
     final overlay = Overlay.of(context);
 
     final overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
+      builder: (_) => Positioned(
         bottom: 50,
         left: 20,
         right: 20,
@@ -161,20 +155,23 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
     );
 
     overlay.insert(overlayEntry);
-    Future.delayed(const Duration(seconds: 2), () => overlayEntry.remove());
+
+    Future.delayed(const Duration(seconds: 2), () {
+      overlayEntry.remove();
+    });
   }
 
+  // ✅ Validation
   String? _validateEmail(String? v) {
     if (v == null || v.trim().isEmpty) return 'Email is required';
-    final email = v.trim();
     final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
-    if (!emailRegex.hasMatch(email)) return 'Enter a valid email';
+    if (!emailRegex.hasMatch(v.trim())) return 'Enter a valid email';
     return null;
   }
 
   String? _validatePassword(String? v) {
     if (v == null || v.trim().isEmpty) return 'Password is required';
-    if (v.trim().length < 6) return 'Password must be at least 6 characters';
+    if (v.length < 6) return 'Password must be at least 6 characters';
     return null;
   }
 
@@ -183,6 +180,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
     return null;
   }
 
+  // ✅ Email signup
   Future<void> _onNextPressed() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -198,17 +196,26 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
         _showAnimatedCard("Account created successfully 🎉", icon: Icons.check);
         Navigator.pushNamed(context, '/create_profile');
       } else if (response.session == null) {
-        _showAnimatedCard(
-          "Check your email for verification link before logging in.",
-          icon: Icons.info,
-        );
+        _showAnimatedCard("Check email for verification", icon: Icons.info);
       }
     } on AuthException catch (e) {
       _showAnimatedCard(e.message, icon: Icons.error);
-    } catch (e) {
+    } catch (_) {
       _showAnimatedCard("Unexpected error occurred", icon: Icons.error);
-    } finally {
-      setState(() => _isLoading = false);
+    }
+
+    setState(() => _isLoading = false);
+  }
+
+  // ✅ Google login
+  Future<void> _signInWithGoogle() async {
+    try {
+      await supabase.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: 'io.supabase.flutter://login-callback',
+      );
+    } catch (e) {
+      _showAnimatedCard("Google login failed", icon: Icons.error);
     }
   }
 
@@ -216,16 +223,12 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           Container(
             height: 280,
-            width: double.infinity,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
                 colors: [
                   Color.fromARGB(255, 15, 119, 124),
                   Color.fromARGB(255, 17, 158, 144),
@@ -241,21 +244,13 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
                 child: Column(
                   children: [
                     const SizedBox(height: 15),
-                    Image.asset(
-                      'assets/whitenamelogo.png',
-                      height: 130,
-                      width: 130,
-                    ),
+                    Image.asset('assets/whitenamelogo.png', height: 130),
                     const SizedBox(height: 30),
+
                     FadeTransition(
-                      opacity: _fadeAnim ?? const AlwaysStoppedAnimation(1.0),
+                      opacity: _fadeAnim!,
                       child: SlideTransition(
-                        position:
-                            _slideAnim ??
-                            Tween<Offset>(
-                              begin: Offset.zero,
-                              end: Offset.zero,
-                            ).animate(_animController),
+                        position: _slideAnim!,
                         child: Container(
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
@@ -285,6 +280,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
                                 style: TextStyle(color: Colors.grey),
                               ),
                               const SizedBox(height: 30),
+
                               _buildField(
                                 controller: _emailController,
                                 focusNode: _emailFocus,
@@ -297,7 +293,9 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
                                   ).requestFocus(_passwordFocus);
                                 },
                               ),
+
                               const SizedBox(height: 20),
+
                               _buildField(
                                 controller: _passwordController,
                                 focusNode: _passwordFocus,
@@ -322,7 +320,9 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
                                   ).requestFocus(_confirmPasswordFocus);
                                 },
                               ),
+
                               const SizedBox(height: 20),
+
                               _buildField(
                                 controller: _confirmPasswordController,
                                 focusNode: _confirmPasswordFocus,
@@ -344,7 +344,9 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
                                 ),
                                 onSubmit: _onNextPressed,
                               ),
+
                               const SizedBox(height: 30),
+
                               SizedBox(
                                 width: double.infinity,
                                 height: 50,
@@ -357,9 +359,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
                                       158,
                                       144,
                                     ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
                                   ),
                                   child: _isLoading
                                       ? const CircularProgressIndicator(
@@ -370,14 +369,49 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
                                           style: TextStyle(
                                             fontSize: 18,
                                             color: Colors.white,
-                                            fontWeight: FontWeight.w600,
                                           ),
                                         ),
                                 ),
                               ),
+
                               const SizedBox(height: 20),
-                              const SocialAuthSection(
-                                title: "Or continue with",
+
+                              // ✅ Google (same UI style as before)
+                              Center(
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  height: 50,
+                                  child: ElevatedButton.icon(
+                                    icon: Image.asset(
+                                      'assets/google.png',
+                                      height: 24,
+                                      width: 24,
+                                    ),
+                                    label: const Text(
+                                      "Continue with Google",
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    onPressed: _signInWithGoogle,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      foregroundColor: Colors.black87,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      side: const BorderSide(
+                                        color: Color.fromARGB(
+                                          255,
+                                          17,
+                                          158,
+                                          144,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ],
                           ),

@@ -68,16 +68,89 @@ class TradeAidApp extends StatefulWidget {
 }
 
 class _TradeAidAppState extends State<TradeAidApp> {
+  // ✅ CENTRAL ROUTING FUNCTION
+  Future<void> _handleUserRouting() async {
+    final user = Supabase.instance.client.auth.currentUser;
+
+    if (user == null) return;
+
+    final supabase = Supabase.instance.client;
+
+    try {
+      // 1️⃣ Profile check
+      final profile = await supabase
+          .from('profiles')
+          .select()
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+      if (profile == null) {
+        navigatorKey.currentState?.pushNamed('/create_profile');
+        return;
+      }
+
+      // 2️⃣ Community membership
+      final membership = await supabase
+          .from('community_members')
+          .select('community_id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+      if (membership != null) {
+        navigatorKey.currentState?.pushNamed('/dashboard');
+        return;
+      }
+
+      // 3️⃣ Pending request
+      final pending = await supabase
+          .from('community_join_requests')
+          .select()
+          .eq('requester_id', user.id)
+          .eq('status', 'pending')
+          .maybeSingle();
+
+      if (pending != null) {
+        navigatorKey.currentState?.pushNamed('/waiting_approval');
+        return;
+      }
+
+      // 4️⃣ Otherwise → location
+      navigatorKey.currentState?.pushNamed('/location_permission');
+    } catch (e) {
+      print("Routing error: $e");
+    }
+  }
+
   @override
   void initState() {
     super.initState();
 
-    // Listen for Supabase password recovery event
+    // ✅ Handle app restart
+    final session = Supabase.instance.client.auth.currentSession;
+
+    if (session != null) {
+      Future.microtask(() => _handleUserRouting());
+    }
+
+    // ✅ Auth state listener
     Supabase.instance.client.auth.onAuthStateChange.listen((data) {
       final event = data.event;
 
       if (event == AuthChangeEvent.passwordRecovery) {
         navigatorKey.currentState?.pushNamed('/new-password');
+        return;
+      }
+
+      if (event == AuthChangeEvent.signedIn) {
+        final provider = data.session?.user.appMetadata['provider'];
+
+        if (provider == 'google') {
+          _handleUserRouting();
+        }
+      }
+
+      if (event == AuthChangeEvent.signedOut) {
+        navigatorKey.currentState?.pushNamed('/login');
       }
     });
   }
@@ -88,6 +161,12 @@ class _TradeAidAppState extends State<TradeAidApp> {
       navigatorKey: navigatorKey,
       title: 'Trade & Aid',
       debugShowCheckedModeBanner: false,
+
+      // ✅ Prevent flicker
+      onUnknownRoute: (settings) {
+        return MaterialPageRoute(builder: (_) => const SizedBox());
+      },
+
       theme: ThemeData(
         primarySwatch: Colors.teal,
         scaffoldBackgroundColor: Colors.white,
@@ -208,10 +287,7 @@ class _TradeAidAppState extends State<TradeAidApp> {
           );
         }
 
-        return MaterialPageRoute(
-          builder: (_) =>
-              const Scaffold(body: Center(child: Text("Page not found"))),
-        );
+        return null;
       },
     );
   }

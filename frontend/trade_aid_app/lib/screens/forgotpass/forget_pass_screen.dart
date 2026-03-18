@@ -59,7 +59,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
     try {
       await Supabase.instance.client.auth.resetPasswordForEmail(
         _emailController.text.trim(),
-        redirectTo: 'io.supabase.tradeaid://reset-password',
+        redirectTo: 'tradeandaid://reset-password',
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
