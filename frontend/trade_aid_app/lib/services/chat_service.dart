@@ -55,16 +55,29 @@ Future<List<Map<String, dynamic>>> getRecentChats() async {
   final data = await _supabase
       .from('conversations')
       .select('''
-      id,
-      user1_id,
-      user2_id,
-      last_message_at,
-      user1:profiles!conversations_user1_id_fkey(full_name,profile_image_url),
-      user2:profiles!conversations_user2_id_fkey(full_name,profile_image_url)
+        id,
+        user1_id,
+        user2_id,
+        last_message_at,
+        last_sender_id,
+        unread_count,
+
+        user1:profiles!conversations_user1_fkey(
+          full_name,
+          profile_image_url,
+          address
+        ),
+
+        user2:profiles!conversations_user2_fkey(
+          full_name,
+          profile_image_url,
+          address
+        )
       ''')
-      .or('user1_id.eq.$userId,user2_id.eq.$userId')
-      .order('last_message_at', ascending: true);
-print(data);
+     .or('user1_id.eq.$userId,user2_id.eq.$userId')
+.not('last_message_at', 'is', null) // ✅ ONLY chats with messages
+.order('last_message_at', ascending: false);
+
   return List<Map<String, dynamic>>.from(data);
 }
 
@@ -99,7 +112,22 @@ print(data);
 
     return newConversation['id'];
   }
+   // ─────────────────────────────
+  // STREAM MESSAGES FOR RECENT MSGS
+  // ─────────────────────────────
+Stream<List<Map<String, dynamic>>> getRecentChatsStream() {
+  final userId = _supabase.auth.currentUser!.id;
 
+  return _supabase
+      .from('conversations')
+      .stream(primaryKey: ['id'])
+      .order('last_message_at', ascending: false)
+      .map((data) {
+        return data.where((chat) =>
+            chat['user1_id'] == userId ||
+            chat['user2_id'] == userId).toList();
+      });
+}
   // ─────────────────────────────
   // STREAM MESSAGES
   // ─────────────────────────────
@@ -113,23 +141,35 @@ print(data);
           data.map((msg) => ChatMessage.fromJson(msg)).toList());
 }
   // ─────────────────────────────
-  // SEND MESSAGE
-  // ─────────────────────────────
-  Future<void> sendMessage(String chatId, String text) async {
-    final userId = _supabase.auth.currentUser!.id;
+// SEND MESSAGE
+// ─────────────────────────────
+Future<void> sendMessage(String chatId, String text) async {
+  final userId = _supabase.auth.currentUser!.id;
 
-    await _supabase.from('messages').insert({
-      'conversation_id': chatId,
-      'sender_id': userId,
-      'message_text': text,
-    });
+  await _supabase.from('messages').insert({
+    'conversation_id': chatId,
+    'sender_id': userId,
+    'message_text': text,
+  });
 
-    await _supabase
-        .from('conversations')
-        .update({'last_message_at': DateTime.now().toIso8601String()})
-        .eq('id', chatId);
-  }
-  Future<void> sendMedia(String chatId, String mediaUrl) async {
+  final convo = await _supabase
+      .from('conversations')
+      .select('user1_id, user2_id, unread_count')
+      .eq('id', chatId)
+      .single();
+
+ 
+
+  await _supabase.from('conversations').update({
+    'last_message_at': DateTime.now().toIso8601String(),
+    'last_sender_id': userId,
+    'unread_count': (convo['unread_count'] ?? 0) + 1,
+  }).eq('id', chatId);
+}
+// ─────────────────────────────
+// SEND MEDIA
+// ─────────────────────────────
+Future<void> sendMedia(String chatId, String mediaUrl) async {
   final userId = Supabase.instance.client.auth.currentUser!.id;
 
   await Supabase.instance.client.from('messages').insert({
@@ -137,20 +177,39 @@ print(data);
     'sender_id': userId,
     'media_url': mediaUrl,
   });
+
+  await Supabase.instance.client
+      .from('conversations')
+      .update({
+        'last_message_at': DateTime.now().toIso8601String(),
+        'last_sender_id': userId,
+           })
+      .eq('id', chatId);
 }
-  // ─────────────────────────────
-  // MARK AS SEEN
-  // ─────────────────────────────
- Future<void> markMessagesAsSeen(String chatId) async {
+
+// ─────────────────────────────
+// MARK AS SEEN
+// ─────────────────────────────
+Future<void> markMessagesAsSeen(String chatId) async {
   final userId = _supabase.auth.currentUser!.id;
 
+  // mark messages
   await _supabase
       .from('messages')
       .update({'status': 'seen'})
       .eq('conversation_id', chatId)
-      .neq('sender_id', userId)
-      .neq('status', 'seen');
+      .neq('sender_id', userId);
+
+  // reset unread count
+  await _supabase
+      .from('conversations')
+      .update({'unread_count': 0})
+      .eq('id', chatId);
 }
+
+// ─────────────────────────────
+// DELETE MESSAGE
+// ─────────────────────────────
 Future<void> deleteMessage(String messageId, String? mediaUrl) async {
 
   if (mediaUrl != null) {

@@ -76,21 +76,25 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
 Future<void> _initConversation() async {
-  final id = await _chatService.getOrCreateConversation(widget.receiverId);
+final id = await _chatService.getOrCreateConversation(widget.receiverId);
 
   setState(() {
     chatId = id;
   });
 
+  /// ✅ MARK AS SEEN
   await _chatService.markMessagesAsSeen(id);
 
-  // Listen to messages stream
+  /// ✅ LISTEN TO MESSAGES (FIXED POSITION)
+  _messagesSubscription?.cancel();
   _messagesSubscription = _chatService.getMessages(id).listen((messages) {
     setState(() {
       _messages = messages;
     });
   });
 }
+
+ 
 
   /// SEND TEXT
 Future<void> _sendMessage(String text) async {
@@ -500,12 +504,7 @@ IconButton(
                     child: Text('View Profile'),
                   ),
 
-                  PopupMenuItem(
-                    value: 'mute',
-                    child: Text('Mute'),
-                  ),
-
-                  PopupMenuItem(
+                    PopupMenuItem(
                     value: 'block',
                     child: Text('Block User'),
                   ),
