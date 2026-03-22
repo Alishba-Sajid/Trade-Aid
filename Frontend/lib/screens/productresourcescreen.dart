@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProductResource extends StatefulWidget {
   const ProductResource({super.key});
@@ -12,38 +13,16 @@ class _ProductResourceState extends State<ProductResource>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
+  final supabase = Supabase.instance.client;
+
   String selectedCommunity = "All";
 
-  final List<String> communities = [
-    "All",
-    "Greenwood",
-    "Willow Creek",
-    "Oakwood",
-  ];
+  // ✅ Dynamic communities
+  List<String> communities = ["All"];
 
-  final List<Map<String, String>> products = const [
-    {
-      'name': 'Laiba Soap',
-      'community': 'Greenwood',
-      'quantity': '50',
-      'postedBy': 'Sophia Bennett',
-      'status': 'Available',
-    },
-    {
-      'name': 'Organic Honey',
-      'community': 'Willow Creek',
-      'quantity': '30',
-      'postedBy': 'Ethan Carter',
-      'status': 'Available',
-    },
-    {
-      'name': 'Rice Bags',
-      'community': 'Oakwood',
-      'quantity': '80',
-      'postedBy': 'Ayesha Khan',
-      'status': 'Unavailable',
-    },
-  ];
+  // ✅ Dynamic products
+  List<Map<String, dynamic>> products = [];
+  bool isLoading = true;
 
   @override
   void initState() {
@@ -51,6 +30,42 @@ class _ProductResourceState extends State<ProductResource>
     _controller =
         AnimationController(vsync: this, duration: const Duration(seconds: 12))
           ..repeat();
+
+    fetchProducts();
+    fetchCommunities();
+  }
+
+  // ✅ FETCH PRODUCTS (FROM VIEW)
+  Future<void> fetchProducts() async {
+  try {
+    final response =
+        await supabase.from('product_dashboard').select();
+
+    setState(() {
+      products = List<Map<String, dynamic>>.from(response);
+      isLoading = false;
+    });
+  } catch (e) {
+    debugPrint("ERROR: $e");
+    setState(() => isLoading = false);
+  }
+}
+  // ✅ FETCH COMMUNITIES
+  Future<void> fetchCommunities() async {
+    try {
+      final response =
+          await supabase.from('communities').select('name');
+
+      final names = List<Map<String, dynamic>>.from(response)
+          .map((e) => e['name'] as String)
+          .toList();
+
+      setState(() {
+        communities = ["All", ...names];
+      });
+    } catch (e) {
+      debugPrint("ERROR: $e");
+    }
   }
 
   @override
@@ -67,7 +82,7 @@ class _ProductResourceState extends State<ProductResource>
         builder: (context, _) {
           return Stack(
             children: [
-              // 🌊 SAME ANIMATED GRADIENT BACKGROUND
+              // 🌊 BACKGROUND
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -87,7 +102,7 @@ class _ProductResourceState extends State<ProductResource>
                 ),
               ),
 
-              // ✨ FLOATING CIRCLES (same)
+              // ✨ FLOATING CIRCLES
               ...List.generate(6, (i) {
                 final size = 80.0 + i * 20;
                 return Positioned(
@@ -106,7 +121,7 @@ class _ProductResourceState extends State<ProductResource>
                 );
               }),
 
-              // 📦 MAIN GLASS CARD (same layout)
+              // 📦 MAIN CARD
               Padding(
                 padding: const EdgeInsets.all(24),
                 child: Container(
@@ -134,7 +149,7 @@ class _ProductResourceState extends State<ProductResource>
                       ),
                       const SizedBox(height: 16),
 
-                      // 🔍 SEARCH + FILTER ROW (same alignment)
+                      // 🔍 SEARCH + FILTER
                       Row(
                         children: [
                           Expanded(
@@ -143,7 +158,7 @@ class _ProductResourceState extends State<ProductResource>
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 12),
                               decoration: BoxDecoration(
-                                 color: const Color.fromARGB(255, 238, 235, 235),
+                                color: const Color.fromARGB(255, 238, 235, 235),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: const Row(
@@ -169,51 +184,47 @@ class _ProductResourceState extends State<ProductResource>
 
                       const SizedBox(height: 20),
 
-                      // 📊 DATA TABLE (same style)
+                      // 📊 TABLE
                       Expanded(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: ConstrainedBox(
-                            constraints:
-                                const BoxConstraints(minWidth: 1400),
-                            child: DataTable(
-                              columnSpacing: 70,
-                              headingRowColor:
-                                  WidgetStateColor.resolveWith(
-                                      (_) => Colors.grey.shade100),
-                              columns: const [
-                                DataColumn(label: Text("Item Name")),
-                                DataColumn(label: Text("Community")),
-                                DataColumn(label: Text("Quantity")),
-                                DataColumn(label: Text("Posted By")),
-                                DataColumn(label: Text("Status")),
-                                DataColumn(label: Text("Actions")),
-                              ],
-                              rows: products.map((item) {
-                                return DataRow(
-                                  cells: [
-                                    DataCell(Text(item['name']!)),
-                                    DataCell(Text(item['community']!)),
-                                    DataCell(Text(item['quantity']!)),
-                                    DataCell(Text(item['postedBy']!)),
-                                    DataCell(
-                                        _statusBadge(item['status']!)),
-                                    DataCell(
-                                      TextButton(
-                                        onPressed: () {},
-                                        child: const Text(
-                                          "View",
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              }).toList(),
-                            ),
-                          ),
-                        ),
+                        child: isLoading
+                            ? const Center(child: CircularProgressIndicator())
+                            : SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: ConstrainedBox(
+                                  constraints:
+                                      const BoxConstraints(minWidth: 1200),
+                                  child: DataTable(
+                                    columnSpacing: 70,
+                                    headingRowColor:
+                                        WidgetStateColor.resolveWith(
+                                            (_) => Colors.grey.shade100),
+                                    columns: const [
+                                      DataColumn(label: Text("Item Name")),
+                                      DataColumn(label: Text("Community")),
+                                      DataColumn(label: Text("Posted By")),
+                                      DataColumn(label: Text("Status")),
+                                      DataColumn(label: Text("Actions")),
+                                    ],
+          rows: products.map((item) {
+  return DataRow(
+    cells: [
+      DataCell(Text(item['title'] ?? '')),
+      DataCell(Text(item['community'] ?? '')),
+      DataCell(Text(item['posted_by'] ?? '')),
+      DataCell(Text(item['price'].toString())),
+      DataCell(_statusBadge(item['status'] ?? '')),
+      DataCell(
+        TextButton(
+          onPressed: () {},
+          child: const Text("View"),
+        ),
+      ),
+    ],
+  );
+}).toList(),
+                                  ),
+                                ),
+                              ),
                       ),
                     ],
                   ),
@@ -226,7 +237,7 @@ class _ProductResourceState extends State<ProductResource>
     );
   }
 
-  // 🔽 DROPDOWN (same look)
+  // 🔽 DROPDOWN
   Widget _communityDropdown() {
     return Container(
       height: 45,

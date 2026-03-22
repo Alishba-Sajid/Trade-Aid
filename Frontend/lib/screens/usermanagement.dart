@@ -142,74 +142,57 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                   const SizedBox(height: 25),
 
                   /// DATA TABLE
-                  Expanded(
-                    child: users.isEmpty
-                        ? const Center(child: CircularProgressIndicator())
-                        : SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: ConstrainedBox(
-                              constraints:
-                                  const BoxConstraints(minWidth: 1400),
-                              child: DataTable(
-                                headingRowColor:
-                                    WidgetStateProperty.all(subtleGrey),
-                                columnSpacing: 50,
-                                columns: const [
-                                  DataColumn(
-                                      label: Text("Full Name",
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold))),
-                                  DataColumn(
-                                      label: Text("Gender",
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold))),
-                                  DataColumn(
-                                      label: Text("Phone",
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold))),
-                                  DataColumn(
-                                      label: Text("Address",
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold))),
-                                  DataColumn(
-                                      label: Text("Action",
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold))),
-                                ],
-
-                                /// TABLE ROWS
-                                rows: filteredUsers.map((user) {
-                                  return DataRow(cells: [
-                                    DataCell(Text(user["full_name"] ?? "")),
-                                    DataCell(Text(user["gender"] ?? "")),
-                                    DataCell(Text(user["phone"] ?? "")),
-                                    DataCell(Text(user["address"] ?? "")),
-
-                                    /// ACTION COLUMN
-                                    DataCell(
-                                      TextButton(
-                                        onPressed: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (_) =>
-                                                  UserProfileScreen(
-                                                user: user.map((k, v) =>
-                                                    MapEntry(
-                                                        k, v.toString())),
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                        child: const Text("View"),
-                                      ),
-                                    ),
-                                  ]);
-                                }).toList(),
+                 Expanded(
+  child: users.isEmpty
+      ? const Center(child: CircularProgressIndicator())
+      : Scrollbar( // 👈 adds visible scroll bar
+          thumbVisibility: true,
+          child: SingleChildScrollView( // ✅ vertical scroll
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal, // ✅ horizontal scroll
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 1400),
+                child: DataTable(
+                  headingRowColor:
+                      WidgetStateProperty.all(subtleGrey),
+                  columnSpacing: 50,
+                  columns: const [
+                    DataColumn(label: Text("Full Name",style: TextStyle(fontWeight: FontWeight.bold),)),
+                    DataColumn(label: Text("Gender" ,style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text("Phone" ,style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text("Address",style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text("Action",style: TextStyle(fontWeight: FontWeight.bold))),
+                  ],
+                  rows: filteredUsers.map((user) {
+                    return DataRow(cells: [
+                      DataCell(Text(user["full_name"] ?? "")),
+                      DataCell(Text(user["gender"] ?? "")),
+                      DataCell(Text(user["phone"] ?? "")),
+                      DataCell(Text(user["address"] ?? "")),
+                      DataCell(
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => UserProfileScreen(
+                                  user: user.map((k, v) =>
+                                      MapEntry(k, v.toString())),
+                                ),
                               ),
-                            ),
-                          ),
-                  ),
+                            );
+                          },
+                          child: const Text("View"),
+                        ),
+                      ),
+                    ]);
+                  }).toList(),
+                ),
+              ),
+            ),
+          ),
+        ),
+)
                 ],
               ),
             ),
