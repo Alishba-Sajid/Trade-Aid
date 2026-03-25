@@ -11,6 +11,8 @@ import '../../widgets/message_bubble.dart';
 
 import '../../services/chat_service.dart';
 import '../../models/chat_message.dart';
+import 'member_profile_screen.dart';
+
 
 const LinearGradient appGradient = LinearGradient(
   colors: [Color(0xFF2E9499), Color(0xFF119E90)],
@@ -496,7 +498,18 @@ IconButton(
 
               PopupMenuButton<String>(
                 icon: const Icon(Icons.more_vert, color: Colors.white),
-                onSelected: (value) {},
+                onSelected: (value) {
+                  if (value == 'view_profile') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => MemberProfileScreen(
+                          userId: widget.receiverId,
+                        ),
+                      ),
+                    );
+                  }
+                },
                 itemBuilder: (context) => const [
 
                   PopupMenuItem(

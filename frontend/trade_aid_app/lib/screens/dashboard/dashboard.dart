@@ -48,6 +48,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _checkLoggedInUser();
     _fetchUserCommunity(); 
     _checkNotifications();
+    _checkPendingTransactions();
 
   }
 
@@ -64,6 +65,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _userName = args['userName'] ?? 'User';
     }
   }
+Future<void> _checkPendingTransactions() async {
+  final supabase = Supabase.instance.client;
+  final user = supabase.auth.currentUser;
+
+  if (user == null) return;
+
+  final data = await supabase
+      .from('transactions')
+      .select()
+      .or('buyer_id.eq.${user.id},seller_id.eq.${user.id}')
+      .eq('status', 'pending');
+
+  for (final tx in data) {
+    final isBuyer = tx['buyer_id'] == user.id;
+    final isSeller = tx['seller_id'] == user.id;
+
+    final buyerConfirmed = tx['buyer_confirmed'] == true;
+    final sellerConfirmed = tx['seller_confirmed'] == true;
+
+    // ✅ Show only if THIS user has not confirmed yet
+    if ((isBuyer && !buyerConfirmed) || (isSeller && !sellerConfirmed)) {
+      Future.delayed(Duration.zero, () {
+        _showConfirmationDialog(tx);
+      });
+      break; // show one at a time
+    }
+  }
+}
 
   void _checkLoggedInUser() {
     final user = Supabase.instance.client.auth.currentUser;
@@ -73,33 +102,55 @@ class _DashboardScreenState extends State<DashboardScreen> {
       print("❌ No user logged in");
     }
   }
+  Future<void> _resolveTransaction(String transactionId) async {
+  final supabase = Supabase.instance.client;
 
-Future<void> _checkNotifications() async {
+  final tx = await supabase
+      .from('transactions')
+      .select()
+      .eq('id', transactionId)
+      .maybeSingle();
+
+  if (tx == null) return;
+
+  if (tx['buyer_confirmed'] == true && tx['seller_confirmed'] == true) {
+    await supabase.from('transactions').update({
+      'status': 'completed'
+    }).eq('id', transactionId);
+
+    await supabase.from('products').update({
+      'status': 'sold'
+    }).eq('id', tx['product_id']);
+  }
+}
+
+  Future<void> _checkNotifications() async {
   final supabase = Supabase.instance.client;
   final user = supabase.auth.currentUser;
 
   if (user == null) return;
 
   try {
-    // Get user's community
-    final member = await supabase
+    // ✅ Get user's communities (FIXED)
+    final members = await supabase
         .from('community_members')
         .select('community_id')
-        .eq('user_id', user.id)
-        .single();
+        .eq('user_id', user.id);
 
-    final communityId = member['community_id'];
+    if (members.isEmpty) return;
+
+    final communityId = members[0]['community_id'];
 
     // Get last seen time
     final profile = await supabase
         .from('profiles')
         .select('last_notification_seen')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-    final lastSeen = profile['last_notification_seen'];
+    final lastSeen = profile?['last_notification_seen'];
 
-    // Fetch new notifications after last seen
+    // Fetch notifications
     final data = await supabase
         .from('notifications')
         .select('id')
@@ -121,53 +172,54 @@ Future<void> _fetchUserCommunity() async {
   if (user == null) return;
 
   try {
-    // Fetch community membership
-    final memberResponse = await supabase
+    // ✅ STEP 1: Get membership
+    final members = await supabase
         .from('community_members')
-        .select('community_id')
-        .eq('user_id', user.id)
-        .maybeSingle();
+        .select('community_id, role')
+        .eq('user_id', user.id);
 
-    if (memberResponse == null || memberResponse['community_id'] == null) {
-      print('⚠️ User is not part of any community');
+    // ✅ If NOT member → block access
+    if (members.isEmpty) {
+      print('❌ User is not part of any community');
+
+      await supabase.auth.signOut(); // optional
       return;
     }
 
+    // ✅ STEP 2: Extract values
+    final memberResponse = members[0];
     final communityId = memberResponse['community_id'];
 
-    // Fetch community name
+    // ✅ STEP 3: Get community info
     final communityResponse = await supabase
-    .from('communities')
-    .select('name, invite_link')
-    .eq('id', communityId)
-    .maybeSingle();
+        .from('communities')
+        .select('name, invite_link')
+        .eq('id', communityId)
+        .maybeSingle();
 
     final communityName = communityResponse?['name'] ?? 'Community';
     final inviteLink = communityResponse?['invite_link'] ?? '';
 
-    // Fetch user profile name
+    // ✅ STEP 4: Get user profile
     final profileResponse = await supabase
         .from('profiles')
         .select('full_name')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-    final userName = profileResponse['full_name'] ?? 'User';
+    final userName = profileResponse?['full_name'] ?? 'User';
 
+    // ✅ STEP 5: Update UI
     setState(() {
-  _communityId = communityId;
-  _communityName = communityName;
-  _userName = userName;
-  _inviteLink = inviteLink;
-});
-
-    print("✅ User: $userName");
-    print("✅ Community: $communityName");
-    print("🔗 Invite Link: $inviteLink");
+      _communityId = communityId;
+      _communityName = communityName;
+      _userName = userName;
+      _inviteLink = inviteLink;
+    });
 
   } catch (e) {
     print('⚠️ Error fetching dashboard data: $e');
-      }
+  }
 }
   void _onBottomTap(int index) {
     if (index == 1 || index == 2 || index == 3 || index == 4) {
@@ -202,6 +254,70 @@ Future<void> _fetchUserCommunity() async {
 
     setState(() => _currentIndex = index);
   }
+
+void _showConfirmationDialog(Map transaction) {
+  final supabase = Supabase.instance.client;
+  final user = supabase.auth.currentUser;
+
+  final isBuyer = transaction['buyer_id'] == user?.id;
+
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => AlertDialog(
+      title: const Text("Transaction Confirmation"),
+      content: Text(
+        isBuyer
+            ? "Have you paid?"
+            : "Have you received payment?",
+      ),
+      actions: [
+        TextButton(
+          onPressed: () async {
+            // ✅ YES
+            if (isBuyer) {
+              await supabase.from('transactions').update({
+                'buyer_confirmed': true,
+              }).eq('id', transaction['id']);
+            } else {
+              await supabase.from('transactions').update({
+                'seller_confirmed': true,
+              }).eq('id', transaction['id']);
+            }
+
+            await _resolveTransaction(transaction['id']);
+
+            Navigator.pop(context);
+          },
+          child: const Text("Yes"),
+        ),
+        TextButton(
+          onPressed: () async {
+            // ❌ NO → mark as disputed AND stop future dialogs
+            if (isBuyer) {
+              await supabase.from('transactions').update({
+                'buyer_confirmed': true,
+                'status': 'disputed'
+              }).eq('id', transaction['id']);
+            } else {
+              await supabase.from('transactions').update({
+                'seller_confirmed': true,
+                'status': 'disputed'
+              }).eq('id', transaction['id']);
+            }
+
+            await supabase.from('products').update({
+              'status': 'disputed'
+            }).eq('id', transaction['product_id']);
+
+            Navigator.pop(context);
+          },
+          child: const Text("No"),
+        ),
+      ],
+    ),
+  );
+}
 
   void _showPostDialog() {
     showGeneralDialog(

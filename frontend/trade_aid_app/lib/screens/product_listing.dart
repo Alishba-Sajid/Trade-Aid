@@ -64,7 +64,8 @@ Future<void> _fetchProducts() async {
     PostgrestFilterBuilder query = supabase
         .from('products')
         .select()
-        .eq('community_id', widget.communityId);
+        .eq('community_id', widget.communityId)
+        .eq('status', 'available');
 
     if (selectedCategory != 'Wish Item') {
       // Essential / Lifestyle: show to all community members.
@@ -324,13 +325,24 @@ Future<void> _fetchProducts() async {
                 alignment: Alignment.bottomCenter,
                 children: [
                   GestureDetector(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            ProductDetailsScreen(product: product),
-                      ),
-                    ),
+                   onTap: () {
+  if (product.status != 'available') {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("This product is not available"),
+      ),
+    );
+    return;
+  }
+
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) =>
+          ProductDetailsScreen(product: product),
+    ),
+  );
+},
                     child: SizedBox(
                       height: 220,
                       width: double.infinity,
@@ -443,13 +455,12 @@ Future<void> _fetchProducts() async {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: ElevatedButton(
-                        onPressed: isHeld
-                            ? null
-                            : () => Navigator.push(
+                       onPressed: (isHeld || product.status != 'available')
+    ? null
+    : () => Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                      builder: (_) =>
-                                          const PaymentSelectionScreen()),
+                                      builder: (_) => PaymentSelectionScreen( productId: product.id)),
                                 ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
@@ -477,9 +488,9 @@ Future<void> _fetchProducts() async {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: IconButton(
-                      onPressed: isHeld
-                          ? null
-                          : () {
+                            onPressed: (isHeld || product.status != 'available')
+    ? null
+    : () {
                               context
                                   .read<CartProvider>()
                                   .addProduct(product);

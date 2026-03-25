@@ -535,7 +535,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const PaymentSelectionScreen(),
+                      builder: (_) => PaymentSelectionScreen( productId: widget.product.id),
                     ),
                   ),
                   child: Center(

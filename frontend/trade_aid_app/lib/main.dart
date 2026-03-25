@@ -191,6 +191,7 @@ class TradeAidApp extends StatelessWidget {
             builder: (_) => BookingScreen(
               resourceId: args['resourceId'],
               resourceName: args['resourceName'],
+              ownerId: args['ownerId'] as String,
             ),
             settings: settings,
           );

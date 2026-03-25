@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import '../widgets/app_bar.dart';
 import 'cash_pickup_schedule_screen.dart'; 
+import '../models/cart_item.dart';
 
 /// Screen for selecting payment method before checkout
 class PaymentSelectionScreen extends StatefulWidget {
-  const PaymentSelectionScreen({super.key});
+  final List<CartItem>? items;
+   final String? productId; 
+
+  const PaymentSelectionScreen({super.key,this.productId,this.items,});
 
   @override
   State<PaymentSelectionScreen> createState() =>
@@ -14,7 +18,6 @@ class PaymentSelectionScreen extends StatefulWidget {
 /// Supported payment methods
 enum PaymentMethod {
   jazzCash,
-  easyPaisa,
   cashOnDelivery,
 }
 
@@ -31,7 +34,7 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
       final pickupDateTime = await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => const CashPickupScheduleScreen(),
+          builder: (_) => CashPickupScheduleScreen(productId: widget.productId ?? ''),
         ),
       );
 
@@ -62,16 +65,7 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
         backgroundColor: Colors.teal,
         behavior: SnackBarBehavior.floating,
       ),
-    );
-
-    /*
-      FUTURE BACKEND INTEGRATION EXAMPLE:
-      await paymentService.savePaymentMethod(
-        orderId: orderId,
-        method: _selected!,
-      );
-    */
-  }
+    );  }
 
   /// Builds a single payment option card
   Widget _paymentOption({
@@ -186,14 +180,6 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
               subtitle: 'Pay securely using JazzCash wallet or app.',
               imagePath: 'assets/jazzcash.png',
               value: PaymentMethod.jazzCash,
-            ),
-
-            // EasyPaisa option
-            _paymentOption(
-              title: 'EasyPaisa',
-              subtitle: 'Pay quickly using your EasyPaisa account.',
-              imagePath: 'assets/easypaisa.png',
-              value: PaymentMethod.easyPaisa,
             ),
 
             // Cash on Delivery option

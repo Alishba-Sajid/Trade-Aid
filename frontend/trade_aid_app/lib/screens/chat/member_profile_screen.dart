@@ -12,12 +12,14 @@ const LinearGradient appGradient = LinearGradient(
 
 /* ===================== MEMBER PROFILE SCREEN ===================== */
 class MemberProfileScreen extends StatefulWidget {
-  const MemberProfileScreen({super.key});
+  final String userId;
+
+  const MemberProfileScreen({super.key, required this.userId});
 
   @override
-  State<MemberProfileScreen> createState() => _MemberProfileScreenState();
+  State<MemberProfileScreen> createState() =>
+      _MemberProfileScreenState();
 }
-
 class _MemberProfileScreenState extends State<MemberProfileScreen> {
   final MemberProfileService _service = MemberProfileService();
   late Future<MemberProfile> _profileFuture;
@@ -25,7 +27,7 @@ class _MemberProfileScreenState extends State<MemberProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _profileFuture = _service.fetchMemberProfile();
+    _profileFuture = _service.fetchMemberProfile(widget.userId);
   }
 
   @override
@@ -270,8 +272,6 @@ class _MemberProfileScreenState extends State<MemberProfileScreen> {
       child: Column(
         children: [
           _infoTile(Icons.phone_iphone_rounded, "Phone", profile.phone),
-          const Divider(indent: 60, height: 1, color: Color(0xFFF1F1F1)),
-          _infoTile(Icons.email_outlined, "Email", profile.email),
           const Divider(indent: 60, height: 1, color: Color(0xFFF1F1F1)),
           _infoTile(Icons.calendar_today_rounded, "Joined", profile.joinedDate),
         ],

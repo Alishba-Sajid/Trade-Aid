@@ -28,23 +28,39 @@ class ChatService {
   // ─────────────────────────────
   // COMMUNITY MEMBERS TAB
   // ─────────────────────────────
-Future<List<ProfileModel>> getCommunityMembers() async {
-  final communityId = await getMyCommunityId();
-  final myUserId = _supabase.auth.currentUser!.id;
+  Future<List<ProfileModel>> getCommunityMembers() async {
+  final user = _supabase.auth.currentUser;
+  if (user == null) return [];
 
+  final communityId = await getMyCommunityId();
   if (communityId == null) return [];
 
-  final data = await _supabase
+  // 1️⃣ Get all members of this community
+  final members = await _supabase
       .from('community_members')
-      .select('user_id, profiles(*)')
+      .select('user_id')
       .eq('community_id', communityId);
+final userIds = (members as List)
+    .map((e) => e['user_id'])
+    .where((id) => id != null) // ✅ FIX
+    .toSet()
+    .toList();
 
-  final members = (data as List)
-      .map((e) => ProfileModel.fromJson(e['profiles']))
-      .where((p) => p.userId != myUserId)
+  // 2️⃣ Remove current user
+  userIds.remove(user.id);
+
+  if (userIds.isEmpty) return [];
+
+  // 3️⃣ Fetch profiles manually
+  final profiles = await _supabase
+      .from('profiles')
+      .select()
+      .inFilter('user_id', userIds);
+      print("User IDs: $userIds");
+
+  return (profiles as List)
+      .map((e) => ProfileModel.fromJson(e))
       .toList();
-
-  return members;
 }
   // ──────────────────────────
   // RECENT CHAT TAB

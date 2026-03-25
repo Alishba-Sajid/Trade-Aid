@@ -405,6 +405,7 @@ class _ResourceDetailsScreenState extends State<ResourceDetailsScreen> {
                       arguments: {
                         'resourceId': resource.id,
                         'resourceName': resource.name,
+                        'ownerId': resource.ownerUserId,
                       },
                     );
                   },

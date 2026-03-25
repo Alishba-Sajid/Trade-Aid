@@ -1,76 +1,43 @@
 import 'package:flutter/material.dart';
 import 'payment_option.dart';
 import '../widgets/time_picker.dart';
-import '../widgets/app_bar.dart'; // <-- Import the reusable AppBar
-
-
+import '../widgets/app_bar.dart'; 
+import 'package:supabase_flutter/supabase_flutter.dart';
 const Color light = Color(0xFFF0F9F8);
 
 // ================== Booking Model ==================
 class Booking {
+  final String id;
   final String resourceId;
-  final DateTime date;
-  final TimeOfDay start;
-  final TimeOfDay end;
+  final String userId;
+  final String ownerId;
+  final DateTime bookingDate;
+  final TimeOfDay startTime;
+  final TimeOfDay endTime;
 
   Booking({
+    required this.id,
     required this.resourceId,
-    required this.date,
-    required this.start,
-    required this.end,
+    required this.userId,
+    required this.ownerId,
+    required this.bookingDate,
+    required this.startTime,
+    required this.endTime,
   });
-}
-
-// ================== Booking Storage ==================
-final List<Booking> _bookings = [];
-
-// Check if two dates are the same day
-bool _isSameDay(DateTime a, DateTime b) =>
-    a.year == b.year && a.month == b.month && a.day == b.day;
-
-// Convert TimeOfDay to minutes for easier comparison
-int _toMinutes(TimeOfDay t) => t.hour * 60 + t.minute;
-
-// Check if a time slot is available
-bool isSlotAvailable(
-  String resourceId,
-  DateTime date,
-  TimeOfDay start,
-  TimeOfDay end,
-) {
-  final newStart = _toMinutes(start);
-  final newEnd = _toMinutes(end);
-
-  for (final b in _bookings) {
-    if (b.resourceId == resourceId && _isSameDay(b.date, date)) {
-      final existingStart = _toMinutes(b.start);
-      final existingEnd = _toMinutes(b.end);
-
-      // Check for overlapping time slots
-      if (newStart < existingEnd && newEnd > existingStart) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
-// Add a new booking
-void addBooking(Booking booking) {
-  _bookings.add(booking);
 }
 
 // ================== Booking Screen ==================
 class BookingScreen extends StatefulWidget {
   final String resourceId;
   final String resourceName;
+  final String ownerId; // ✅ ADD THIS
 
   const BookingScreen({
     super.key,
     required this.resourceId,
     required this.resourceName,
+    required this.ownerId, // ✅ ADD THIS
   });
-
   @override
   State<BookingScreen> createState() => _BookingScreenState();
 }
@@ -243,7 +210,57 @@ class _BookingScreenState extends State<BookingScreen> {
       ),
     );
   }
+Future<void> _onBookPressed() async {
+  if (selectedDate == null || startTime == null || endTime == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please choose date and time')),
+    );
+    return;
+  }
 
+  final supabase = Supabase.instance.client;
+
+  final start = "${startTime!.hour}:${startTime!.minute}";
+  final end = "${endTime!.hour}:${endTime!.minute}";
+
+  try {
+    // 🔍 Check if slot already booked
+    final conflict = await supabase
+        .from('resource_bookings')
+        .select()
+        .eq('resource_id', widget.resourceId)
+        .eq('booking_date', selectedDate!.toIso8601String())
+        .or('start_time.lt.$end,end_time.gt.$start');
+
+    if ((conflict as List).isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('This time slot is already booked')),
+      );
+      return;
+    }
+
+    // ✅ Insert booking
+    await supabase.from('resource_bookings').insert({
+      'resource_id': widget.resourceId,
+      'user_id': supabase.auth.currentUser!.id,
+      'owner_id': widget.ownerId,
+      'booking_date': selectedDate!.toIso8601String(),
+      'start_time': start,
+      'end_time': end,
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Booking successful')),
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const PaymentSelectionScreen()),
+    );
+  } catch (e) {
+    print("BOOKING ERROR: $e");
+  }
+}
   // ================== Helper Widgets ==================
 
   /// Generic card for choices (date/time)
@@ -319,36 +336,5 @@ class _BookingScreenState extends State<BookingScreen> {
     if (picked != null) setState(() => endTime = picked);
   }
 
-  // ================== Booking Action ==================
-  void _onBookPressed() {
-    if (selectedDate == null || startTime == null || endTime == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please choose date and time')),
-      );
-      return;
-    }
-
-    if (!isSlotAvailable(widget.resourceId, selectedDate!, startTime!, endTime!)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Already booked')),
-      );
-      return;
-    }
-
-    // Add booking
-    addBooking(
-      Booking(
-        resourceId: widget.resourceId,
-        date: selectedDate!,
-        start: startTime!,
-        end: endTime!,
-      ),
-    );
-
-    // Navigate to payment
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const PaymentSelectionScreen()),
-    );
-  }
+ 
 }
