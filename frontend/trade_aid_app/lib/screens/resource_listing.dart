@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/resource.dart';
 import '../providers/cart_provider.dart';
+import 'resource_details.dart';
+import 'booking_screen.dart';
 
 // 🌿 Premium Color Constants
 const LinearGradient appGradient = LinearGradient(
@@ -22,14 +24,12 @@ const Color accent = Color(0xFF119E90);
 class ResourceListingScreen extends StatefulWidget {
   final String communityId;
 
-  const ResourceListingScreen({
-    super.key,
-    required this.communityId,
-  });
+  const ResourceListingScreen({super.key, required this.communityId});
 
   @override
   State<ResourceListingScreen> createState() => _ResourceListingScreenState();
 }
+
 class _ResourceListingScreenState extends State<ResourceListingScreen> {
   String searchQuery = '';
   List<Resource> resources = [];
@@ -55,6 +55,7 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
           r.ownerAddress.toLowerCase().contains(q);
     }).toList();
   }
+
   Future<void> _fetchResources() async {
     setState(() => isLoading = true);
 
@@ -106,7 +107,7 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
 
       // 4️⃣ Create profile lookup map
       final profileMap = {
-        for (var p in profileList) p['user_id'].toString(): p
+        for (var p in profileList) p['user_id'].toString(): p,
       };
 
       // 5️⃣ Merge resources with profile data
@@ -152,15 +153,15 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
             child: isLoading
                 ? const Center(child: CircularProgressIndicator(color: accent))
                 : items.isEmpty
-                    ? _buildNoResourcesFound()
-                    : ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: items.length,
-                        itemBuilder: (context, index) {
-                          final r = items[index];
-                          return _buildPremiumResourceCard(context, r);
-                        },
-                      ),
+                ? _buildNoResourcesFound()
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: items.length,
+                    itemBuilder: (context, index) {
+                      final r = items[index];
+                      return _buildPremiumResourceCard(context, r);
+                    },
+                  ),
           ),
         ],
       ),
@@ -171,9 +172,7 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
   Widget _buildPremiumAppBar(BuildContext context) {
     return Container(
       height: 100,
-      decoration: const BoxDecoration(
-        gradient: appGradient,
-      ),
+      decoration: const BoxDecoration(gradient: appGradient),
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -222,15 +221,12 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
 
     return GestureDetector(
       onTap: () {
-        Navigator.pushNamed(
-  context,
-  '/booking',
-  arguments: {
-    'resourceId': r.id,
-    'resourceName': r.name,
-    'ownerId': r.ownerUserId, // ✅ ADD THIS
-  },
-);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ResourceDetailsScreen(resource: r),
+          ),
+        );
       },
       child: StatefulBuilder(
         builder: (context, setState) {
@@ -288,8 +284,11 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
                                 width: double.infinity,
                                 errorBuilder: (context, error, stackTrace) {
                                   return const Center(
-                                    child: Icon(Icons.broken_image,
-                                        size: 40, color: Colors.grey),
+                                    child: Icon(
+                                      Icons.broken_image,
+                                      size: 40,
+                                      color: Colors.grey,
+                                    ),
                                   );
                                 },
                               );
@@ -307,7 +306,8 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
                                 r.images.length,
                                 (index) => Container(
                                   margin: const EdgeInsets.symmetric(
-                                      horizontal: 3),
+                                    horizontal: 3,
+                                  ),
                                   width: currentImageIndex == index ? 8 : 6,
                                   height: currentImageIndex == index ? 8 : 6,
                                   decoration: BoxDecoration(
@@ -361,14 +361,19 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
                   r.description,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style:
-                      GoogleFonts.poppins(fontSize: 12, color: Colors.black54),
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: Colors.black54,
+                  ),
                 ),
 
                 const SizedBox(height: 10),
 
                 _infoRow(
-                    Icons.calendar_today, "Days", r.availableDays.join(', ')),
+                  Icons.calendar_today,
+                  "Days",
+                  r.availableDays.join(', '),
+                ),
                 _infoRow(Icons.access_time, "Time", r.availableTime),
                 _infoRow(Icons.person_outline, "Owner", r.ownerName),
 
@@ -385,13 +390,15 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
                         ),
                         child: ElevatedButton(
                           onPressed: () {
-                            Navigator.pushNamed(
+                            Navigator.push(
                               context,
-                              '/booking',
-                              arguments: {
-                                'resourceId': r.id,
-                                'resourceName': r.name
-                              },
+                              MaterialPageRoute(
+                                builder: (context) => BookingScreen(
+                                  resourceId: r.id,
+                                  resourceName: r.name,
+                                  ownerId: r.ownerUserId,
+                                ),
+                              ),
                             );
                           },
                           style: ElevatedButton.styleFrom(

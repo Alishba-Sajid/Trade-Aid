@@ -101,13 +101,7 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
           .update({'invite_link': inviteLink})
           .eq('id', communityId);
 
-      // 🔹 Ensure creator is inserted into community_members
-     await supabase.from('community_members').upsert({
-  'community_id': communityId,
-  'user_id': user.id,
-  'role': 'admin',
-  'joined_at': DateTime.now().toIso8601String(),
-});
+   
       // 🔹 Show success dialog
       showDialog(
         context: context,
