@@ -24,6 +24,21 @@ class ChatListScreen extends StatefulWidget {
 }
 
 class _ChatListScreenState extends State<ChatListScreen> {
+  @override
+void initState() {
+  super.initState();
+  _listenToConversationChanges();
+}
+void _listenToConversationChanges() {
+  Supabase.instance.client
+      .from('conversations')
+      .stream(primaryKey: ['id'])
+      .listen((event) {
+    setState(() {
+      // 🔥 triggers UI refresh
+    });
+  });
+}
   final ChatService _chatService = ChatService();
 
   String selectedCategory = "Recent Chats";
@@ -184,8 +199,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   /// ====================== Recent Chats ======================
   Widget _buildRecentChats() {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-  future: _chatService.getRecentChats(),
+   return StreamBuilder<List<Map<String, dynamic>>>(
+  stream: _chatService.getRecentChatsStream(),
       builder: (context, snapshot) {
 
       if (snapshot.connectionState == ConnectionState.waiting) {
@@ -201,6 +216,9 @@ if (!snapshot.hasData || snapshot.data!.isEmpty) {
        final myId = Supabase.instance.client.auth.currentUser!.id;
 
 final filteredChats = chats.where((chat) {
+
+  // ❌ skip chats with no messages
+  if (chat['last_message_at'] == null) return false;
 
   final isUser1 = chat['user1_id'] == myId;
   final profile = isUser1 ? chat['user2'] : chat['user1'];
@@ -230,30 +248,78 @@ final filteredChats = chats.where((chat) {
             final isUser1 = chat['user1_id'] == myId;
             final profile = isUser1 ? chat['user2'] : chat['user1'];
 
-         return ListTile(
-  leading: CircleAvatar(
-    backgroundImage: profile['profile_image_url'] != null
-        ? NetworkImage(profile['profile_image_url'])
-        : null,
-    child: profile['profile_image_url'] == null
-        ? const Icon(Icons.person)
-        : null,
-  ),
-  title: Text(profile['full_name'] ?? "User"),
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ChatScreen(
-  sellerName: profile['full_name'] ?? "User",
-  receiverId: isUser1 ? chat['user2_id'] : chat['user1_id'],
-  profileImage: profile['profile_image_url'],
-  address: profile['address'],
+       return Stack(
+  children: [
+
+    ListTile(leading: CircleAvatar(
+  radius: 26,
+  backgroundColor: accent.withOpacity(0.15),
+
+  backgroundImage: (profile['profile_image_url'] != null &&
+          profile['profile_image_url'].toString().isNotEmpty)
+      ? NetworkImage(profile['profile_image_url'])
+      : null,
+
+  child: (profile['profile_image_url'] == null ||
+          profile['profile_image_url'].toString().isEmpty)
+      ? const Icon(Icons.person, color: Colors.grey)
+      : null,
 ),
 
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+
+          Text(profile['full_name'] ?? "User"),
+
+          if (profile['address'] != null)
+            Text(
+              profile['address'],
+              style: const TextStyle(
+                fontSize: 12,
+                color: mutedText,
+              ),
+            ),
+        ],
       ),
-    );
-  },
+
+      onTap: () {
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ChatScreen(
+              sellerName: profile['full_name'] ?? "User",
+              receiverId: isUser1
+                  ? chat['user2_id']
+                  : chat['user1_id'],
+              profileImage: profile['profile_image_url'],
+              address: profile['address'],
+            ),
+          ),
+        );
+      },
+    ),
+
+    /// 🔴 Unread indicator
+    if (chat['unread_count'] != null &&
+        chat['unread_count'] > 0 &&
+        chat['last_sender_id'] != myId)
+
+      Positioned(
+        right: 16,
+        top: 22,
+        child: Container(
+          width: 10,
+          height: 10,
+          decoration: const BoxDecoration(
+            color: Colors.green,
+            shape: BoxShape.circle,
+          ),
+        ),
+      ),
+
+  ],
 );
           },
         );
@@ -301,14 +367,20 @@ if (!snapshot.hasData || snapshot.data!.isEmpty) {
             final member = filteredMembers[index];
 
             return ListTile(
-              leading: CircleAvatar(
-                backgroundImage: member.imageUrl != null
-                    ? NetworkImage(member.imageUrl!)
-                    : null,
-                child: member.imageUrl == null
-                    ? const Icon(Icons.person)
-                    : null,
-              ),
+            leading: CircleAvatar(
+  radius: 26,
+  backgroundColor: accent.withOpacity(0.15),
+
+  backgroundImage: (member.imageUrl != null &&
+          member.imageUrl!.isNotEmpty)
+      ? NetworkImage(member.imageUrl!)
+      : null,
+
+  child: (member.imageUrl == null ||
+          member.imageUrl!.isEmpty)
+      ? const Icon(Icons.person, color: Colors.grey)
+      : null,
+),
              title: Column(
   crossAxisAlignment: CrossAxisAlignment.start,
   children: [

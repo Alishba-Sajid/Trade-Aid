@@ -5,6 +5,7 @@ class ChatMessage {
   final String text;
   final String senderId;
   final bool isMe;
+  final String status;
   final DateTime createdAt;
   final String? mediaUrl;
 
@@ -14,7 +15,9 @@ class ChatMessage {
     required this.senderId,
     required this.isMe,
     required this.createdAt,
+    required this.status,
     this.mediaUrl,
+    
   });
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
@@ -27,6 +30,7 @@ class ChatMessage {
       isMe: json['sender_id'] == myUserId,
       createdAt: DateTime.parse(json['created_at']),
       mediaUrl: json['media_url'],
+      status: json['status'] ?? 'sent',
     );
   }
 }

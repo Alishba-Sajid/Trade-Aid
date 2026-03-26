@@ -4,13 +4,15 @@ class Product {
   final String description;
   final double price;
   final String sellerUserId;
-  
+  final String status;
+
   final String? condition;
   final String? usedTime;
   final List<String> images;
   final String? sellerName;
 final String? sellerAddress;
   final String? sellerProfileImageUrl;
+
   int currentPageIndex = 0;
 
   Product({
@@ -25,6 +27,7 @@ final String? sellerAddress;
     this.sellerName,
     this.sellerAddress,
     this.sellerProfileImageUrl,
+    this.status = 'available',
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -43,6 +46,7 @@ final String? sellerAddress;
       sellerName: json['sellerName'],
           sellerAddress: json['sellerAddress'],
       sellerProfileImageUrl: json['sellerProfileImageUrl'],
+      status: json['status'] ?? 'available',
     );
   }
 }

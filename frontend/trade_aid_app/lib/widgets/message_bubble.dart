@@ -2,16 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 
 class MessageBubble extends StatefulWidget {
-
   final bool isMe;
   final String message;
   final String? mediaUrl;
+  final DateTime createdAt;
+  final String status;
+  final VoidCallback? onDelete;
 
   const MessageBubble({
     super.key,
     required this.isMe,
     required this.message,
     this.mediaUrl,
+    required this.createdAt,
+    required this.status,
+    this.onDelete,
   });
 
   @override
@@ -42,15 +47,13 @@ class _MessageBubbleState extends State<MessageBubble> {
     try {
       await _player.setUrl(widget.mediaUrl!);
       _duration = _player.duration ?? Duration.zero;
+
       _player.positionStream.listen((pos) {
-        setState(() {
-          _position = pos;
-        });
+        setState(() => _position = pos);
       });
+
       _player.playerStateStream.listen((state) {
-        setState(() {
-          _isPlaying = state.playing;
-        });
+        setState(() => _isPlaying = state.playing);
       });
     } catch (e) {
       debugPrint("Audio load error: $e");
@@ -65,93 +68,148 @@ class _MessageBubbleState extends State<MessageBubble> {
     }
   }
 
+  String _formatTime(DateTime time) {
+    final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
+    final minute = time.minute.toString().padLeft(2, '0');
+    final period = time.hour >= 12 ? "PM" : "AM";
+    return "$hour:$minute $period";
+  }
+
   String _formatDuration(Duration duration) {
     final minutes = duration.inMinutes;
     final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
-    return '$minutes:$seconds';
+    return "$minutes:$seconds";
+  }
+
+  Widget _buildStatusIcon() {
+    if (!widget.isMe) return const SizedBox();
+    switch (widget.status) {
+      case 'sent':
+        return const Icon(Icons.check, size: 16, color: Colors.grey);
+      case 'delivered':
+        return const Icon(Icons.done_all, size: 16, color: Colors.grey);
+      case 'seen':
+        return const Icon(Icons.done_all, size: 16, color: Colors.blue);
+      default:
+        return const SizedBox();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isImage = widget.mediaUrl != null &&
+        (widget.mediaUrl!.endsWith('.jpg') ||
+            widget.mediaUrl!.endsWith('.jpeg') ||
+            widget.mediaUrl!.endsWith('.png'));
 
-    final isImage = widget.mediaUrl != null && (widget.mediaUrl!.endsWith('.jpg') || widget.mediaUrl!.endsWith('.png'));
     final isAudio = widget.mediaUrl != null && widget.mediaUrl!.endsWith('.m4a');
 
-    return Align(
-      alignment: widget.isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.all(8),
-        constraints:
-            BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
-        decoration: BoxDecoration(
-          color: widget.isMe ? Colors.green[200] : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 2,
-              offset: Offset(1, 1),
+    return GestureDetector(
+      onLongPress: () {
+        if (widget.onDelete == null) return;
+        showModalBottomSheet(
+          context: context,
+          builder: (context) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.delete, color: Colors.red),
+                  title: const Text("Delete Message"),
+                  onTap: () {
+                    Navigator.pop(context);
+                    widget.onDelete!();
+                  },
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment:
-              widget.isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-          children: [
-
-            if (isImage)
-              GestureDetector(
-                onTap: () {
-                  showDialog(
-                      context: context,
-                      builder: (_) => Dialog(
-                            child: Image.network(widget.mediaUrl!),
-                          ));
-                },
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    widget.mediaUrl!,
-                    width: 200,
-                    height: 200,
-                    fit: BoxFit.cover,
+          ),
+        );
+      },
+      child: Align(
+        alignment: widget.isMe ? Alignment.centerRight : Alignment.centerLeft,
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          padding: const EdgeInsets.all(10),
+          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
+          decoration: BoxDecoration(
+            color: widget.isMe ? Colors.green[200] : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: const [
+              BoxShadow(color: Colors.black12, blurRadius: 2, offset: Offset(1, 1)),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: widget.isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+            children: [
+              // IMAGE
+              if (isImage)
+                GestureDetector(
+                  onTap: () => showDialog(
+                    context: context,
+                    builder: (_) => Dialog(
+                      child: Image.network(widget.mediaUrl!,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Center(child: Text("Media deleted"))),
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      widget.mediaUrl!,
+                      width: 200,
+                      height: 200,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Center(child: Text("Media deleted")),
+                    ),
                   ),
                 ),
-              ),
-
-            if (isAudio)
+              // AUDIO
+              if (isAudio)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
+                      onPressed: _togglePlay,
+                    ),
+                    Expanded(
+                      child: LinearProgressIndicator(
+                        value: _duration.inSeconds > 0
+                            ? _position.inSeconds / _duration.inSeconds
+                            : 0.0,
+                        backgroundColor: Colors.grey[300],
+                        color: Colors.teal,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _formatDuration(_duration),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
+              // TEXT
+              if (widget.message.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(widget.message, style: const TextStyle(fontSize: 16)),
+                ),
+              // TIME + STATUS
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  IconButton(
-                    icon: Icon(_isPlaying ? Icons.stop : Icons.play_arrow),
-                    onPressed: _togglePlay,
-                  ),
-
-                  Expanded(
-                    child: LinearProgressIndicator(
-                      value: _duration.inSeconds > 0 ? _position.inSeconds / _duration.inSeconds : 0.0,
-                      backgroundColor: Colors.grey[300],
-                      color: Colors.teal,
-                    ),
-                  ),
-
-                  const SizedBox(width: 8),
-
                   Text(
-                    _formatDuration(_duration),
-                    style: const TextStyle(fontSize: 12),
+                    _formatTime(widget.createdAt.toLocal()),
+                    style: const TextStyle(fontSize: 11, color: Colors.black54),
                   ),
+                  const SizedBox(width: 4),
+                  _buildStatusIcon(),
                 ],
               ),
-
-            if (widget.message.isNotEmpty)
-              Text(
-                widget.message,
-                style: const TextStyle(fontSize: 16),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );

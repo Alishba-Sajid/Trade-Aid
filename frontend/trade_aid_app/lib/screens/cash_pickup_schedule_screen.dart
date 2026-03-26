@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/app_bar.dart';
 import '../widgets/time_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 // 🌿 Premium Fintech Palette
 const LinearGradient appGradient = LinearGradient(
@@ -16,12 +17,17 @@ const Color backgroundLight = Color(0xFFF6F7F7);
 const Color subtleGrey = Color(0xFFE3E6E6);
 
 class CashPickupScheduleScreen extends StatefulWidget {
-  const CashPickupScheduleScreen({super.key});
+    final String productId;
 
-  @override
+  const CashPickupScheduleScreen({    super.key,
+    required this.productId,
+});
+ @override
   State<CashPickupScheduleScreen> createState() =>
       _CashPickupScheduleScreenState();
 }
+final supabase = Supabase.instance.client;
+
 
 class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
   DateTime? selectedDate;
@@ -43,14 +49,76 @@ class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
     if (picked != null) setState(() => selectedDate = picked);
   }
 
-  Future<void> _pickTime() async {
-    final picked = await showTealTimePicker(
-      context,
-      initialTime: TimeOfDay.now(),
-      primary: accentTeal,
-    );
-    if (picked != null) setState(() => selectedTime = picked);
+Future<void> _pickTime() async {
+  final picked = await showTealTimePicker(
+    context,
+    initialTime: TimeOfDay.now(),
+    primary: accentTeal,
+  );
+
+  if (picked != null) {
+   
+
+    // ❌ Block 11 PM - 9 AM
+    if (picked.hour >= 23 || picked.hour < 9) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Pickup allowed only between 9 AM and 11 PM"),
+        ),
+      );
+      return;
+    }
+
+      setState(() => selectedTime = picked);
   }
+}
+
+Future<void> _confirmSchedule() async {
+  final supabase = Supabase.instance.client;
+  final user = supabase.auth.currentUser;
+
+  if (user == null) return;
+
+  final product = await supabase
+      .from('products')
+      .select('user_id')
+      .eq('id', widget.productId)
+      .single();
+
+  final sellerId = product['user_id'];
+
+  final scheduledDateTime = DateTime(
+    selectedDate!.year,
+    selectedDate!.month,
+    selectedDate!.day,
+    selectedTime!.hour,
+    selectedTime!.minute,
+  );
+
+  // ✅ Create transaction
+  await supabase.from('transactions').insert({
+    'product_id': widget.productId,
+    'buyer_id': user.id,
+    'seller_id': sellerId,
+    'scheduled_at': scheduledDateTime.toIso8601String(),
+    'confirm_at': scheduledDateTime.add(const Duration(minutes: 30)).toIso8601String(),
+    'auto_resolve_at': scheduledDateTime.add(const Duration(hours: 48)).toIso8601String(),
+  });
+
+  // ✅ Update product → RESERVED
+  await supabase.from('products').update({
+    'status': 'reserved',
+    'reserved_for': user.id,
+  }).eq('id', widget.productId);
+
+  if (!mounted) return;
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text("Pickup Scheduled Successfully")),
+  );
+
+  Navigator.pop(context);
+}
 
   @override
   Widget build(BuildContext context) {
@@ -122,12 +190,10 @@ class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
                 ],
               ),
               child: ElevatedButton(
-                onPressed: (selectedDate != null && selectedTime != null)
-                    ? () {
-                        // Confirm Logic
-                      }
-                    : null,
-                style: ElevatedButton.styleFrom(
+             onPressed: (selectedDate != null && selectedTime != null)
+    ? _confirmSchedule
+    : null,            
+                   style: ElevatedButton.styleFrom(
                   backgroundColor: accentTeal,
                   disabledBackgroundColor: accentTeal.withOpacity(0.4),
                   elevation: 0,

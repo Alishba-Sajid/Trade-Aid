@@ -282,6 +282,7 @@ class _TradeAidAppState extends State<TradeAidApp> {
             builder: (_) => BookingScreen(
               resourceId: args['resourceId'],
               resourceName: args['resourceName'],
+              ownerId: args['ownerId'] as String,
             ),
             settings: settings,
           );

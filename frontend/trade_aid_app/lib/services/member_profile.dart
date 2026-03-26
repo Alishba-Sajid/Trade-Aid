@@ -1,20 +1,28 @@
 import 'package:trade_aid_app/models/member_profile.dart';
-
+import 'package:supabase_flutter/supabase_flutter.dart';
 class MemberProfileService {
-  Future<MemberProfile> fetchMemberProfile() async {
-    // ⏳ Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 600));
+  final _supabase = Supabase.instance.client;
 
-    // 🔹 Dummy backend response with buyer and seller ratings
+  Future<MemberProfile> fetchMemberProfile(String userId) async {
+    final data = await _supabase
+        .from('profiles')
+        .select()
+        .eq('user_id', userId)
+        .single();
+
     return MemberProfile(
-      name: "Ahmed Khan",
-      address: "House #23, Block A • Active Member",
-      phone: "+92 300 1234567",
-      email: "ahmed.khan@community.com",
-      joinedDate: "12 Jan 2024",
-      avatarUrl: "https://i.pravatar.cc/150?img=11",
-      buyerRating: 4.7, // ⭐ Buyer rating
-      sellerRating: 4.3, // ⭐ Seller rating
+      name: data['full_name'] ?? 'Unknown',
+      avatarUrl: data['profile_image_url'] ?? '',
+      address: data['address'] ?? 'No address',
+      phone: data['phone'] ?? 'No phone',
+      joinedDate: data['created_at'] != null
+          ? data['created_at'].toString().split('T')[0]
+          : 'N/A',
+
+      // 🔥 HARDCODED (as you requested)
+      email: "example@email.com",
+      buyerRating: 4.5,
+      sellerRating: 4.2,
     );
   }
 }

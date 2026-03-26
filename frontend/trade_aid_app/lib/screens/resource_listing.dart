@@ -223,10 +223,14 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
     return GestureDetector(
       onTap: () {
         Navigator.pushNamed(
-          context,
-          '/resource_details',
-          arguments: {'resource': r},
-        );
+  context,
+  '/booking',
+  arguments: {
+    'resourceId': r.id,
+    'resourceName': r.name,
+    'ownerId': r.ownerUserId, // ✅ ADD THIS
+  },
+);
       },
       child: StatefulBuilder(
         builder: (context, setState) {
