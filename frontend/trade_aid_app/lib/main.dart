@@ -192,6 +192,8 @@ class TradeAidApp extends StatelessWidget {
               resourceId: args['resourceId'],
               resourceName: args['resourceName'],
               ownerId: args['ownerId'] as String,
+              startTimeLimit: args['startTimeLimit'],
+              endTimeLimit: args['endTimeLimit'],
             ),
             settings: settings,
           );

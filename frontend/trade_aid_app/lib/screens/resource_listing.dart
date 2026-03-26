@@ -35,6 +35,19 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
   List<Resource> resources = [];
   bool isLoading = true;
 
+ 
+  String formatTo12Hour(String time) {
+    final parts = time.split(":");
+    int hour = int.parse(parts[0]);
+    final minute = parts[1];
+
+    final period = hour >= 12 ? "PM" : "AM";
+
+    hour = hour % 12;
+    if (hour == 0) hour = 12;
+
+    return "$hour:$minute $period";
+  }
   // ✅ Add your toggleResource method here
   Future<void> toggleResource(String resourceId, bool enable) async {
     final supabase = Supabase.instance.client;
@@ -374,7 +387,11 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
                   "Days",
                   r.availableDays.join(', '),
                 ),
-                _infoRow(Icons.access_time, "Time", r.availableTime),
+               _infoRow(
+  Icons.access_time,
+  "Time",
+  "${formatTo12Hour(r.availableTime.split(' - ')[0])} - ${formatTo12Hour(r.availableTime.split(' - ')[1])}",
+),
                 _infoRow(Icons.person_outline, "Owner", r.ownerName),
 
                 const SizedBox(height: 12),
@@ -393,11 +410,13 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => BookingScreen(
-                                  resourceId: r.id,
-                                  resourceName: r.name,
-                                  ownerId: r.ownerUserId,
-                                ),
+                              builder: (context) => BookingScreen(
+  resourceId: r.id,
+  resourceName: r.name,
+  ownerId: r.ownerUserId,
+  startTimeLimit: r.availableTime.split(' - ')[0],
+  endTimeLimit: r.availableTime.split(' - ')[1],
+),
                               ),
                             );
                           },

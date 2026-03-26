@@ -10,12 +10,17 @@ class BookingScreen extends StatefulWidget {
   final String resourceId;
   final String resourceName;
   final String ownerId;
+  final String startTimeLimit;
+  final String endTimeLimit;
 
   const BookingScreen({
     super.key,
     required this.resourceId,
     required this.resourceName,
     required this.ownerId,
+    required this.startTimeLimit,
+    required this.endTimeLimit,
+
   });
 
   @override
@@ -222,57 +227,128 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
+bool isWithinAllowedTime() {
+  int toMinutes(TimeOfDay t) => t.hour * 60 + t.minute;
+
+  final startLimitParts = widget.startTimeLimit.split(":");
+  final endLimitParts = widget.endTimeLimit.split(":");
+
+  final startLimit = TimeOfDay(
+    hour: int.parse(startLimitParts[0]),
+    minute: int.parse(startLimitParts[1]),
+  );
+
+  final endLimit = TimeOfDay(
+    hour: int.parse(endLimitParts[0]),
+    minute: int.parse(endLimitParts[1]),
+  );
+
+  final start = toMinutes(startTime!);
+  final end = toMinutes(endTime!);
+
+  return start >= toMinutes(startLimit) &&
+         end <= toMinutes(endLimit) &&
+         start < end; // ✅ IMPORTANT FIX
+}
+
   // ================= BOOK LOGIC =================
-  Future<void> _onBookPressed() async {
-    if (selectedDate == null ||
-        startTime == null ||
-        endTime == null ||
-        _selected == null) {
+ Future<void> _onBookPressed() async {
+  // ✅ 1. VALIDATE EMPTY FIELDS
+  if (selectedDate == null ||
+      startTime == null ||
+      endTime == null ||
+      _selected == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please complete all fields')),
+    );
+    return;
+  }
+
+  // ✅ 2. CHECK TIME RANGE (allowed time)
+  if (!isWithinAllowedTime()) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          "Available only between ${widget.startTimeLimit} - ${widget.endTimeLimit}",
+        ),
+      ),
+    );
+    return;
+  }
+
+  final supabase = Supabase.instance.client;
+
+  // ✅ 3. FORMAT TIME
+String formatTime(TimeOfDay t) {
+  final hour = t.hour.toString().padLeft(2, '0');
+  final minute = t.minute.toString().padLeft(2, '0');
+  return "$hour:$minute:00"; // ✅ HH:mm:ss format
+}
+
+String formatTo12Hour(String time) {
+  final parts = time.split(":");
+  int hour = int.parse(parts[0]);
+  int minute = int.parse(parts[1]);
+
+  final period = hour >= 12 ? "PM" : "AM";
+  hour = hour % 12;
+  if (hour == 0) hour = 12;
+
+  final min = minute.toString().padLeft(2, '0');
+
+  return "$hour:$min $period";
+}
+
+final start = formatTime(startTime!);
+final end = formatTime(endTime!);
+
+  try {
+    // ✅ 4. CHECK CONFLICT (NO DOUBLE BOOKING)
+    final conflict = await supabase
+        .from('resource_bookings')
+        .select()
+        .eq('resource_id', widget.resourceId)
+        .eq('booking_date',selectedDate!.toIso8601String().split('T')[0])
+        .eq('booking_date', selectedDate!.toIso8601String().split('T')[0])
+        .filter('start_time', 'lt', end)
+        .filter('end_time', 'gt', start)
+        .eq('status', 'confirmed');
+
+    // ✅ 5. IF ALREADY BOOKED
+    if ((conflict as List).isNotEmpty) {
+      final existing = conflict.first;
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please complete all fields')),
+        SnackBar(
+          content: Text(
+            "Already booked from ${formatTo12Hour(existing['start_time'])} "
+"to ${formatTo12Hour(existing['end_time'])}",
+          ),
+        ),
       );
       return;
     }
+    // ✅ 6. INSERT BOOKING
+    await supabase.from('resource_bookings').insert({
+      'resource_id': widget.resourceId,
+      'user_id': supabase.auth.currentUser!.id,
+      'owner_id': widget.ownerId,
+      'booking_date': selectedDate!.toIso8601String().split('T')[0],
+      'start_time': start,
+      'end_time': end,
+      'payment_method': _selected!.name,
+      'status': 'confirmed', // ✅ IMPORTANT
+    });
 
-    final supabase = Supabase.instance.client;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Booking successful')),
+    );
 
-    final start = "${startTime!.hour}:${startTime!.minute}";
-    final end = "${endTime!.hour}:${endTime!.minute}";
-
-    try {
-      final conflict = await supabase
-          .from('resource_bookings')
-          .select()
-          .eq('resource_id', widget.resourceId)
-          .eq('booking_date', selectedDate!.toIso8601String())
-          .or('start_time.lt.$end,end_time.gt.$start');
-
-      if ((conflict as List).isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('This time slot is already booked')),
-        );
-        return;
-      }
-
-      await supabase.from('resource_bookings').insert({
-        'resource_id': widget.resourceId,
-          'user_id': supabase.auth.currentUser!.id,
-        'owner_id': widget.ownerId,
-        'booking_date': selectedDate!.toIso8601String(),
-        'start_time': start,
-        'end_time': end,
-        'payment_method': _selected!.name,
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Booking successful')),
-      );
-
-      Navigator.pop(context);
-    } catch (e) {
-      print("BOOKING ERROR: $e");
-    }
+    Navigator.pop(context);
+  } catch (e) {
+    print("BOOKING ERROR: $e");
   }
+}
 
   // ================= PAYMENT OPTION =================
   Widget _paymentOption({
@@ -369,21 +445,74 @@ class _BookingScreenState extends State<BookingScreen> {
     }
   }
 
-  Future<void> _pickStartTime() async {
-    final picked = await showTealTimePicker(
-      context,
-      initialTime: startTime ?? TimeOfDay.now(),
-      primary: _teal,
-    );
-    if (picked != null) setState(() => startTime = picked);
-  }
+ Future<void> _pickStartTime() async {
+  final now = TimeOfDay.now();
 
-  Future<void> _pickEndTime() async {
-    final picked = await showTealTimePicker(
-      context,
-      initialTime: endTime ?? startTime ?? TimeOfDay.now(),
-      primary: _teal,
-    );
-    if (picked != null) setState(() => endTime = picked);
+  final picked = await showTealTimePicker(
+    context,
+    initialTime: startTime ?? now,
+    primary: _teal,
+  );
+
+  if (picked != null) {
+    // ✅ BLOCK PAST TIME IF TODAY
+    if (selectedDate != null) {
+      final today = DateTime.now();
+
+      final isToday =
+          selectedDate!.year == today.year &&
+          selectedDate!.month == today.month &&
+          selectedDate!.day == today.day;
+
+      if (isToday) {
+        final pickedMinutes = picked.hour * 60 + picked.minute;
+        final nowMinutes = now.hour * 60 + now.minute;
+
+        if (pickedMinutes < nowMinutes) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Cannot select past time")),
+          );
+          return;
+        }
+      }
+    }
+
+    setState(() => startTime = picked);
   }
+}
+
+ Future<void> _pickEndTime() async {
+  final now = TimeOfDay.now();
+
+  final picked = await showTealTimePicker(
+    context,
+    initialTime: endTime ?? startTime ?? now,
+    primary: _teal,
+  );
+
+  if (picked != null) {
+    if (selectedDate != null) {
+      final today = DateTime.now();
+
+      final isToday =
+          selectedDate!.year == today.year &&
+          selectedDate!.month == today.month &&
+          selectedDate!.day == today.day;
+
+      if (isToday) {
+        final pickedMinutes = picked.hour * 60 + picked.minute;
+        final nowMinutes = now.hour * 60 + now.minute;
+
+        if (pickedMinutes < nowMinutes) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Cannot select past time")),
+          );
+          return;
+        }
+      }
+    }
+
+    setState(() => endTime = picked);
+  }
+}
 }
