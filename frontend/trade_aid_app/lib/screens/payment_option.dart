@@ -1,29 +1,25 @@
 import 'package:flutter/material.dart';
 import '../widgets/app_bar.dart';
-import 'cash_pickup_schedule_screen.dart'; 
+import 'cash_pickup_schedule_screen.dart';
 import '../models/cart_item.dart';
 
 /// Screen for selecting payment method before checkout
 class PaymentSelectionScreen extends StatefulWidget {
   final List<CartItem>? items;
-   final String? productId; 
+  final String? productId;
 
-  const PaymentSelectionScreen({super.key,this.productId,this.items,});
+  const PaymentSelectionScreen({super.key, this.productId, this.items});
 
   @override
-  State<PaymentSelectionScreen> createState() =>
-      _PaymentSelectionScreenState();
+  State<PaymentSelectionScreen> createState() => _PaymentSelectionScreenState();
 }
 
 /// Supported payment methods
-enum PaymentMethod {
-  jazzCash,
-  cashOnDelivery,
-}
+enum PaymentMethod { jazzCash, cashOnDelivery }
 
 class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
   /// Currently selected payment method
-  PaymentMethod? _selected = PaymentMethod.jazzCash;
+  PaymentMethod? _selected = PaymentMethod.cashOnDelivery;
 
   /// Handles "Next" button click
   void _onNext() async {
@@ -34,7 +30,8 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
       final pickupDateTime = await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => CashPickupScheduleScreen(productId: widget.productId ?? ''),
+          builder: (_) =>
+              CashPickupScheduleScreen(productId: widget.productId ?? ''),
         ),
       );
 
@@ -65,7 +62,8 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
         backgroundColor: Colors.teal,
         behavior: SnackBarBehavior.floating,
       ),
-    );  }
+    );
+  }
 
   /// Builds a single payment option card
   Widget _paymentOption({
@@ -73,26 +71,30 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
     required String subtitle,
     required String imagePath,
     required PaymentMethod value,
+    bool enabled = true,
   }) {
     final bool selected = _selected == value;
+    final bool disabled = !enabled;
 
     return InkWell(
-      onTap: () => setState(() => _selected = value),
+      onTap: disabled ? null : () => setState(() => _selected = value),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: disabled ? Colors.grey.shade100 : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: selected ? Colors.teal : Colors.grey.shade300,
+            color: disabled
+                ? Colors.grey.shade400
+                : (selected ? Colors.teal : Colors.grey.shade300),
             width: selected ? 2 : 1,
           ),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
-              color: Colors.grey,
+              color: Colors.black.withOpacity(0.1),
               blurRadius: 6,
-              offset: Offset(0, 2),
+              offset: const Offset(0, 2),
             ),
           ],
         ),
@@ -117,9 +119,10 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
+                      color: disabled ? Colors.black54 : Colors.black,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -127,20 +130,30 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
                     subtitle,
                     style: TextStyle(
                       fontSize: 13,
-                      color: Colors.grey.shade600,
+                      color: disabled ? Colors.black45 : Colors.grey.shade600,
                     ),
                   ),
                 ],
               ),
             ),
 
-            // Selection radio
-            Radio<PaymentMethod>(
-              value: value,
-              groupValue: _selected,
-              activeColor: Colors.teal,
-              onChanged: (v) => setState(() => _selected = v),
-            ),
+            // Selection radio OR Lock Icon
+            if (disabled)
+              const Padding(
+                padding: EdgeInsets.only(right: 8.0),
+                child: Icon(
+                  Icons.lock_outline,
+                  color: Colors.grey,
+                  size: 22,
+                ),
+              )
+            else
+              Radio<PaymentMethod>(
+                value: value,
+                groupValue: _selected,
+                activeColor: Colors.teal,
+                onChanged: (v) => setState(() => _selected = v),
+              ),
           ],
         ),
       ),
@@ -174,12 +187,13 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
             ),
             const SizedBox(height: 16),
 
-            // JazzCash option
+            // JazzCash option (Now includes the lock icon logic)
             _paymentOption(
               title: 'JazzCash',
-              subtitle: 'Pay securely using JazzCash wallet or app.',
+              subtitle: 'Coming Soon',
               imagePath: 'assets/jazzcash.png',
               value: PaymentMethod.jazzCash,
+              enabled: false,
             ),
 
             // Cash on Delivery option

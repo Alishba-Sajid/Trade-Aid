@@ -20,7 +20,6 @@ class BookingScreen extends StatefulWidget {
     required this.ownerId,
     required this.startTimeLimit,
     required this.endTimeLimit,
-
   });
 
   @override
@@ -38,7 +37,7 @@ class _BookingScreenState extends State<BookingScreen> {
   TimeOfDay? startTime;
   TimeOfDay? endTime;
 
-  PaymentMethod? _selected;
+  PaymentMethod? _selected = PaymentMethod.cashOnDelivery;
 
   final Color _teal = const Color(0xFF008080);
   final double _radius = 12;
@@ -46,18 +45,16 @@ class _BookingScreenState extends State<BookingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: light,
-
+      backgroundColor: const Color(0xFFF8F8F8), // Matched to ref background
       body: Column(
         children: [
           AppBarWidget(
             title: "Reserve",
             onBack: () => Navigator.pop(context),
           ),
-
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -77,21 +74,19 @@ class _BookingScreenState extends State<BookingScreen> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
+                      color: Colors.black54,
                     ),
                   ),
                   const SizedBox(height: 8),
 
                   _buildChoiceCard(
                     child: ListTile(
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 14),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14),
                       leading: Container(
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [_teal, _teal.withOpacity(0.85)],
-                          ),
+                          color: _teal,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Icon(
@@ -126,6 +121,7 @@ class _BookingScreenState extends State<BookingScreen> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
+                      color: Colors.black54,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -170,21 +166,23 @@ class _BookingScreenState extends State<BookingScreen> {
 
                   const SizedBox(height: 18),
 
-                  // ================= PAYMENT (ADDED, SAME STYLE) =================
+                  // ================= PAYMENT =================
                   const Text(
-                    'Select Payment Method',
+                    'Choose your payment method',
                     style: TextStyle(
                       fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black54,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 16),
 
                   _paymentOption(
                     title: 'JazzCash',
-                    subtitle: 'Pay securely using JazzCash wallet or app.',
+                    subtitle: 'Coming Soon',
                     imagePath: 'assets/jazzcash.png',
                     value: PaymentMethod.jazzCash,
+                    enabled: false,
                   ),
 
                   _paymentOption(
@@ -199,13 +197,13 @@ class _BookingScreenState extends State<BookingScreen> {
                   // ================= BOOK BUTTON =================
                   SizedBox(
                     width: double.infinity,
+                    height: 55,
                     child: ElevatedButton(
                       onPressed: _onBookPressed,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _teal,
-                        minimumSize: const Size.fromHeight(54),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(_radius),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       child: const Text(
@@ -227,193 +225,95 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
-bool isWithinAllowedTime() {
-  int toMinutes(TimeOfDay t) => t.hour * 60 + t.minute;
-
-  final startLimitParts = widget.startTimeLimit.split(":");
-  final endLimitParts = widget.endTimeLimit.split(":");
-
-  final startLimit = TimeOfDay(
-    hour: int.parse(startLimitParts[0]),
-    minute: int.parse(startLimitParts[1]),
-  );
-
-  final endLimit = TimeOfDay(
-    hour: int.parse(endLimitParts[0]),
-    minute: int.parse(endLimitParts[1]),
-  );
-
-  final start = toMinutes(startTime!);
-  final end = toMinutes(endTime!);
-
-  return start >= toMinutes(startLimit) &&
-         end <= toMinutes(endLimit) &&
-         start < end; // ✅ IMPORTANT FIX
-}
-
-  // ================= BOOK LOGIC =================
- Future<void> _onBookPressed() async {
-  // ✅ 1. VALIDATE EMPTY FIELDS
-  if (selectedDate == null ||
-      startTime == null ||
-      endTime == null ||
-      _selected == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Please complete all fields')),
-    );
-    return;
-  }
-
-  // ✅ 2. CHECK TIME RANGE (allowed time)
-  if (!isWithinAllowedTime()) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          "Available only between ${widget.startTimeLimit} - ${widget.endTimeLimit}",
-        ),
-      ),
-    );
-    return;
-  }
-
-  final supabase = Supabase.instance.client;
-
-  // ✅ 3. FORMAT TIME
-String formatTime(TimeOfDay t) {
-  final hour = t.hour.toString().padLeft(2, '0');
-  final minute = t.minute.toString().padLeft(2, '0');
-  return "$hour:$minute:00"; // ✅ HH:mm:ss format
-}
-
-String formatTo12Hour(String time) {
-  final parts = time.split(":");
-  int hour = int.parse(parts[0]);
-  int minute = int.parse(parts[1]);
-
-  final period = hour >= 12 ? "PM" : "AM";
-  hour = hour % 12;
-  if (hour == 0) hour = 12;
-
-  final min = minute.toString().padLeft(2, '0');
-
-  return "$hour:$min $period";
-}
-
-final start = formatTime(startTime!);
-final end = formatTime(endTime!);
-
-  try {
-    // ✅ 4. CHECK CONFLICT (NO DOUBLE BOOKING)
-    final conflict = await supabase
-        .from('resource_bookings')
-        .select()
-        .eq('resource_id', widget.resourceId)
-        .eq('booking_date',selectedDate!.toIso8601String().split('T')[0])
-        .eq('booking_date', selectedDate!.toIso8601String().split('T')[0])
-        .filter('start_time', 'lt', end)
-        .filter('end_time', 'gt', start)
-        .eq('status', 'confirmed');
-
-    // ✅ 5. IF ALREADY BOOKED
-    if ((conflict as List).isNotEmpty) {
-      final existing = conflict.first;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "Already booked from ${formatTo12Hour(existing['start_time'])} "
-"to ${formatTo12Hour(existing['end_time'])}",
-          ),
-        ),
-      );
-      return;
-    }
-    // ✅ 6. INSERT BOOKING
-    await supabase.from('resource_bookings').insert({
-      'resource_id': widget.resourceId,
-      'user_id': supabase.auth.currentUser!.id,
-      'owner_id': widget.ownerId,
-      'booking_date': selectedDate!.toIso8601String().split('T')[0],
-      'start_time': start,
-      'end_time': end,
-      'payment_method': _selected!.name,
-      'status': 'confirmed', // ✅ IMPORTANT
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Booking successful')),
-    );
-
-    Navigator.pop(context);
-  } catch (e) {
-    print("BOOKING ERROR: $e");
-  }
-}
-
-  // ================= PAYMENT OPTION =================
+  // ================= PAYMENT OPTION (Refactored to match 1st code) =================
   Widget _paymentOption({
     required String title,
     required String subtitle,
     required String imagePath,
     required PaymentMethod value,
+    bool enabled = true,
   }) {
-    final selected = _selected == value;
+    final bool selected = _selected == value;
+    final bool disabled = !enabled;
 
     return InkWell(
-      onTap: () => setState(() => _selected = value),
+      onTap: disabled ? null : () => setState(() => _selected = value),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: disabled ? Colors.grey.shade100 : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: selected ? Colors.teal : Colors.grey.shade300,
+            color: disabled
+                ? Colors.grey.shade400
+                : (selected ? _teal : Colors.grey.shade300),
             width: selected ? 2 : 1,
           ),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
-              color: Colors.grey,
+              color: Colors.black.withOpacity(0.05),
               blurRadius: 6,
-              offset: Offset(0, 2),
+              offset: const Offset(0, 2),
             ),
           ],
         ),
         child: Row(
           children: [
+            // Logo
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: Image.asset(
                 imagePath,
                 width: 50,
                 height: 50,
+                fit: BoxFit.contain,
               ),
             ),
             const SizedBox(width: 14),
+
+            // Text info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title,
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w600)),
-                  Text(subtitle,
-                      style: TextStyle(color: Colors.grey.shade600)),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: disabled ? Colors.black54 : Colors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: disabled ? Colors.black45 : Colors.grey.shade600,
+                    ),
+                  ),
                 ],
               ),
             ),
-            Radio<PaymentMethod>(
-              value: value,
-              groupValue: _selected,
-              onChanged: (v) => setState(() => _selected = v),
-            ),
+
+            // Selection Logic (Radio or Lock)
+            if (disabled)
+              Icon(Icons.lock_outline, size: 20, color: Colors.grey.shade400)
+            else
+              Radio<PaymentMethod>(
+                value: value,
+                groupValue: _selected,
+                activeColor: _teal,
+                onChanged: (v) => setState(() => _selected = v),
+              ),
           ],
         ),
       ),
     );
   }
 
-  // ================= HELPERS =================
+  // ================= HELPERS & LOGIC (Kept from 2nd code) =================
   Widget _buildChoiceCard({required Widget child}) {
     return Container(
       decoration: BoxDecoration(
@@ -431,6 +331,98 @@ final end = formatTime(endTime!);
     );
   }
 
+  bool isWithinAllowedTime() {
+    int toMinutes(TimeOfDay t) => t.hour * 60 + t.minute;
+    final startLimitParts = widget.startTimeLimit.split(":");
+    final endLimitParts = widget.endTimeLimit.split(":");
+
+    final startLimit = TimeOfDay(
+      hour: int.parse(startLimitParts[0]),
+      minute: int.parse(startLimitParts[1]),
+    );
+    final endLimit = TimeOfDay(
+      hour: int.parse(endLimitParts[0]),
+      minute: int.parse(endLimitParts[1]),
+    );
+
+    final start = toMinutes(startTime!);
+    final end = toMinutes(endTime!);
+
+    return start >= toMinutes(startLimit) &&
+        end <= toMinutes(endLimit) &&
+        start < end;
+  }
+
+  Future<void> _onBookPressed() async {
+    if (selectedDate == null ||
+        startTime == null ||
+        endTime == null ||
+        _selected == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please complete all fields')),
+      );
+      return;
+    }
+
+    if (!isWithinAllowedTime()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "Available only between ${widget.startTimeLimit} - ${widget.endTimeLimit}",
+          ),
+        ),
+      );
+      return;
+    }
+
+    final supabase = Supabase.instance.client;
+
+    String formatTime(TimeOfDay t) {
+      final hour = t.hour.toString().padLeft(2, '0');
+      final minute = t.minute.toString().padLeft(2, '0');
+      return "$hour:$minute:00";
+    }
+
+    final start = formatTime(startTime!);
+    final end = formatTime(endTime!);
+
+    try {
+      final conflict = await supabase
+          .from('resource_bookings')
+          .select()
+          .eq('resource_id', widget.resourceId)
+          .eq('booking_date', selectedDate!.toIso8601String().split('T')[0])
+          .filter('start_time', 'lt', end)
+          .filter('end_time', 'gt', start)
+          .eq('status', 'confirmed');
+
+      if ((conflict as List).isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Time slot already booked")),
+        );
+        return;
+      }
+
+      await supabase.from('resource_bookings').insert({
+        'resource_id': widget.resourceId,
+        'user_id': supabase.auth.currentUser!.id,
+        'owner_id': widget.ownerId,
+        'booking_date': selectedDate!.toIso8601String().split('T')[0],
+        'start_time': start,
+        'end_time': end,
+        'payment_method': _selected!.name,
+        'status': 'confirmed',
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Booking successful')),
+      );
+      Navigator.pop(context);
+    } catch (e) {
+      debugPrint("BOOKING ERROR: $e");
+    }
+  }
+
   Future<void> _pickDate() async {
     final today = DateTime.now();
     final picked = await showDatePicker(
@@ -439,80 +431,24 @@ final end = formatTime(endTime!);
       firstDate: today,
       lastDate: today.add(const Duration(days: 365)),
     );
-
-    if (picked != null) {
-      setState(() => selectedDate = picked);
-    }
+    if (picked != null) setState(() => selectedDate = picked);
   }
 
- Future<void> _pickStartTime() async {
-  final now = TimeOfDay.now();
-
-  final picked = await showTealTimePicker(
-    context,
-    initialTime: startTime ?? now,
-    primary: _teal,
-  );
-
-  if (picked != null) {
-    // ✅ BLOCK PAST TIME IF TODAY
-    if (selectedDate != null) {
-      final today = DateTime.now();
-
-      final isToday =
-          selectedDate!.year == today.year &&
-          selectedDate!.month == today.month &&
-          selectedDate!.day == today.day;
-
-      if (isToday) {
-        final pickedMinutes = picked.hour * 60 + picked.minute;
-        final nowMinutes = now.hour * 60 + now.minute;
-
-        if (pickedMinutes < nowMinutes) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Cannot select past time")),
-          );
-          return;
-        }
-      }
-    }
-
-    setState(() => startTime = picked);
+  Future<void> _pickStartTime() async {
+    final picked = await showTealTimePicker(
+      context,
+      initialTime: startTime ?? TimeOfDay.now(),
+      primary: _teal,
+    );
+    if (picked != null) setState(() => startTime = picked);
   }
-}
 
- Future<void> _pickEndTime() async {
-  final now = TimeOfDay.now();
-
-  final picked = await showTealTimePicker(
-    context,
-    initialTime: endTime ?? startTime ?? now,
-    primary: _teal,
-  );
-
-  if (picked != null) {
-    if (selectedDate != null) {
-      final today = DateTime.now();
-
-      final isToday =
-          selectedDate!.year == today.year &&
-          selectedDate!.month == today.month &&
-          selectedDate!.day == today.day;
-
-      if (isToday) {
-        final pickedMinutes = picked.hour * 60 + picked.minute;
-        final nowMinutes = now.hour * 60 + now.minute;
-
-        if (pickedMinutes < nowMinutes) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Cannot select past time")),
-          );
-          return;
-        }
-      }
-    }
-
-    setState(() => endTime = picked);
+  Future<void> _pickEndTime() async {
+    final picked = await showTealTimePicker(
+      context,
+      initialTime: endTime ?? startTime ?? TimeOfDay.now(),
+      primary: _teal,
+    );
+    if (picked != null) setState(() => endTime = picked);
   }
-}
 }
