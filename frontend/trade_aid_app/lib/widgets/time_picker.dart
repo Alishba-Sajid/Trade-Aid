@@ -1,4 +1,3 @@
-//wudgets/time_picker.dart
 import 'package:flutter/material.dart';
 
 // 🌿 Shared Premium Industrial Palette
@@ -6,20 +5,15 @@ const Color industrialTealPrimary = Color.fromARGB(255, 15, 119, 124);
 const Color industrialTealSecondary = Color.fromARGB(255, 17, 158, 144);
 
 /// Reusable showTimePicker wrapper with Premium Industrial Palette.
-/// Restricts selection to 9:00 AM - 10:59 PM.
+/// Restricts selection to avoid 12:30 AM - 6:00 AM.
 Future<TimeOfDay?> showTealTimePicker(
   BuildContext context, {
   required TimeOfDay initialTime,
   required Color primary,
 }) async {
-  // Force default to PM if the initial time provided is in the AM
-  TimeOfDay startingTime = initialTime.hour < 12 
-      ? TimeOfDay(hour: initialTime.hour + 12, minute: initialTime.minute) 
-      : initialTime;
-
   TimeOfDay? picked = await showTimePicker(
     context: context,
-    initialTime: startingTime,
+    initialTime: initialTime,
     builder: (ctx, child) => Theme(
       data: Theme.of(ctx).copyWith(
         colorScheme: const ColorScheme.light(
@@ -32,60 +26,77 @@ Future<TimeOfDay?> showTealTimePicker(
           dialHandColor: industrialTealPrimary,
           dialBackgroundColor: industrialTealPrimary.withOpacity(0.08),
           hourMinuteTextColor: WidgetStateColor.resolveWith(
-            (states) => states.contains(WidgetState.selected) ? Colors.white : industrialTealPrimary,
+            (states) => states.contains(WidgetState.selected)
+                ? Colors.white
+                : industrialTealPrimary,
           ),
           dialTextColor: WidgetStateColor.resolveWith(
-            (states) => states.contains(WidgetState.selected) ? Colors.white : industrialTealPrimary,
+            (states) => states.contains(WidgetState.selected)
+                ? Colors.white
+                : industrialTealPrimary,
           ),
           dayPeriodShape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
             side: const BorderSide(color: industrialTealPrimary, width: 1.5),
           ),
           dayPeriodTextColor: WidgetStateColor.resolveWith(
-            (states) => states.contains(WidgetState.selected) ? Colors.white : industrialTealPrimary,
+            (states) => states.contains(WidgetState.selected)
+                ? Colors.white
+                : industrialTealPrimary,
           ),
           dayPeriodColor: WidgetStateColor.resolveWith((states) {
             if (states.contains(WidgetState.selected)) return industrialTealPrimary;
-            if (states.contains(WidgetState.hovered)) return industrialTealPrimary.withOpacity(0.12);
+            if (states.contains(WidgetState.hovered)) {
+              return industrialTealPrimary.withOpacity(0.12);
+            }
             return Colors.white;
           }),
-          helpTextStyle: const TextStyle(fontWeight: FontWeight.bold, color: industrialTealPrimary),
+          helpTextStyle: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: industrialTealPrimary,
+          ),
         ),
       ),
       child: child ?? const SizedBox.shrink(),
     ),
   );
 
-  // --- Logic to prevent 11 PM to 9 AM ---
   if (picked != null) {
-    final bool isInvalid = picked.hour >= 23 || picked.hour < 9;
+    // Logic for 12:30 AM to 6:00 AM restriction
+    // 12:30 AM is hour 0, minute 30. 6:00 AM is hour 6, minute 0.
+    final int pickedMinutes = picked.hour * 60 + picked.minute;
+    const int startInMinutes = 30; // 00:30 (12:30 AM)
+    const int endInMinutes = 360; // 06:00 (6:00 AM)
+
+    bool isInvalid = pickedMinutes >= startInMinutes && pickedMinutes < endInMinutes;
 
     if (isInvalid) {
-      // Prominent Alert using MaterialBanner
-      ScaffoldMessenger.of(context).showMaterialBanner(
-        MaterialBanner(
-          padding: const EdgeInsets.all(12),
-          content: const Text(
-            "INVALID TIME: Selection between 11:00 PM and 9:00 AM is not allowed.",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-          leading: const Icon(Icons.warning_amber_rounded, color: Colors.white),
+      // Enhanced UI Warning: Floating SnackBar that appears for 2 seconds
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 2),
           backgroundColor: Colors.redAccent,
-          actions: [
-            TextButton(
-              onPressed: () => ScaffoldMessenger.of(context).hideCurrentMaterialBanner(),
-              child: const Text("TRY AGAIN", style: TextStyle(color: Colors.white)),
-            ),
-          ],
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          content: const Row(
+            children: [
+              Icon(Icons.timer_off, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  "Selection not allowed between 12:30 AM and 6:00 AM.",
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
         ),
       );
 
       // Recursive call: force the user back into the picker
-      return showTealTimePicker(context, initialTime: startingTime, primary: primary);
+      return showTealTimePicker(context, initialTime: initialTime, primary: primary);
     }
   }
-  
-  // Clean up any remaining banners if selection is valid
-  ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
+
   return picked;
 }

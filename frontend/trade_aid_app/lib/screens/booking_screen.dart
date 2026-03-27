@@ -27,10 +27,7 @@ class BookingScreen extends StatefulWidget {
 }
 
 // ================== Payment Enum ==================
-enum PaymentMethod {
-  jazzCash,
-  cashOnDelivery,
-}
+enum PaymentMethod { jazzCash, cashOnDelivery }
 
 class _BookingScreenState extends State<BookingScreen> {
   DateTime? selectedDate;
@@ -48,10 +45,7 @@ class _BookingScreenState extends State<BookingScreen> {
       backgroundColor: const Color(0xFFF8F8F8), // Matched to ref background
       body: Column(
         children: [
-          AppBarWidget(
-            title: "Reserve",
-            onBack: () => Navigator.pop(context),
-          ),
+          AppBarWidget(title: "Reserve", onBack: () => Navigator.pop(context)),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(18),
@@ -81,7 +75,9 @@ class _BookingScreenState extends State<BookingScreen> {
 
                   _buildChoiceCard(
                     child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                      ),
                       leading: Container(
                         width: 44,
                         height: 44,
@@ -331,124 +327,128 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
-  bool isWithinAllowedTime() {
-    int toMinutes(TimeOfDay t) => t.hour * 60 + t.minute;
-    final startLimitParts = widget.startTimeLimit.split(":");
-    final endLimitParts = widget.endTimeLimit.split(":");
+bool isWithinAllowedTime() {
+  int toMinutes(TimeOfDay t) => t.hour * 60 + t.minute;
 
-    final startLimit = TimeOfDay(
-      hour: int.parse(startLimitParts[0]),
-      minute: int.parse(startLimitParts[1]),
-    );
-    final endLimit = TimeOfDay(
-      hour: int.parse(endLimitParts[0]),
-      minute: int.parse(endLimitParts[1]),
-    );
+  final startLimitParts = widget.startTimeLimit.split(":");
+  final endLimitParts = widget.endTimeLimit.split(":");
 
-    final start = toMinutes(startTime!);
-    final end = toMinutes(endTime!);
+  final startLimitMinutes =
+      int.parse(startLimitParts[0]) * 60 + int.parse(startLimitParts[1]);
 
-    return start >= toMinutes(startLimit) &&
-        end <= toMinutes(endLimit) &&
-        start < end;
+  final endLimitMinutes =
+      int.parse(endLimitParts[0]) * 60 + int.parse(endLimitParts[1]);
+
+  final selectedStart = toMinutes(startTime!);
+  final selectedEnd = toMinutes(endTime!);
+
+  // ✅ Ensure selected times are within the allowed window
+  if (selectedStart < startLimitMinutes || selectedEnd > endLimitMinutes) {
+    return false;
   }
 
-  Future<void> _onBookPressed() async {
-    if (selectedDate == null ||
-        startTime == null ||
-        endTime == null ||
-        _selected == null) {
+  // ✅ Ensure start is before end
+  return selectedStart < selectedEnd;
+}
+Future<void> _onBookPressed() async {
+  if (selectedDate == null ||
+      startTime == null ||
+      endTime == null ||
+      _selected == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please complete all fields')),
+    );
+    return;
+  }
+
+  final today = DateTime.now();
+  final maxDate = today.add(const Duration(days: 7));
+
+  if (selectedDate!.isAfter(maxDate)) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('You must book within the next 7 days')),
+    );
+    return;
+  }
+
+ 
+
+  final supabase = Supabase.instance.client;
+
+  String formatTime(TimeOfDay t) {
+    final hour = t.hour.toString().padLeft(2, '0');
+    final minute = t.minute.toString().padLeft(2, '0');
+    return "$hour:$minute:00";
+  }
+
+  final start = formatTime(startTime!);
+  final end = formatTime(endTime!);
+
+  try {
+    final conflict = await supabase
+        .from('resource_bookings')
+        .select()
+        .eq('resource_id', widget.resourceId)
+        .eq('booking_date', selectedDate!.toIso8601String().split('T')[0])
+        .filter('start_time', 'lt', end)
+        .filter('end_time', 'gt', start)
+        .eq('status', 'confirmed');
+
+    if ((conflict as List).isNotEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please complete all fields')),
+        const SnackBar(content: Text("Time slot already booked")),
       );
       return;
     }
 
-    if (!isWithinAllowedTime()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "Available only between ${widget.startTimeLimit} - ${widget.endTimeLimit}",
-          ),
-        ),
-      );
-      return;
-    }
+    await supabase.from('resource_bookings').insert({
+      'resource_id': widget.resourceId,
+      'user_id': supabase.auth.currentUser!.id,
+      'owner_id': widget.ownerId,
+      'booking_date': selectedDate!.toIso8601String().split('T')[0],
+      'start_time': start,
+      'end_time': end,
+      'payment_method': _selected!.name,
+      'status': 'confirmed',
+    });
 
-    final supabase = Supabase.instance.client;
-
-    String formatTime(TimeOfDay t) {
-      final hour = t.hour.toString().padLeft(2, '0');
-      final minute = t.minute.toString().padLeft(2, '0');
-      return "$hour:$minute:00";
-    }
-
-    final start = formatTime(startTime!);
-    final end = formatTime(endTime!);
-
-    try {
-      final conflict = await supabase
-          .from('resource_bookings')
-          .select()
-          .eq('resource_id', widget.resourceId)
-          .eq('booking_date', selectedDate!.toIso8601String().split('T')[0])
-          .filter('start_time', 'lt', end)
-          .filter('end_time', 'gt', start)
-          .eq('status', 'confirmed');
-
-      if ((conflict as List).isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Time slot already booked")),
-        );
-        return;
-      }
-
-      await supabase.from('resource_bookings').insert({
-        'resource_id': widget.resourceId,
-        'user_id': supabase.auth.currentUser!.id,
-        'owner_id': widget.ownerId,
-        'booking_date': selectedDate!.toIso8601String().split('T')[0],
-        'start_time': start,
-        'end_time': end,
-        'payment_method': _selected!.name,
-        'status': 'confirmed',
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Booking successful')),
-      );
-      Navigator.pop(context);
-    } catch (e) {
-      debugPrint("BOOKING ERROR: $e");
-    }
-  }
-
-  Future<void> _pickDate() async {
-    final today = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: selectedDate ?? today,
-      firstDate: today,
-      lastDate: today.add(const Duration(days: 365)),
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Booking successful')),
     );
-    if (picked != null) setState(() => selectedDate = picked);
+    Navigator.pop(context);
+  } catch (e) {
+    debugPrint("BOOKING ERROR: $e");
   }
+}
 
-  Future<void> _pickStartTime() async {
-    final picked = await showTealTimePicker(
-      context,
-      initialTime: startTime ?? TimeOfDay.now(),
-      primary: _teal,
-    );
-    if (picked != null) setState(() => startTime = picked);
-  }
+// ✅ NOW PLACE THEM HERE (OUTSIDE)
 
-  Future<void> _pickEndTime() async {
-    final picked = await showTealTimePicker(
-      context,
-      initialTime: endTime ?? startTime ?? TimeOfDay.now(),
-      primary: _teal,
-    );
-    if (picked != null) setState(() => endTime = picked);
-  }
+Future<void> _pickDate() async {
+  final today = DateTime.now();
+  final picked = await showDatePicker(
+    context: context,
+    initialDate: selectedDate ?? today,
+    firstDate: today,
+    lastDate: today.add(const Duration(days: 7)),
+  );
+  if (picked != null) setState(() => selectedDate = picked);
+}
+
+Future<void> _pickStartTime() async {
+  final picked = await showTealTimePicker(
+    context,
+    initialTime: startTime ?? TimeOfDay.now(),
+    primary: _teal,
+  );
+  if (picked != null) setState(() => startTime = picked);
+}
+
+Future<void> _pickEndTime() async {
+  final picked = await showTealTimePicker(
+    context,
+    initialTime: endTime ?? startTime ?? TimeOfDay.now(),
+    primary: _teal,
+  );
+  if (picked != null) setState(() => endTime = picked);
+}
 }

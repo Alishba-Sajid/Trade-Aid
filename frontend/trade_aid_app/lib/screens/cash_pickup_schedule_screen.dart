@@ -38,7 +38,7 @@ class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 30)),
+      lastDate: DateTime.now().add(const Duration(days: 3)),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.light(primary: accentTeal),
@@ -78,7 +78,17 @@ Future<void> _confirmSchedule() async {
   final user = supabase.auth.currentUser;
 
   if (user == null) return;
+final today = DateTime.now();
+final maxDate = today.add(const Duration(days: 3));
 
+if (selectedDate!.isAfter(maxDate)) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('You must schedule within the next 3 days'),
+    ),
+  );
+  return;
+}
   final product = await supabase
       .from('products')
       .select('user_id')

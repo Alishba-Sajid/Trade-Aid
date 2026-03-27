@@ -8,6 +8,7 @@ import '../chat/chat_list_screen.dart';
 import '../cart_screen.dart';
 import '../profile/profile.dart';
 import '/services/chat_service.dart';
+import '/services/resource_book_confirmation.dart';
 
 const LinearGradient appGradient = LinearGradient(
   colors: [
@@ -49,6 +50,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _fetchUserCommunity(); 
     _checkNotifications();
     _checkPendingTransactions();
+
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    ResourceTransactionWatcher.start(context);
+  });
 
   }
 
