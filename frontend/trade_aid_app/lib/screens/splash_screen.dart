@@ -2,6 +2,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:trade_aid_app/services/auth_flow.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -18,14 +19,11 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkSession() async {
-    // Keep splash screen visible for 3 seconds (like your original)
     await Future.delayed(const Duration(seconds: 3));
 
     try {
       final supabase = Supabase.instance.client;
       final session = supabase.auth.currentSession;
-
-      debugPrint('Supabase session: $session');
 
       if (session == null) {
         if (mounted) Navigator.pushReplacementNamed(context, '/welcome');
@@ -33,24 +31,13 @@ class _SplashScreenState extends State<SplashScreen> {
       }
 
       final userId = session.user.id;
-      final profile = await supabase
-          .from('Profile') // ⚠️ Ensure this matches your table name
-          .select()
-          .eq('id', userId) // ⚠️ Ensure this matches your column name
-          .maybeSingle();
 
-      debugPrint('Profile data: $profile');
+      if (!mounted) return;
 
-      if (mounted) {
-        if (profile == null) {
-          Navigator.pushReplacementNamed(context, '/create_profile');
-        } else {
-          Navigator.pushReplacementNamed(context, '/dashboard');
-        }
-      }
-    } catch (e, st) {
-      debugPrint('Error in _checkSession: $e');
-      debugPrintStack(stackTrace: st);
+      // ✅ THIS is the only thing you do now
+      await AuthFlow.handle(context, userId);
+    } catch (e) {
+      debugPrint('Error in session check: $e');
       if (mounted) Navigator.pushReplacementNamed(context, '/welcome');
     }
   }

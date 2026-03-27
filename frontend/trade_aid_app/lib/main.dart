@@ -35,7 +35,6 @@ import 'screens/welcomeT&C.dart';
 import 'screens/profile/history_screen.dart';
 import 'screens/forgotpass/forget_pass_screen.dart';
 import 'screens/forgotpass/newpass_screen.dart';
-import 'screens/waiting_approval_screen.dart';
 
 // models
 import 'models/product.dart';
@@ -198,7 +197,6 @@ class _TradeAidAppState extends State<TradeAidApp> {
         '/blocked_users': (_) => const BlockedUsersScreen(),
         '/help_support': (_) => const HelpSupportScreen(),
         '/chat_list': (_) => const ChatListScreen(),
-        '/waiting_approval': (_) => const WaitingApprovalScreen(),
       },
 
       onGenerateRoute: (settings) {

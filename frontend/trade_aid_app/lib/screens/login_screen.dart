@@ -1,6 +1,7 @@
 // lib/screens/login_screen.dart
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/auth_flow.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -101,7 +102,7 @@ class _LoginScreenState extends State<LoginScreen>
 
       if (user != null) {
         if (!mounted) return;
-        await _handlePostLoginFlow(user.id);
+        await AuthFlow.handle(context, user.id);
       }
     } on AuthException catch (e) {
       final message = e.message.toLowerCase();
@@ -120,63 +121,6 @@ class _LoginScreenState extends State<LoginScreen>
 
     if (mounted) {
       setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _handlePostLoginFlow(String userId) async {
-    final supabase = Supabase.instance.client;
-
-    try {
-      final profile = await supabase
-          .from('profiles')
-          .select()
-          .eq('user_id', userId)
-          .maybeSingle();
-
-      if (profile == null) {
-        _showAnimatedCard(
-          "You haven’t completed your profile yet.",
-          icon: Icons.person,
-        );
-        await Future.delayed(const Duration(seconds: 2));
-        Navigator.pushReplacementNamed(context, '/create_profile');
-        return;
-      }
-
-      final membership = await supabase
-          .from('community_members')
-          .select('community_id')
-          .eq('user_id', userId)
-          .maybeSingle();
-
-      if (membership != null) {
-        Navigator.pushReplacementNamed(context, '/dashboard');
-        return;
-      }
-
-      final pendingRequest = await supabase
-          .from('community_join_requests')
-          .select()
-          .eq('requester_id', userId)
-          .eq('status', 'pending')
-          .maybeSingle();
-
-      if (pendingRequest != null) {
-        _showAnimatedCard(
-          "Your community join request is still pending approval.",
-          icon: Icons.pending,
-        );
-        return;
-      }
-
-      _showAnimatedCard(
-        "Please allow location access to continue.",
-        icon: Icons.location_on,
-      );
-      await Future.delayed(const Duration(seconds: 2));
-      Navigator.pushReplacementNamed(context, '/location_permission');
-    } catch (e) {
-      _showAnimatedCard("Error determining flow: $e", icon: Icons.error);
     }
   }
 
