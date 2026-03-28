@@ -1,4 +1,6 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ResourceSharing extends StatefulWidget {
   const ResourceSharing({super.key});
@@ -11,50 +13,73 @@ class _ResourceSharingState extends State<ResourceSharing>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
-  String selectedCommunity = "All Communities";
+  final supabase = Supabase.instance.client;
+  final ScrollController _scrollController = ScrollController();
 
-  final List<Map<String, String>> resources = [
-    {
-      'name': 'Projector',
-      'community': 'Tech Enthusiasts',
-      'quantity': '2',
-      'postedBy': 'Sarah Johnson',
-      'status': 'Available'
-    },
-    {
-      'name': 'Camera',
-      'community': 'Photography Club',
-      'quantity': '1',
-      'postedBy': 'Daniel Lee',
-      'status': 'In Use'
-    },
-    {
-      'name': 'Microphone',
-      'community': 'Music Lovers',
-      'quantity': '4',
-      'postedBy': 'Emily Chen',
-      'status': 'Available'
-    },
-    {
-      'name': 'Laptop',
-      'community': 'Coding Group',
-      'quantity': '5',
-      'postedBy': 'Michael Brown',
-      'status': 'Available'
-    },
-  ];
+  String selectedCommunity = "All";
+  String searchQuery = "";
+  List<String> communities = ["All"];
+  List<Map<String, dynamic>> resources = [];
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _controller =
-        AnimationController(vsync: this, duration: const Duration(seconds: 14))
+        AnimationController(vsync: this, duration: const Duration(seconds: 12))
           ..repeat();
+
+    fetchResources();
+    fetchCommunities();
+  }
+
+  // Fetch resources from Supabase
+  Future<void> fetchResources() async {
+  try {
+    final response = await supabase.from('resource_view').select();
+    setState(() {
+      resources = List<Map<String, dynamic>>.from(response);
+      isLoading = false;
+    });
+  } catch (e) {
+    debugPrint("ERROR fetching resources: $e");
+    setState(() => isLoading = false);
+  }
+}
+
+  // Fetch communities for dropdown
+  Future<void> fetchCommunities() async {
+    try {
+      final response = await supabase.from('communities').select('name');
+      final names = List<Map<String, dynamic>>.from(response)
+          .map((e) => e['name'] as String)
+          .toList();
+
+      setState(() {
+        communities = ["All", ...names];
+      });
+    } catch (e) {
+      debugPrint("ERROR fetching communities: $e");
+    }
+  }
+
+  // Filter resources by search query and selected community
+  List<Map<String, dynamic>> get filteredResources {
+    return resources.where((res) {
+      final matchesSearch = res['name']
+          .toString()
+          .toLowerCase()
+          .contains(searchQuery.toLowerCase());
+      final matchesCommunity = selectedCommunity == "All" ||
+          res['community_id']?['name'] == selectedCommunity;
+      return matchesSearch && matchesCommunity;
+    }).toList();
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -66,40 +91,57 @@ class _ResourceSharingState extends State<ResourceSharing>
         builder: (context, _) {
           return Stack(
             children: [
-              /// 🌊 INDUSTRIAL BACKGROUND
+              // 🌊 BACKGROUND
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      Colors.teal.shade700,
-                      Colors.teal.shade400,
+                      Colors.teal.shade600,
+                      Colors.teal.shade300,
                       Colors.cyan.shade200,
                     ],
                     stops: [
                       0.2,
-                      0.5,
+                      0.6 + 0.2 * sin(_controller.value * pi * 2),
                       1.0,
                     ],
                   ),
                 ),
               ),
 
-              /// 📦 MAIN CARD
+              // ✨ FLOATING CIRCLES
+              ...List.generate(6, (i) {
+                final size = 80.0 + i * 20;
+                return Positioned(
+                  left: (i * 140) % MediaQuery.of(context).size.width,
+                  top: 120 + 60 * sin((_controller.value * 2 * pi) + i.toDouble()),
+                  child: Container(
+                    width: size,
+                    height: size,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withValues(alpha:0.08),
+                    ),
+                  ),
+                );
+              }),
+
+              // 📦 MAIN CARD
               Padding(
-                padding: const EdgeInsets.all(30),
+                padding: const EdgeInsets.all(24),
                 child: Container(
-                  padding: const EdgeInsets.all(30),
+                  padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.95),
-                    borderRadius: BorderRadius.circular(20),
+                    color: Colors.white.withValues(alpha:0.95),
+                    borderRadius: BorderRadius.circular(18),
                     boxShadow: const [
                       BoxShadow(
                         color: Colors.black26,
                         blurRadius: 12,
                         offset: Offset(0, 6),
-                      )
+                      ),
                     ],
                   ),
                   child: Column(
@@ -108,31 +150,33 @@ class _ResourceSharingState extends State<ResourceSharing>
                       const Text(
                         "Resource Sharing",
                         style: TextStyle(
-                          fontSize: 24,
+                          fontSize: 22,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
 
-                      /// 🔍 SEARCH + DROPDOWN
+                      // 🔍 SEARCH + DROPDOWN
                       Row(
                         children: [
+                          // Search Field
                           Expanded(
                             child: Container(
                               height: 45,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 12),
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
                               decoration: BoxDecoration(
-                                 color: const Color.fromARGB(255, 238, 235, 235),
+                                color: const Color.fromARGB(255, 238, 235, 235),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Row(
+                              child: Row(
                                 children: [
-                                  Icon(Icons.search, color: Colors.grey),
-                                  SizedBox(width: 8),
+                                  const Icon(Icons.search, color: Colors.grey),
+                                  const SizedBox(width: 8),
                                   Expanded(
                                     child: TextField(
-                                      decoration: InputDecoration(
+                                      onChanged: (val) =>
+                                          setState(() => searchQuery = val),
+                                      decoration: const InputDecoration(
                                         border: InputBorder.none,
                                         hintText: "Search resources",
                                       ),
@@ -142,64 +186,100 @@ class _ResourceSharingState extends State<ResourceSharing>
                               ),
                             ),
                           ),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: 12),
                           _communityDropdown(),
                         ],
                       ),
+                      const SizedBox(height: 20),
 
-                      const SizedBox(height: 24),
-
-                      /// 📊 DATA TABLE
+                      // 📊 DATA TABLE
                       Expanded(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: ConstrainedBox(
-                            constraints:
-                                const BoxConstraints(minWidth: 1600),
-                            child: DataTable(
-                              columnSpacing: 60,
-                              headingRowColor:
-                                  WidgetStateColor.resolveWith(
-                                      (_) => Colors.grey.shade100),
-                              headingTextStyle: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: Colors.black,
-                              ),
-                              dataTextStyle: const TextStyle(fontSize: 15),
-                              columns: const [
-                                DataColumn(label: Text("Item Name")),
-                                DataColumn(label: Text("Community")),
-                                DataColumn(label: Text("Quantity")),
-                                DataColumn(label: Text("Posted By")),
-                                DataColumn(label: Text("Status")),
-                                DataColumn(label: Text("Actions")),
-                              ],
-                              rows: resources.map((resource) {
-                                return DataRow(
-                                  cells: [
-                                    DataCell(Text(resource["name"]!)),
-                                    DataCell(Text(resource["community"]!)),
-                                    DataCell(Text(resource["quantity"]!)),
-                                    DataCell(Text(resource["postedBy"]!)),
-                                    DataCell(
-                                        _statusBadge(resource["status"]!)),
-                                    DataCell(
-                                      TextButton(
-                                        onPressed: () {},
-                                        child: const Text(
-                                          "View",
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold),
-                                        ),
-                                      ),
+                        child: isLoading
+                            ? const Center(child: CircularProgressIndicator())
+                            : Scrollbar(
+                                thumbVisibility: true,
+                                controller: _scrollController,
+                                child: SingleChildScrollView(
+                                  controller: _scrollController,
+                                  scrollDirection: Axis.horizontal,
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(minWidth: 1200),
+                                    child: DataTable(
+                                      columnSpacing: 60,
+                                      headingRowColor: WidgetStateProperty.resolveWith(
+    (_) => Colors.grey.shade100,
+  ),
+                                      columns: const [
+                                        DataColumn(
+                                            label: Text("Item Name",
+                                                style: TextStyle(
+                                                    fontWeight: FontWeight.bold))),
+                                        DataColumn(
+                                            label: Text("Community",
+                                                style: TextStyle(
+                                                    fontWeight: FontWeight.bold))),
+                                                    DataColumn(
+  label: Text("Admin",
+      style: TextStyle(fontWeight: FontWeight.bold)),
+),
+                                       
+                                        DataColumn(
+                                            label: Text("Posted By",
+                                                style: TextStyle(
+                                                    fontWeight: FontWeight.bold))),
+                                                     DataColumn(
+                                            label: Text("Rate",
+                                                style: TextStyle(
+                                                    fontWeight: FontWeight.bold))),
+                                                     
+                                        DataColumn(
+                                            label: Text("Status",
+                                                style: TextStyle(
+                                                    fontWeight: FontWeight.bold))),
+                                        DataColumn(
+                                            label: Text("Actions",
+                                                style: TextStyle(
+                                                    fontWeight: FontWeight.bold))),
+                                      ],
+                                      rows: filteredResources.map((res) {
+                                        final status = res['is_enabled'] == true
+                                            ? "Available"
+                                            : "Disabled";
+                                        final communityName = res['community_name'] ?? 'N/A';
+final posterName = res['poster_name'] ?? 'N/A';
+final adminName = res['admin_name'] ?? 'N/A';
+                                        return DataRow(cells: [
+  // 1. Item Name
+  DataCell(Text(res['name'] ?? '')),
+
+  // 2. Community
+  DataCell(Text(communityName)),
+
+  // 3. Admin
+  DataCell(Text(adminName)),
+
+  // 4. Posted By
+  DataCell(Text(posterName)),
+
+  // 5. Rate ✅ (fixed position)
+  DataCell(Text(res['rate']?.toString() ?? '0')),
+
+  // 6. Status
+  DataCell(_statusBadge(status)),
+
+  // 7. Actions
+  DataCell(
+    TextButton(
+      onPressed: () {},
+      child: const Text("View"),
+    ),
+  ),
+]);
+                                      }).toList(),
                                     ),
-                                  ],
-                                );
-                              }).toList(),
-                            ),
-                          ),
-                        ),
+                                  ),
+                                ),
+                              ),
                       ),
                     ],
                   ),
@@ -212,11 +292,11 @@ class _ResourceSharingState extends State<ResourceSharing>
     );
   }
 
-  /// 🔽 COMMUNITY DROPDOWN
+  // 🔽 COMMUNITY DROPDOWN
   Widget _communityDropdown() {
     return Container(
       height: 45,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
         color: Colors.grey.shade100,
         borderRadius: BorderRadius.circular(10),
@@ -224,43 +304,36 @@ class _ResourceSharingState extends State<ResourceSharing>
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: selectedCommunity,
-          items: const [
-            DropdownMenuItem(
-                value: "All Communities", child: Text("All Communities")),
-            DropdownMenuItem(
-                value: "Tech Enthusiasts",
-                child: Text("Tech Enthusiasts")),
-            DropdownMenuItem(
-                value: "Photography Club",
-                child: Text("Photography Club")),
-            DropdownMenuItem(
-                value: "Coding Group", child: Text("Coding Group")),
-          ],
-          onChanged: (value) {
-            setState(() => selectedCommunity = value!);
-          },
+          items: communities
+              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+              .toList(),
+          onChanged: (v) => setState(() => selectedCommunity = v!),
         ),
       ),
     );
   }
 
-  /// 🏷 STATUS BADGE
+  // 🔽 STATUS BADGE
   Widget _statusBadge(String status) {
-    Color bg = status == "Available"
-        ? Colors.teal.withValues(alpha: 0.18)
-        : status == "In Use"
-            ? Colors.orange.withValues(alpha: 0.18)
-            : Colors.red.withValues(alpha: 0.18);
-
+    final s = status.toLowerCase().trim();
+    Color bg;
+    String text;
+    if (s == "available") {
+      bg = Colors.green.shade100;
+      text = "Available";
+    } else if (s == "disabled") {
+      bg = Colors.red.shade100;
+      text = "Disabled";
+    } else {
+      bg = Colors.orange.shade100;
+      text = status;
+    }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(8),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
       child: Text(
-        status,
-        style: const TextStyle(fontWeight: FontWeight.bold),
+        text,
+        style: const TextStyle(fontWeight: FontWeight.w600),
       ),
     );
   }
