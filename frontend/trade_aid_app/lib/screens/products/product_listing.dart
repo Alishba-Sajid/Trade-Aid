@@ -505,53 +505,64 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
       ),
     );
   }
-/* ================= NO PRODUCTS FOUND ================= */
-Widget _buildNoProductsFound() {
-  return Center(
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          "No products found",
-          style: GoogleFonts.poppins(
-              fontSize: 16, fontWeight: FontWeight.w600, color: dark),
-        ),
-        const SizedBox(height: 20),
-        GestureDetector(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                // Add the communityId argument here:
-                builder: (_) => PostWishRequestScreen(communityId: widget.communityId),
-              ),
-            );
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            decoration: BoxDecoration(
-              gradient: appGradient,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: accent.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
+
+  /* ================= NO PRODUCTS FOUND ================= */
+  Widget _buildNoProductsFound() {
+    bool isWishTab = selectedCategory == 'Wish Item';
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            isWishTab ? "Didn't find what you need?" : "No products available",
+            style: GoogleFonts.poppins(
+                fontSize: 16, fontWeight: FontWeight.w600, color: dark),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            isWishTab 
+                ? "Create a request and let your community help you" 
+                : "Can't find what you're looking for?",
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(
+                fontSize: 13, color: Colors.black54),
+          ),
+          const SizedBox(height: 24),
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PostWishRequestScreen(communityId: widget.communityId),
                 ),
-              ],
-            ),
-            child: Text(
-              "Create Wish Request",
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+              decoration: BoxDecoration(
+                gradient: appGradient,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: accent.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Text(
+                isWishTab ? "Create Wish Request" : "Request Item",
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 }
