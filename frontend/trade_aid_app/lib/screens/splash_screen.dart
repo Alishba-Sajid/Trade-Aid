@@ -25,8 +25,8 @@ class _SplashScreenState extends State<SplashScreen> {
       final supabase = Supabase.instance.client;
       final session = supabase.auth.currentSession;
 
+      // ✅ No session → Welcome screen
       if (session == null) {
-        // No session → first-time user → Welcome screen
         if (mounted) Navigator.pushReplacementNamed(context, '/welcome');
         return;
       }
@@ -43,7 +43,9 @@ class _SplashScreenState extends State<SplashScreen> {
 
       if (profile == null) {
         // New user → Create profile screen
-        if (mounted) Navigator.pushReplacementNamed(context, '/create_profile');
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/create_profile');
+        }
         return;
       }
 
@@ -56,7 +58,9 @@ class _SplashScreenState extends State<SplashScreen> {
 
       if (membership != null) {
         // User is in community → Dashboard
-        if (mounted) Navigator.pushReplacementNamed(context, '/dashboard');
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/dashboard');
+        }
         return;
       }
 
@@ -69,17 +73,23 @@ class _SplashScreenState extends State<SplashScreen> {
           .maybeSingle();
 
       if (pending != null) {
-        // Pending request → Login screen
-        if (mounted) Navigator.pushReplacementNamed(context, '/login');
+        // ✅ FIX: Do NOT send logged-in user to login
+        // Send them to a proper waiting or dashboard screen instead
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/dashboard');
+        }
         return;
       }
 
       // Default → Location permission
-      if (mounted)
+      if (mounted) {
         Navigator.pushReplacementNamed(context, '/location_permission');
+      }
     } catch (e) {
       debugPrint('Error in session check: $e');
-      if (mounted) Navigator.pushReplacementNamed(context, '/welcome');
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/welcome');
+      }
     }
   }
 

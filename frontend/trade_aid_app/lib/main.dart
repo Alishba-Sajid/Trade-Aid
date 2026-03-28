@@ -68,6 +68,9 @@ class TradeAidApp extends StatefulWidget {
 }
 
 class _TradeAidAppState extends State<TradeAidApp> {
+  // ✅ FIX: track real sign-in
+  bool _hasUserEverSignedIn = false;
+
   // ✅ CENTRAL ROUTING FUNCTION
   Future<void> _handleUserRouting() async {
     final user = Supabase.instance.client.auth.currentUser;
@@ -77,7 +80,6 @@ class _TradeAidAppState extends State<TradeAidApp> {
     final supabase = Supabase.instance.client;
 
     try {
-      // 1️⃣ Profile check
       final profile = await supabase
           .from('profiles')
           .select()
@@ -89,7 +91,6 @@ class _TradeAidAppState extends State<TradeAidApp> {
         return;
       }
 
-      // 2️⃣ Community membership
       final membership = await supabase
           .from('community_members')
           .select('community_id')
@@ -101,7 +102,6 @@ class _TradeAidAppState extends State<TradeAidApp> {
         return;
       }
 
-      // 3️⃣ Pending request
       final pending = await supabase
           .from('community_join_requests')
           .select()
@@ -113,7 +113,6 @@ class _TradeAidAppState extends State<TradeAidApp> {
         return;
       }
 
-      // 4️⃣ Otherwise → location
       navigatorKey.currentState?.pushNamed('/location_permission');
     } catch (e) {
       print("Routing error: $e");
@@ -124,7 +123,6 @@ class _TradeAidAppState extends State<TradeAidApp> {
   void initState() {
     super.initState();
 
-    // ✅ Handle app restart
     final session = Supabase.instance.client.auth.currentSession;
 
     if (session != null) {
@@ -135,7 +133,7 @@ class _TradeAidAppState extends State<TradeAidApp> {
       }
     }
 
-    // ✅ Auth state listener
+    // ✅ UPDATED AUTH LISTENER (FIXED)
     Supabase.instance.client.auth.onAuthStateChange.listen((data) {
       final event = data.event;
 
@@ -145,6 +143,8 @@ class _TradeAidAppState extends State<TradeAidApp> {
       }
 
       if (event == AuthChangeEvent.signedIn) {
+        _hasUserEverSignedIn = true;
+
         final provider = data.session?.user.appMetadata['provider'];
 
         if (provider == 'google') {
@@ -156,7 +156,6 @@ class _TradeAidAppState extends State<TradeAidApp> {
 
               if (context != null) {
                 AuthFlow.handle(navigatorKey, userId);
-                ;
               }
             });
           }
@@ -164,7 +163,10 @@ class _TradeAidAppState extends State<TradeAidApp> {
       }
 
       if (event == AuthChangeEvent.signedOut) {
-        navigatorKey.currentState?.pushNamed('/login');
+        // ✅ ONLY trigger after real login
+        if (_hasUserEverSignedIn) {
+          navigatorKey.currentState?.pushNamed('/login');
+        }
       }
     });
   }
@@ -176,7 +178,6 @@ class _TradeAidAppState extends State<TradeAidApp> {
       title: 'Trade & Aid',
       debugShowCheckedModeBanner: false,
 
-      // ✅ Prevent flicker
       onUnknownRoute: (settings) {
         return MaterialPageRoute(builder: (_) => const SizedBox());
       },
