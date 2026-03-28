@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../widgets/app_bar.dart';
+import '../../widgets/app_bar.dart';
 import 'cash_pickup_schedule_screen.dart';
-import '../models/cart_item.dart';
+import '../../models/cart_item.dart';
 
 /// Screen for selecting payment method before checkout
 class PaymentSelectionScreen extends StatefulWidget {

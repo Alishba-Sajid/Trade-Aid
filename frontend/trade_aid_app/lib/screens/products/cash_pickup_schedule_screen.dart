@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../widgets/app_bar.dart';
-import '../widgets/time_picker.dart';
+import '../../widgets/app_bar.dart';
+import '../../widgets/time_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // 🌿 Premium Fintech Palette
@@ -60,14 +60,14 @@ Future<void> _pickTime() async {
    
 
     // ❌ Block 11 PM - 9 AM
-    if (picked.hour >= 23 || picked.hour < 9) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Pickup allowed only between 9 AM and 11 PM"),
-        ),
-      );
-      return;
-    }
+    // if (picked.hour <= 24 || picked.hour < 9) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     const SnackBar(
+    //       content: Text("Pickup allowed only between 9 AM and 12 AM"),
+    //     ),
+    //   );
+    //   return;
+    // }
 
       setState(() => selectedTime = picked);
   }

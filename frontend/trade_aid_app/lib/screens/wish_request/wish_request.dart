@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../screens/post_wish_request.dart';
-import '../widgets/app_bar.dart';
-import '../screens/chat/chat_screen.dart';
+import 'post_wish_request.dart';
+import '../../widgets/app_bar.dart';
+import '../chat/chat_screen.dart';
 
 // 🎨 COLORS
 const LinearGradient appGradient = LinearGradient(

@@ -4,8 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'product_details.dart';
 import 'payment_option.dart';
-import '../models/product.dart';
-import '../providers/cart_provider.dart';
+import '../wish_request/post_wish_request.dart';
+import '../../models/product.dart';
+import '../../providers/cart_provider.dart';
 
 // Your requested brand gradient
 const LinearGradient appGradient = LinearGradient(
@@ -43,51 +44,10 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
   }
 
   /* ================= FETCH PRODUCTS ================= */
-Future<void> _fetchProducts() async {
-  setState(() => isLoading = true);
+  Future<void> _fetchProducts() async {
+    setState(() => isLoading = true);
 
-  if (widget.communityId.isEmpty) {
-    setState(() {
-      products = [];
-      isLoading = false;
-    });
-    return;
-  }
-
-  try {
-    final supabase = Supabase.instance.client;
-    final user = supabase.auth.currentUser;
-
-    if (user == null) throw Exception("User not authenticated");
-
-    // ---------------- CATEGORY + WISH FILTER ----------------
-    PostgrestFilterBuilder query = supabase
-        .from('products')
-        .select()
-        .eq('community_id', widget.communityId)
-        .eq('status', 'available');
-
-    if (selectedCategory != 'Wish Item') {
-      // Essential / Lifestyle: show to all community members.
-      // Include: (1) normal dashboard products (wish_request_id null), and
-      // (2) wish-fulfillment products that became public after 48h.
-      query = query.eq('category', selectedCategory).or(
-        'wish_request_id.is.null,'
-        'and(make_public_after_48h.eq.true,expires_at.lt.now())',
-      );
-    } else {
-      // Wish Item tab: only products reserved for the current user (requester)
-     query = query
-    .not('wish_request_id', 'is', null)
-    .gt('expires_at', DateTime.now().toIso8601String())
-    .or('reserved_for.eq.${user.id},user_id.eq.${user.id}');
-    }
-
-    // ---------------- FETCH PRODUCTS ----------------
-    final productResponse = await query;
-    final productList = productResponse as List;
-
-    if (productList.isEmpty) {
+    if (widget.communityId.isEmpty) {
       setState(() {
         products = [];
         isLoading = false;
@@ -95,44 +55,82 @@ Future<void> _fetchProducts() async {
       return;
     }
 
-    // ---------------- FETCH SELLER PROFILES ----------------
-    final userIds = productList
-        .map((p) => p['user_id'] as String)
-        .toSet()
-        .toList();
+    try {
+      final supabase = Supabase.instance.client;
+      final user = supabase.auth.currentUser;
 
-    final profileResponse = await supabase
-        .from('profiles')
-        .select('user_id, full_name, address, profile_image_url')
-        .inFilter('user_id', userIds); // only 2 args here
+      if (user == null) throw Exception("User not authenticated");
 
-    final profileList = profileResponse as List;
+      // ---------------- CATEGORY + WISH FILTER ----------------
+      PostgrestFilterBuilder query = supabase
+          .from('products')
+          .select()
+          .eq('community_id', widget.communityId)
+          .eq('status', 'available');
 
-    final profileMap = {for (var p in profileList) p['user_id']: p};
+      if (selectedCategory != 'Wish Item') {
+        // Essential / Lifestyle: show to all community members.
+        query = query.eq('category', selectedCategory).or(
+              'wish_request_id.is.null,'
+              'and(make_public_after_48h.eq.true,expires_at.lt.now())',
+            );
+      } else {
+        // Wish Item tab: only products reserved for the current user (requester)
+        query = query
+            .not('wish_request_id', 'is', null)
+            .gt('expires_at', DateTime.now().toIso8601String())
+            .or('reserved_for.eq.${user.id},user_id.eq.${user.id}');
+      }
 
-    // ---------------- MERGE PRODUCTS + PROFILE ----------------
-    final List<Product> fetched = productList.map((json) {
-      final map = json as Map<String, dynamic>;
-      final profile = profileMap[map['user_id']];
+      // ---------------- FETCH PRODUCTS ----------------
+      final productResponse = await query;
+      final productList = productResponse as List;
 
-      map['sellerName'] = profile?['full_name'];
-      map['sellerAddress'] = profile?['address'];
-      map['sellerProfileImageUrl'] = profile?['profile_image_url'];
+      if (productList.isEmpty) {
+        setState(() {
+          products = [];
+          isLoading = false;
+        });
+        return;
+      }
 
-      return Product.fromJson(map);
-    }).toList();
+      // ---------------- FETCH SELLER PROFILES ----------------
+      final userIds = productList
+          .map((p) => p['user_id'] as String)
+          .toSet()
+          .toList();
 
-    setState(() {
-      products = fetched;
-      isLoading = false;
-    });
-  } catch (e) {
-    debugPrint("SUPABASE ERROR: $e");
-    setState(() => isLoading = false);
+      final profileResponse = await supabase
+          .from('profiles')
+          .select('user_id, full_name, address, profile_image_url')
+          .inFilter('user_id', userIds);
+
+      final profileList = profileResponse as List;
+      final profileMap = {for (var p in profileList) p['user_id']: p};
+
+      // ---------------- MERGE PRODUCTS + PROFILE ----------------
+      final List<Product> fetched = productList.map((json) {
+        final map = json as Map<String, dynamic>;
+        final profile = profileMap[map['user_id']];
+
+        map['sellerName'] = profile?['full_name'];
+        map['sellerAddress'] = profile?['address'];
+        map['sellerProfileImageUrl'] = profile?['profile_image_url'];
+
+        return Product.fromJson(map);
+      }).toList();
+
+      setState(() {
+        products = fetched;
+        isLoading = false;
+      });
+    } catch (e) {
+      debugPrint("SUPABASE ERROR: $e");
+      setState(() => isLoading = false);
+    }
   }
-}
-  /* ================= SEARCH FILTER ================= */
 
+  /* ================= SEARCH FILTER ================= */
   List<Product> _filteredProducts() {
     return products
         .where((p) =>
@@ -141,7 +139,6 @@ Future<void> _fetchProducts() async {
   }
 
   /* ================= UI BUILD ================= */
-
   @override
   Widget build(BuildContext context) {
     final filtered = _filteredProducts();
@@ -198,7 +195,6 @@ Future<void> _fetchProducts() async {
   }
 
   /* ================= APP BAR ================= */
-
   Widget _buildPremiumAppBar(BuildContext context) {
     return Container(
       height: 100,
@@ -230,7 +226,6 @@ Future<void> _fetchProducts() async {
   }
 
   /* ================= SEARCH ================= */
-
   Widget _buildSearchBar() {
     return TextField(
       onChanged: (v) => setState(() => searchQuery = v),
@@ -248,7 +243,6 @@ Future<void> _fetchProducts() async {
   }
 
   /* ================= CATEGORIES ================= */
-
   Widget _buildCategorySelector() {
     final categories = ['Essential', 'Lifestyle', 'Wish Item'];
 
@@ -291,7 +285,6 @@ Future<void> _fetchProducts() async {
   }
 
   /* ================= PRODUCT CARD ================= */
-
   Widget _buildPremiumProductCard(
     BuildContext context,
     Product product,
@@ -320,29 +313,25 @@ Future<void> _fetchProducts() async {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              /// IMAGE + DOTS
               Stack(
                 alignment: Alignment.bottomCenter,
                 children: [
                   GestureDetector(
-                   onTap: () {
-  if (product.status != 'available') {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("This product is not available"),
-      ),
-    );
-    return;
-  }
-
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) =>
-          ProductDetailsScreen(product: product),
-    ),
-  );
-},
+                    onTap: () {
+                      if (product.status != 'available') {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text("This product is not available")),
+                        );
+                        return;
+                      }
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ProductDetailsScreen(product: product),
+                        ),
+                      );
+                    },
                     child: SizedBox(
                       height: 220,
                       width: double.infinity,
@@ -365,7 +354,6 @@ Future<void> _fetchProducts() async {
                       ),
                     ),
                   ),
-
                   if (product.images.length > 1)
                     Positioned(
                       bottom: 12,
@@ -374,8 +362,7 @@ Future<void> _fetchProducts() async {
                           product.images.length,
                           (index) => Container(
                             margin: const EdgeInsets.symmetric(horizontal: 3),
-                            width:
-                                product.currentPageIndex == index ? 18 : 6,
+                            width: product.currentPageIndex == index ? 18 : 6,
                             height: 6,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(10),
@@ -392,10 +379,7 @@ Future<void> _fetchProducts() async {
                     ),
                 ],
               ),
-
               const SizedBox(height: 12),
-
-              /// TITLE + PRICE
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -421,10 +405,7 @@ Future<void> _fetchProducts() async {
                   ),
                 ],
               ),
-
               const SizedBox(height: 8),
-
-              /// DESCRIPTION
               Text(
                 product.description,
                 maxLines: 2,
@@ -435,16 +416,11 @@ Future<void> _fetchProducts() async {
                   height: 1.4,
                 ),
               ),
-
               const SizedBox(height: 12),
-
               _infoRow(Icons.star_border, "Condition", condition),
               _infoRow(Icons.history, "Used", usedTime),
               _infoRow(Icons.person_outline, "Seller", sellerName),
-
               const SizedBox(height: 16),
-
-              /// BUY BUTTON
               Row(
                 children: [
                   Expanded(
@@ -455,12 +431,13 @@ Future<void> _fetchProducts() async {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: ElevatedButton(
-                       onPressed: (isHeld || product.status != 'available')
-    ? null
-    : () => Navigator.push(
+                        onPressed: (isHeld || product.status != 'available')
+                            ? null
+                            : () => Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                      builder: (_) => PaymentSelectionScreen( productId: product.id)),
+                                      builder: (_) => PaymentSelectionScreen(
+                                          productId: product.id)),
                                 ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
@@ -469,16 +446,12 @@ Future<void> _fetchProducts() async {
                         child: const Text(
                           "Buy Now",
                           style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold),
+                              color: Colors.white, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
                   ),
-
                   const SizedBox(width: 10),
-
-                  /// CART
                   Container(
                     height: 48,
                     width: 55,
@@ -488,21 +461,16 @@ Future<void> _fetchProducts() async {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: IconButton(
-                            onPressed: (isHeld || product.status != 'available')
-    ? null
-    : () {
-                              context
-                                  .read<CartProvider>()
-                                  .addProduct(product);
-
+                      onPressed: (isHeld || product.status != 'available')
+                          ? null
+                          : () {
+                              context.read<CartProvider>().addProduct(product);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content:
-                                      Text('${product.name} added to cart'),
+                                  content: Text('${product.name} added to cart'),
                                   behavior: SnackBarBehavior.floating,
                                 ),
                               );
-
                               Navigator.pushNamed(context, '/cart');
                             },
                       icon: const Icon(Icons.shopping_cart_outlined,
@@ -528,27 +496,62 @@ Future<void> _fetchProducts() async {
           Text(
             "$label: ",
             style: GoogleFonts.poppins(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: dark),
+                fontSize: 12, fontWeight: FontWeight.w600, color: dark),
           ),
           Expanded(
-              child: Text(value,
-                  style: GoogleFonts.poppins(fontSize: 12))),
+              child:
+                  Text(value, style: GoogleFonts.poppins(fontSize: 12))),
         ],
       ),
     );
   }
-
-  Widget _buildNoProductsFound() {
-    return Center(
-      child: Text(
-        "No products found",
-        style: GoogleFonts.poppins(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: dark),
-      ),
-    );
-  }
+/* ================= NO PRODUCTS FOUND ================= */
+Widget _buildNoProductsFound() {
+  return Center(
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          "No products found",
+          style: GoogleFonts.poppins(
+              fontSize: 16, fontWeight: FontWeight.w600, color: dark),
+        ),
+        const SizedBox(height: 20),
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                // Add the communityId argument here:
+                builder: (_) => PostWishRequestScreen(communityId: widget.communityId),
+              ),
+            );
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            decoration: BoxDecoration(
+              gradient: appGradient,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: accent.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Text(
+              "Create Wish Request",
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
 }

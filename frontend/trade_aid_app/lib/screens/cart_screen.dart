@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
 import '../models/cart_item.dart';
-import 'payment_option.dart';
+import 'products/payment_option.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});

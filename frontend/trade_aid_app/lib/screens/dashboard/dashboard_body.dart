@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'community_dialog.dart';
-import '../wish_request.dart';
+import '../wish_request/wish_request.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // 🌿 Premium Color Constants

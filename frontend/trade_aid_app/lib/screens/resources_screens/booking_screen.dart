@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../widgets/time_picker.dart';
-import '../widgets/app_bar.dart';
+import '../../widgets/time_picker.dart';
+import '../../widgets/app_bar.dart';
 
 const Color light = Color(0xFFF0F9F8);
 

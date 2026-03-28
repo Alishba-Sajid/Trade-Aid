@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/resource.dart';
-import '../providers/cart_provider.dart';
-import '../widgets/app_bar.dart';
-import 'chat/chat_screen.dart';
+import '../../models/resource.dart';
+import '../../providers/cart_provider.dart';
+import '../../widgets/app_bar.dart';
+import '../chat/chat_screen.dart';
 
 const LinearGradient appGradient = LinearGradient(
   colors: [

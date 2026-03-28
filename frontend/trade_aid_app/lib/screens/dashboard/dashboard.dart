@@ -9,6 +9,7 @@ import '../cart_screen.dart';
 import '../profile/profile.dart';
 import '/services/chat_service.dart';
 import '/services/resource_book_confirmation.dart';
+import '/services/product_cash_confirmation.dart';
 
 const LinearGradient appGradient = LinearGradient(
   colors: [
@@ -40,8 +41,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String _communityName = 'Community';
   String _userName = 'User';
   String _inviteLink = '';
- 
-  
+   
 
   @override
   void initState() {
@@ -49,21 +49,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _checkLoggedInUser();
     _fetchUserCommunity(); 
     _checkNotifications();
-    _checkPendingTransactions();
+   
+   WidgetsBinding.instance.addPostFrameCallback((_) {
+  ResourceTransactionWatcher.start(context);
 
-
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    ResourceTransactionWatcher.start(context);
-  });
-
+  ProductTransactionService.checkPendingTransactions(context);
+});
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    final args =
-        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
 
     if (args != null) {
       _communityId = args['communityId'];
@@ -71,34 +69,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _userName = args['userName'] ?? 'User';
     }
   }
-Future<void> _checkPendingTransactions() async {
-  final supabase = Supabase.instance.client;
-  final user = supabase.auth.currentUser;
-
-  if (user == null) return;
-
-  final data = await supabase
-      .from('transactions')
-      .select()
-      .or('buyer_id.eq.${user.id},seller_id.eq.${user.id}')
-      .eq('status', 'pending');
-
-  for (final tx in data) {
-    final isBuyer = tx['buyer_id'] == user.id;
-    final isSeller = tx['seller_id'] == user.id;
-
-    final buyerConfirmed = tx['buyer_confirmed'] == true;
-    final sellerConfirmed = tx['seller_confirmed'] == true;
-
-    // ✅ Show only if THIS user has not confirmed yet
-    if ((isBuyer && !buyerConfirmed) || (isSeller && !sellerConfirmed)) {
-      Future.delayed(Duration.zero, () {
-        _showConfirmationDialog(tx);
-      });
-      break; // show one at a time
-    }
-  }
-}
 
   void _checkLoggedInUser() {
     final user = Supabase.instance.client.auth.currentUser;
@@ -108,27 +78,6 @@ Future<void> _checkPendingTransactions() async {
       print("❌ No user logged in");
     }
   }
-  Future<void> _resolveTransaction(String transactionId) async {
-  final supabase = Supabase.instance.client;
-
-  final tx = await supabase
-      .from('transactions')
-      .select()
-      .eq('id', transactionId)
-      .maybeSingle();
-
-  if (tx == null) return;
-
-  if (tx['buyer_confirmed'] == true && tx['seller_confirmed'] == true) {
-    await supabase.from('transactions').update({
-      'status': 'completed'
-    }).eq('id', transactionId);
-
-    await supabase.from('products').update({
-      'status': 'sold'
-    }).eq('id', tx['product_id']);
-  }
-}
 
   Future<void> _checkNotifications() async {
   final supabase = Supabase.instance.client;
@@ -260,70 +209,6 @@ Future<void> _fetchUserCommunity() async {
 
     setState(() => _currentIndex = index);
   }
-
-void _showConfirmationDialog(Map transaction) {
-  final supabase = Supabase.instance.client;
-  final user = supabase.auth.currentUser;
-
-  final isBuyer = transaction['buyer_id'] == user?.id;
-
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (_) => AlertDialog(
-      title: const Text("Transaction Confirmation"),
-      content: Text(
-        isBuyer
-            ? "Have you paid?"
-            : "Have you received payment?",
-      ),
-      actions: [
-        TextButton(
-          onPressed: () async {
-            // ✅ YES
-            if (isBuyer) {
-              await supabase.from('transactions').update({
-                'buyer_confirmed': true,
-              }).eq('id', transaction['id']);
-            } else {
-              await supabase.from('transactions').update({
-                'seller_confirmed': true,
-              }).eq('id', transaction['id']);
-            }
-
-            await _resolveTransaction(transaction['id']);
-
-            Navigator.pop(context);
-          },
-          child: const Text("Yes"),
-        ),
-        TextButton(
-          onPressed: () async {
-            // ❌ NO → mark as disputed AND stop future dialogs
-            if (isBuyer) {
-              await supabase.from('transactions').update({
-                'buyer_confirmed': true,
-                'status': 'disputed'
-              }).eq('id', transaction['id']);
-            } else {
-              await supabase.from('transactions').update({
-                'seller_confirmed': true,
-                'status': 'disputed'
-              }).eq('id', transaction['id']);
-            }
-
-            await supabase.from('products').update({
-              'status': 'disputed'
-            }).eq('id', transaction['product_id']);
-
-            Navigator.pop(context);
-          },
-          child: const Text("No"),
-        ),
-      ],
-    ),
-  );
-}
 
   void _showPostDialog() {
     showGeneralDialog(
