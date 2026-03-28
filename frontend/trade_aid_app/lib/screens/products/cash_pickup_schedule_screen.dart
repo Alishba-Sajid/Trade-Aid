@@ -78,24 +78,46 @@ Future<void> _confirmSchedule() async {
   final user = supabase.auth.currentUser;
 
   if (user == null) return;
-final today = DateTime.now();
-final maxDate = today.add(const Duration(days: 3));
 
-if (selectedDate!.isAfter(maxDate)) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text('You must schedule within the next 3 days'),
-    ),
-  );
-  return;
-}
+  final today = DateTime.now();
+  final maxDate = today.add(const Duration(days: 3));
+
+  if (selectedDate!.isAfter(maxDate)) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('You must schedule within the next 3 days')),
+    );
+    return;
+  }
+
   final product = await supabase
       .from('products')
-      .select('user_id')
+      .select('user_id, status')
       .eq('id', widget.productId)
       .single();
 
   final sellerId = product['user_id'];
+
+  // 🚨 BLOCK if already reserved
+  if (product['status'] != 'available') {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Product already reserved")),
+    );
+    return;
+  }
+
+  // 🔍 CHECK existing pending transaction FIRST
+  final existing = await supabase
+      .from('transactions')
+      .select()
+      .eq('product_id', widget.productId)
+      .eq('status', 'pending');
+
+  if (existing.isNotEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Product already reserved")),
+    );
+    return;
+  }
 
   final scheduledDateTime = DateTime(
     selectedDate!.year,
@@ -105,21 +127,38 @@ if (selectedDate!.isAfter(maxDate)) {
     selectedTime!.minute,
   );
 
-  // ✅ Create transaction
+  // ✅ CREATE transaction
   await supabase.from('transactions').insert({
     'product_id': widget.productId,
     'buyer_id': user.id,
     'seller_id': sellerId,
     'scheduled_at': scheduledDateTime.toIso8601String(),
-    'confirm_at': scheduledDateTime.add(const Duration(minutes: 30)).toIso8601String(),
-    'auto_resolve_at': scheduledDateTime.add(const Duration(hours: 48)).toIso8601String(),
+    'confirm_at': scheduledDateTime
+        .add(const Duration(minutes: 30))
+        .toIso8601String(),
+    'auto_resolve_at': scheduledDateTime
+        .add(const Duration(hours: 48))
+        .toIso8601String(),
   });
 
-  // ✅ Update product → RESERVED
-  await supabase.from('products').update({
-    'status': 'reserved',
-    'reserved_for': user.id,
-  }).eq('id', widget.productId);
+  // ✅ UPDATE product status
+final updateResponse = await supabase
+    .from('products')
+    .update({
+      'status': 'reserved',
+      'reserved_for': user.id,
+    })
+    .eq('id', widget.productId)
+    .eq('status', 'available')
+    .select(); // ✅ THIS IS IMPORTANT
+
+// 🚨 IMPORTANT: check if update actually happened
+if (updateResponse.isEmpty) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text("Product already reserved by someone else")),
+  );
+  return;
+}
 
   if (!mounted) return;
 

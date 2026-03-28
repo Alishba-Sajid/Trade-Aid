@@ -8,7 +8,6 @@ import '../chat/chat_list_screen.dart';
 import '../cart_screen.dart';
 import '../profile/profile.dart';
 import '/services/chat_service.dart';
-import '/services/resource_book_confirmation.dart';
 import '/services/product_cash_confirmation.dart';
 
 const LinearGradient appGradient = LinearGradient(
@@ -49,14 +48,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _checkLoggedInUser();
     _fetchUserCommunity(); 
     _checkNotifications();
-   
+
    WidgetsBinding.instance.addPostFrameCallback((_) {
-  ResourceTransactionWatcher.start(context);
+    _startTransactionWatcher();
+  });
+}
 
-  ProductTransactionService.checkPendingTransactions(context);
-});
-  }
-
+void _startTransactionWatcher() {
+  Future.doWhile(() async {
+    await ProductTransactionService.checkPendingTransactions(context);
+    await Future.delayed(const Duration(seconds: 3));
+    return true;
+  });
+}
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();

@@ -63,10 +63,19 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
 
       // ---------------- CATEGORY + WISH FILTER ----------------
       PostgrestFilterBuilder query = supabase
-          .from('products')
-          .select()
-          .eq('community_id', widget.communityId)
-          .eq('status', 'available');
+    .from('products')
+    .select()
+    .eq('community_id', widget.communityId)
+    .or(
+      // 👇 AVAILABLE → visible to everyone
+      'status.eq.available,'
+
+      // 👇 RESERVED → only buyer or seller
+      'and(status.eq.reserved,or(reserved_for.eq.${user.id},user_id.eq.${user.id})),'
+
+    // 👇 DISPUTED → ONLY buyer or seller (STRICT)
+'and(status.eq.disputed,or(reserved_for.eq.${user.id},user_id.eq.${user.id}))'
+    );
 
       if (selectedCategory != 'Wish Item') {
         // Essential / Lifestyle: show to all community members.
@@ -433,12 +442,18 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                       child: ElevatedButton(
                         onPressed: (isHeld || product.status != 'available')
                             ? null
-                            : () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) => PaymentSelectionScreen(
-                                          productId: product.id)),
-                                ),
+                            : () async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PaymentSelectionScreen(
+          productId: product.id,
+        ),
+      ),
+    );
+    _fetchProducts();
+  },
+                                              
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,

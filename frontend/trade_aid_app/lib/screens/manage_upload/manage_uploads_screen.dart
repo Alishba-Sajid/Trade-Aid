@@ -68,28 +68,28 @@ class _ManageUploadsScreenState extends State<ManageUploadsScreen>
     try {
       final response = await supabase
           .from('products')
-          .select()
-          .eq('user_id', user.id)
-          .order('created_at', ascending: false);
-
-      if (mounted) {
-        setState(() {
-          products = response.map((item) {
-            return {
-              ...item,
-              'name': item['title'],
-              'image': (item['images'] as List?)?.isNotEmpty == true
-                  ? item['images'][0]
-                  : null,
-            };
-          }).toList();
-        });
-      }
-    } catch (e) {
-      print("Product fetch error: $e");
+        .select()
+        .eq('user_id', user.id)
+        .eq('status', 'available') 
+        .order('created_at', ascending: false);
+        
+ if (mounted) {
+      setState(() {
+        products = response.map((item) {
+          return {
+            ...item,
+            'name': item['title'],
+            'image': (item['images'] as List?)?.isNotEmpty == true
+                ? item['images'][0]
+                : null,
+          };
+        }).toList();
+      });
     }
+  } catch (e) {
+    print("Product fetch error: $e");
   }
-
+}
   // ---------------- FETCH RESOURCES ----------------
 
   Future<void> _fetchResources() async {
