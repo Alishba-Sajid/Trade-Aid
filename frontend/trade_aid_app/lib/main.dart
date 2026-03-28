@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'services/auth_flow.dart';
 
 import 'providers/cart_provider.dart';
 
@@ -109,7 +110,6 @@ class _TradeAidAppState extends State<TradeAidApp> {
           .maybeSingle();
 
       if (pending != null) {
-        navigatorKey.currentState?.pushNamed('/waiting_approval');
         return;
       }
 
@@ -128,7 +128,11 @@ class _TradeAidAppState extends State<TradeAidApp> {
     final session = Supabase.instance.client.auth.currentSession;
 
     if (session != null) {
-      Future.microtask(() => _handleUserRouting());
+      final provider = session.user.appMetadata['provider'];
+
+      if (provider != 'google') {
+        Future.microtask(() => _handleUserRouting());
+      }
     }
 
     // ✅ Auth state listener
@@ -144,7 +148,18 @@ class _TradeAidAppState extends State<TradeAidApp> {
         final provider = data.session?.user.appMetadata['provider'];
 
         if (provider == 'google') {
-          _handleUserRouting();
+          final userId = data.session?.user.id;
+
+          if (userId != null) {
+            Future.delayed(const Duration(milliseconds: 300), () {
+              final context = navigatorKey.currentContext;
+
+              if (context != null) {
+                AuthFlow.handle(navigatorKey, userId);
+                ;
+              }
+            });
+          }
         }
       }
 

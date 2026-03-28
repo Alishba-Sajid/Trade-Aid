@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'payment_option.dart';
 import '../widgets/time_picker.dart';
-import '../widgets/app_bar.dart'; 
+import '../widgets/app_bar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 const Color light = Color(0xFFF0F9F8);
 
 // ================== Booking Model ==================
@@ -36,7 +37,7 @@ class BookingScreen extends StatefulWidget {
     super.key,
     required this.resourceId,
     required this.resourceName,
-    required this.ownerId, // ✅ ADD THIS
+    required this.ownerId,
   });
   @override
   State<BookingScreen> createState() => _BookingScreenState();
@@ -60,10 +61,7 @@ class _BookingScreenState extends State<BookingScreen> {
       body: Column(
         children: [
           // ------------------ Reusable App Bar ------------------
-          AppBarWidget(
-            title: "Reserve",
-            onBack: () => Navigator.pop(context),
-          ),
+          AppBarWidget(title: "Reserve", onBack: () => Navigator.pop(context)),
 
           // ------------------ Booking Form ------------------
           Expanded(
@@ -85,16 +83,15 @@ class _BookingScreenState extends State<BookingScreen> {
                   // Date Selection
                   const Text(
                     'Select Date',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 8),
 
                   _buildChoiceCard(
                     child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                      ),
                       leading: Container(
                         width: 44,
                         height: 44,
@@ -133,10 +130,7 @@ class _BookingScreenState extends State<BookingScreen> {
                   // Time Selection
                   const Text(
                     'Select Time (Start & End)',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 8),
 
@@ -210,57 +204,57 @@ class _BookingScreenState extends State<BookingScreen> {
       ),
     );
   }
-Future<void> _onBookPressed() async {
-  if (selectedDate == null || startTime == null || endTime == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Please choose date and time')),
-    );
-    return;
-  }
 
-  final supabase = Supabase.instance.client;
-
-  final start = "${startTime!.hour}:${startTime!.minute}";
-  final end = "${endTime!.hour}:${endTime!.minute}";
-
-  try {
-    // 🔍 Check if slot already booked
-    final conflict = await supabase
-        .from('resource_bookings')
-        .select()
-        .eq('resource_id', widget.resourceId)
-        .eq('booking_date', selectedDate!.toIso8601String())
-        .or('start_time.lt.$end,end_time.gt.$start');
-
-    if ((conflict as List).isNotEmpty) {
+  Future<void> _onBookPressed() async {
+    if (selectedDate == null || startTime == null || endTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('This time slot is already booked')),
+        const SnackBar(content: Text('Please choose date and time')),
       );
       return;
     }
 
-    // ✅ Insert booking
-    await supabase.from('resource_bookings').insert({
-      'resource_id': widget.resourceId,
-      'user_id': supabase.auth.currentUser!.id,
-      'owner_id': widget.ownerId,
-      'booking_date': selectedDate!.toIso8601String(),
-      'start_time': start,
-      'end_time': end,
-    });
+    final supabase = Supabase.instance.client;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Booking successful')),
-    );
+    final start = "${startTime!.hour}:${startTime!.minute}";
+    final end = "${endTime!.hour}:${endTime!.minute}";
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const PaymentSelectionScreen()),
-    );
-  } catch (e) {
-    print("BOOKING ERROR: $e");
+    try {
+      final conflict = await supabase
+          .from('resource_bookings')
+          .select()
+          .eq('resource_id', widget.resourceId)
+          .eq('booking_date', selectedDate!.toIso8601String())
+          .or('start_time.lt.$end,end_time.gt.$start');
+
+      if ((conflict as List).isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('This time slot is already booked')),
+        );
+        return;
+      }
+
+      // ✅ Insert booking
+      await supabase.from('resource_bookings').insert({
+        'resource_id': widget.resourceId,
+        'user_id': supabase.auth.currentUser!.id,
+        'owner_id': widget.ownerId,
+        'booking_date': selectedDate!.toIso8601String(),
+        'start_time': start,
+        'end_time': end,
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Booking successful')));
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const PaymentSelectionScreen()),
+      );
+    } catch (e) {
+      print("BOOKING ERROR: $e");
+    }
   }
-}
   // ================== Helper Widgets ==================
 
   /// Generic card for choices (date/time)
@@ -335,6 +329,4 @@ Future<void> _onBookPressed() async {
     );
     if (picked != null) setState(() => endTime = picked);
   }
-
- 
 }

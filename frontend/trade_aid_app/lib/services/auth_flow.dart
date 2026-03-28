@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'dart:async';
 
 /// ✅ AuthFlow with animated cards, works for email & Google logins
 class AuthFlow {
-  /// Show animated card overlay
+  /// Show animated card overlay (SAFE)
   static void _showAnimatedCard(
-    BuildContext context,
+    GlobalKey<NavigatorState> navigatorKey,
     String message, {
     IconData? icon,
   }) {
-    final overlay = Overlay.of(context);
+    final overlay = navigatorKey.currentState?.overlay;
+    if (overlay == null) return;
 
     final overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
@@ -25,8 +25,11 @@ class AuthFlow {
     Future.delayed(const Duration(seconds: 2), () => overlayEntry.remove());
   }
 
-  /// Main auth handler
-  static Future<void> handle(BuildContext context, String userId) async {
+  /// ✅ Main auth handler (NO context issues anymore)
+  static Future<void> handle(
+    GlobalKey<NavigatorState> navigatorKey,
+    String userId,
+  ) async {
     final supabase = Supabase.instance.client;
 
     try {
@@ -38,10 +41,11 @@ class AuthFlow {
           .maybeSingle();
 
       if (profile == null) {
-        Navigator.pushReplacementNamed(context, '/create_profile');
+        navigatorKey.currentState?.pushReplacementNamed('/create_profile');
+
         Future.delayed(const Duration(milliseconds: 300), () {
           _showAnimatedCard(
-            context,
+            navigatorKey,
             "Please create your profile to continue.",
             icon: Icons.person_add,
           );
@@ -57,7 +61,7 @@ class AuthFlow {
           .maybeSingle();
 
       if (membership != null) {
-        Navigator.pushReplacementNamed(context, '/dashboard');
+        navigatorKey.currentState?.pushReplacementNamed('/dashboard');
         return;
       }
 
@@ -70,35 +74,39 @@ class AuthFlow {
           .maybeSingle();
 
       if (pendingRequest != null) {
-        // Navigate first so Overlay exists
-        Navigator.pushReplacementNamed(context, '/dashboard');
+        navigatorKey.currentState?.pushReplacementNamed(
+          '/login',
+        ); // stay safe screen
+
         Future.delayed(const Duration(milliseconds: 300), () {
           _showAnimatedCard(
-            context,
+            navigatorKey,
             "Your request is still pending approval. Please wait.",
             icon: Icons.info_outline,
           );
         });
+
         return;
       }
 
       // ✅ If profile exists but not in a community
-      Navigator.pushReplacementNamed(context, '/location_permission');
+      navigatorKey.currentState?.pushReplacementNamed('/location_permission');
+
       Future.delayed(const Duration(milliseconds: 300), () {
         _showAnimatedCard(
-          context,
+          navigatorKey,
           "Please allow location permission to continue.",
           icon: Icons.location_on,
         );
       });
     } catch (e) {
       debugPrint("Auth flow error: $e");
-      Navigator.pushReplacementNamed(context, '/welcome');
+      navigatorKey.currentState?.pushReplacementNamed('/welcome');
     }
   }
 }
 
-/// ✅ AnimatedCard widget (self-contained)
+/// ✅ AnimatedCard widget (UNCHANGED)
 class _AnimatedCard extends StatefulWidget {
   final String message;
   final IconData? icon;
