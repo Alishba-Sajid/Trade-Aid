@@ -47,8 +47,6 @@ class PendingRequestsScreen extends StatefulWidget {
 class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
   List<UserRequest> requests = [];
   bool loading = true;
-
-  /// Track which request is being processed (approve)
   String? _processingRequestId;
 
   @override
@@ -73,14 +71,14 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
 
       final userId = user.id;
 
-      // 1️⃣ Get communities owned by this user
-      final ownedCommunities = await supabase
-          .from('communities')
-          .select('id')
-          .eq('creator_id', userId);
+      // 1️⃣ Get communities where this user is a member
+      final memberCommunities = await supabase
+          .from('community_members')
+          .select('community_id')
+          .eq('user_id', userId);
 
-      final communityIds = (ownedCommunities as List)
-          .map((e) => e['id'].toString())
+      final communityIds = (memberCommunities as List)
+          .map((e) => e['community_id'].toString())
           .toList();
 
       if (communityIds.isEmpty) {
@@ -91,7 +89,7 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
         return;
       }
 
-      // 2️⃣ Fetch pending requests with profile info
+      // 2️⃣ Fetch pending requests of those communities
       final pendingRequests = await supabase
           .from('community_join_requests')
           .select(
@@ -130,18 +128,13 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
     }
   }
 
-  /// =======================
-  /// Approve with per-request loading
-  /// =======================
   Future<void> approveRequest(UserRequest req) async {
     final supabase = Supabase.instance.client;
 
     try {
-      setState(() {
-        _processingRequestId = req.id;
-      });
+      setState(() => _processingRequestId = req.id);
 
-      // Insert user into community_members
+      // 1️⃣ Add user to community_members
       await supabase.from('community_members').insert({
         'community_id': req.communityId,
         'user_id': req.requesterId,
@@ -149,13 +142,12 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
         'joined_at': DateTime.now().toIso8601String(),
       });
 
-      // Update join request status
+      // 2️⃣ Update request status
       await supabase
           .from('community_join_requests')
           .update({'status': 'approved'})
           .eq('id', req.id);
 
-      // Remove from UI list
       setState(() {
         requests.removeWhere((r) => r.id == req.id);
       });
@@ -175,9 +167,7 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
         ),
       );
     } finally {
-      setState(() {
-        _processingRequestId = null;
-      });
+      setState(() => _processingRequestId = null);
     }
   }
 

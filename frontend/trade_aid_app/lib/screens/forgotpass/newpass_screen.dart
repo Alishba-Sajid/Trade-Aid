@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class NewPasswordScreen extends StatefulWidget {
   const NewPasswordScreen({super.key});
@@ -52,11 +53,26 @@ class _NewPasswordScreenState extends State<NewPasswordScreen>
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _loading = true);
-    await Future.delayed(const Duration(milliseconds: 900));
-    setState(() => _loading = false);
 
-    if (!mounted) return;
-    Navigator.popUntil(context, (r) => r.isFirst);
+    try {
+      await Supabase.instance.client.auth.updateUser(
+        UserAttributes(password: _pass1.text.trim()),
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Password updated successfully")),
+      );
+
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to update password")),
+      );
+    }
+
+    setState(() => _loading = false);
   }
 
   @override

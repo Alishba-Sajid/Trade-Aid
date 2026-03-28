@@ -37,7 +37,7 @@ class DashboardBody extends StatefulWidget {
 
 class _DashboardBodyState extends State<DashboardBody> {
   RealtimeChannel? wishChannel;
-RealtimeChannel? communityChannel;
+  RealtimeChannel? communityChannel;
 
   int activeWishCount = 0;
   List<Map<String, dynamic>> nearbyCommunities = [];
@@ -46,89 +46,76 @@ RealtimeChannel? communityChannel;
   bool locationDeniedForever = false;
   bool loadingNearby = true;
 
+  void _subscribeWishRequests() {
+    wishChannel?.unsubscribe();
 
-void _subscribeWishRequests() {
+    final supabase = Supabase.instance.client;
 
-  wishChannel?.unsubscribe();
+    wishChannel = supabase.channel('wish_requests_channel')
+      ..onPostgresChanges(
+        event: PostgresChangeEvent.insert,
+        schema: 'public',
+        table: 'wish_requests',
+        filter: PostgresChangeFilter(
+          type: PostgresChangeFilterType.eq,
+          column: 'community_id',
+          value: widget.communityId,
+        ),
+        callback: (payload) {
+          if (!mounted) return;
 
-  final supabase = Supabase.instance.client;
-
-  wishChannel = supabase.channel('wish_requests_channel')
-    ..onPostgresChanges(
-      event: PostgresChangeEvent.insert,
-      schema: 'public',
-      table: 'wish_requests',
-      filter: PostgresChangeFilter(
-        type: PostgresChangeFilterType.eq,
-        column: 'community_id',
-        value: widget.communityId,
-      ),
-      callback: (payload) {
-
-        if (!mounted) return;
-
-       _fetchActiveWishCount();
-
-      },
-    )
-    ..subscribe();
-}
-void _subscribeNearbyCommunities() {
-
-  final supabase = Supabase.instance.client;
-
-  communityChannel = supabase.channel('community_channel')
-    ..onPostgresChanges(
-      event: PostgresChangeEvent.insert,
-      schema: 'public',
-      table: 'communities',
-      callback: (payload) {
-
-        _fetchNearbyCommunities();
-
-      },
-    )
-    ..subscribe();
-}
-Future<void> _loadDashboardData() async {
-  await _fetchActiveWishCount();
-    await _fetchNearbyCommunities();
-}
-
-Future<void> _initializeDashboard() async {
-
-  final supabase = Supabase.instance.client;
-
-  final session = supabase.auth.currentSession;
-
-  if (session != null) {
-
-    // Load existing dashboard data
-    await _loadDashboardData();
-
-    // Start realtime listeners
-    _subscribeWishRequests();
-    _subscribeNearbyCommunities();
-
-  } else {
-
-    supabase.auth.onAuthStateChange.listen((data) async {
-
-      if (data.event == AuthChangeEvent.signedIn) {
-
-        // Load existing records first
-        await _loadDashboardData();
-
-        // Then listen for new realtime events
-        _subscribeWishRequests();
-        _subscribeNearbyCommunities();
-
-      }
-
-    });
-
+          _fetchActiveWishCount();
+        },
+      )
+      ..subscribe();
   }
-}
+
+  void _subscribeNearbyCommunities() {
+    final supabase = Supabase.instance.client;
+
+    communityChannel = supabase.channel('community_channel')
+      ..onPostgresChanges(
+        event: PostgresChangeEvent.insert,
+        schema: 'public',
+        table: 'communities',
+        callback: (payload) {
+          _fetchNearbyCommunities();
+        },
+      )
+      ..subscribe();
+  }
+
+  Future<void> _loadDashboardData() async {
+    await _fetchActiveWishCount();
+    await _fetchNearbyCommunities();
+  }
+
+  Future<void> _initializeDashboard() async {
+    final supabase = Supabase.instance.client;
+
+    final session = supabase.auth.currentSession;
+
+    if (session != null) {
+      // Load existing dashboard data
+      await _loadDashboardData();
+
+      // Start realtime listeners
+      _subscribeWishRequests();
+      _subscribeNearbyCommunities();
+    } else {
+      supabase.auth.onAuthStateChange.listen((data) async {
+        if (data.event == AuthChangeEvent.signedIn) {
+          // Load existing records first
+          await _loadDashboardData();
+
+          // Then listen for new realtime events
+          _subscribeWishRequests();
+          _subscribeNearbyCommunities();
+        }
+      });
+    }
+  }
+
   Future<void> _fetchActiveWishCount() async {
     if (widget.communityId.isEmpty) return;
 
@@ -141,9 +128,7 @@ Future<void> _initializeDashboard() async {
           .eq('community_id', widget.communityId)
           .gte(
             'created_at',
-            DateTime.now()
-                .subtract(const Duration(days: 7))
-                .toIso8601String(),
+            DateTime.now().subtract(const Duration(days: 7)).toIso8601String(),
           );
 
       if (!mounted) return;
@@ -155,65 +140,61 @@ Future<void> _initializeDashboard() async {
       debugPrint("Error fetching wish count: $e");
     }
   }
-Future<void> _fetchNearbyCommunities() async {
-  try {
 
-    final supabase = Supabase.instance.client;
-    final userId = supabase.auth.currentUser?.id;
+  Future<void> _fetchNearbyCommunities() async {
+    try {
+      final supabase = Supabase.instance.client;
+      final userId = supabase.auth.currentUser?.id;
 
-    if (userId == null) return;
+      if (userId == null) return;
 
-    final profile = await supabase
-        .from('profiles')
-        .select('home_latitude, home_longitude')
-        .eq('user_id', userId)
-        .maybeSingle();
+      final profile = await supabase
+          .from('profiles')
+          .select('home_latitude, home_longitude')
+          .eq('user_id', userId)
+          .maybeSingle();
 
-    if (profile == null ||
-        profile['home_latitude'] == null ||
-        profile['home_longitude'] == null) {
+      if (profile == null ||
+          profile['home_latitude'] == null ||
+          profile['home_longitude'] == null) {
+        setState(() {
+          loadingNearby = false;
+          nearbyCommunities = [];
+        });
+
+        return;
+      }
+
+      final double userLat = profile['home_latitude'];
+      final double userLng = profile['home_longitude'];
+
+      final response = await supabase.rpc(
+        'get_nearby_communities',
+        params: {
+          'user_lat': userLat,
+          'user_lng': userLng,
+          'radius_km': 1.0,
+          'current_community': widget.communityId,
+        },
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        loadingNearby = false;
+        nearbyCommunities = List<Map<String, dynamic>>.from(response);
+      });
+    } catch (e) {
+      debugPrint("Error fetching nearby communities: $e");
 
       setState(() {
         loadingNearby = false;
         nearbyCommunities = [];
       });
-
-      return;
     }
-
-    final double userLat = profile['home_latitude'];
-    final double userLng = profile['home_longitude'];
-
-    final response = await supabase.rpc(
-      'get_nearby_communities',
-      params: {
-        'user_lat': userLat,
-        'user_lng': userLng,
-        'radius_km': 1.0,
-        'current_community': widget.communityId,
-      },
-    );
-
-    if (!mounted) return;
-
-    setState(() {
-      loadingNearby = false;
-      nearbyCommunities = List<Map<String, dynamic>>.from(response);
-    });
-
-  } catch (e) {
-    debugPrint("Error fetching nearby communities: $e");
-
-    setState(() {
-      loadingNearby = false;
-      nearbyCommunities = [];
-    });
   }
-}
-
 
   Future<void> _joinCommunity(Map<String, dynamic> community) async {
-
     final userId = Supabase.instance.client.auth.currentUser?.id;
 
     if (userId == null) {
@@ -222,7 +203,6 @@ Future<void> _fetchNearbyCommunities() async {
     }
 
     try {
-
       final memberCheck = await Supabase.instance.client
           .from('community_members')
           .select()
@@ -262,7 +242,6 @@ Future<void> _fetchNearbyCommunities() async {
       } else {
         _showAnimatedCard('Failed to send join request');
       }
-
     } catch (e) {
       debugPrint('Error sending join request: $e');
       _showAnimatedCard('Failed to send join request');
@@ -270,7 +249,6 @@ Future<void> _fetchNearbyCommunities() async {
   }
 
   void _showAnimatedCard(String message) {
-
     IconData icon = Icons.check;
 
     if (message.contains('already') ||
@@ -325,28 +303,28 @@ Future<void> _fetchNearbyCommunities() async {
   }
 
   @override
-void initState() {
-  super.initState();
-  _initializeDashboard();
-}
-@override
-void didUpdateWidget(covariant DashboardBody oldWidget) {
-  super.didUpdateWidget(oldWidget);
-
-  if (widget.communityId != oldWidget.communityId &&
-      widget.communityId.isNotEmpty) {
-
-    _fetchActiveWishCount();
-    _fetchNearbyCommunities();
+  void initState() {
+    super.initState();
+    _initializeDashboard();
   }
-}
 
-@override
-void dispose() {
-  wishChannel?.unsubscribe();
-  communityChannel?.unsubscribe();
-  super.dispose();
-}
+  @override
+  void didUpdateWidget(covariant DashboardBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (widget.communityId != oldWidget.communityId &&
+        widget.communityId.isNotEmpty) {
+      _fetchActiveWishCount();
+      _fetchNearbyCommunities();
+    }
+  }
+
+  @override
+  void dispose() {
+    wishChannel?.unsubscribe();
+    communityChannel?.unsubscribe();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -499,15 +477,15 @@ void dispose() {
                       ),
                     ),
                     const SizedBox(width: 10),
-                   Expanded(
-  child: _ServiceCard(
-    title: 'Resources',
-    subtitle: 'Available resources',
-    icon: Icons.group,
-    route: '/resource_listing', // ✅ FIXED
-    communityId: widget.communityId,
-  ),
-),
+                    Expanded(
+                      child: _ServiceCard(
+                        title: 'Resources',
+                        subtitle: 'Available resources',
+                        icon: Icons.group,
+                        route: '/resource_listing', // ✅ FIXED
+                        communityId: widget.communityId,
+                      ),
+                    ),
                   ],
                 ),
 
@@ -516,40 +494,43 @@ void dispose() {
                 _buildSectionHeader('Wish Requests'),
                 const SizedBox(height: 13),
 
-              GestureDetector(
-  onTap: () => Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => WishRequestsScreen(
-        communityId: widget.communityId, // Pass it here
-      ),
-    ),
-  ),
-  child: _buildPremiumWishCard(),
-),
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => WishRequestsScreen(
+                        communityId: widget.communityId, // Pass it here
+                      ),
+                    ),
+                  ),
+                  child: _buildPremiumWishCard(),
+                ),
 
                 const SizedBox(height: 20),
 
-                   _buildSectionHeader('Nearby Communities'),
+                _buildSectionHeader('Nearby Communities'),
                 const SizedBox(height: 13),
 
-              SizedBox(
-  height: 130,
- child: loadingNearby
-    ? const Center(child: CircularProgressIndicator())
-    : nearbyCommunities.isEmpty
+                SizedBox(
+                  height: 130,
+                  child: loadingNearby
+                      ? const Center(child: CircularProgressIndicator())
+                      : nearbyCommunities.isEmpty
                       ? _buildNoNearbyCommunities()
-              : ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: nearbyCommunities.map((community) =>
-                      _CommunityTile(
-                        community['name'],
-                        description: community['description'] ?? '',
-                        id: community['id'],
-                        onJoin: () => _joinCommunity(community),
-                      )).toList(),
+                      : ListView(
+                          scrollDirection: Axis.horizontal,
+                          children: nearbyCommunities
+                              .map(
+                                (community) => _CommunityTile(
+                                  community['name'],
+                                  description: community['description'] ?? '',
+                                  id: community['id'],
+                                  onJoin: () => _joinCommunity(community),
+                                ),
+                              )
+                              .toList(),
+                        ),
                 ),
-),
 
                 const SizedBox(height: 10),
               ],
@@ -595,11 +576,7 @@ void dispose() {
               ],
             ),
             child: const Center(
-              child: Icon(
-                Icons.location_off,
-                size: 32,
-                color: Colors.grey,
-              ),
+              child: Icon(Icons.location_off, size: 32, color: Colors.grey),
             ),
           ),
           const SizedBox(height: 5),
@@ -617,7 +594,7 @@ void dispose() {
     );
   }
 
- Widget _buildPremiumWishCard() {
+  Widget _buildPremiumWishCard() {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -676,7 +653,7 @@ void dispose() {
               borderRadius: BorderRadius.circular(100),
             ),
             child: Text(
-  '$activeWishCount Active',
+              '$activeWishCount Active',
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -763,6 +740,7 @@ class _ServiceCard extends StatelessWidget {
     );
   }
 }
+
 // =========================
 // Community Tile
 // =========================
@@ -836,11 +814,7 @@ class _CommunityTile extends StatelessWidget {
             onTap: () {
               CommunityDialog.show(
                 context,
-                Community(
-                  id: id ?? '',
-                  name: name,
-                  description: description,
-                ),
+                Community(id: id ?? '', name: name, description: description),
                 onJoin: onJoin,
               );
             },
