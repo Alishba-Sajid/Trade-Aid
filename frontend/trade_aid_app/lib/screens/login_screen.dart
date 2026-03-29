@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/auth_flow.dart';
+import '../main.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -102,7 +103,7 @@ class _LoginScreenState extends State<LoginScreen>
 
       if (user != null) {
         if (!mounted) return;
-        await AuthFlow.handle(context, user.id);
+        await AuthFlow.handle(navigatorKey, user.id);
       }
     } on AuthException catch (e) {
       final message = e.message.toLowerCase();

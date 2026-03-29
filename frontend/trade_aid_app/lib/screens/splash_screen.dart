@@ -2,7 +2,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:trade_aid_app/services/auth_flow.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -19,32 +18,83 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkSession() async {
+    // Splash screen delay
     await Future.delayed(const Duration(seconds: 3));
 
     try {
       final supabase = Supabase.instance.client;
       final session = supabase.auth.currentSession;
 
+      // ✅ No session → Welcome screen
       if (session == null) {
         if (mounted) Navigator.pushReplacementNamed(context, '/welcome');
         return;
       }
 
-      final userId = session.user.id;
-
+      final user = session.user;
       if (!mounted) return;
 
-      // ✅ THIS is the only thing you do now
-      await AuthFlow.handle(context, userId);
+      // Check if user has a profile
+      final profile = await supabase
+          .from('profiles')
+          .select()
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+      if (profile == null) {
+        // New user → Create profile screen
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/create_profile');
+        }
+        return;
+      }
+
+      // Check if user is in a community
+      final membership = await supabase
+          .from('community_members')
+          .select('community_id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+      if (membership != null) {
+        // User is in community → Dashboard
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/dashboard');
+        }
+        return;
+      }
+
+      // Check for pending join requests
+      final pending = await supabase
+          .from('community_join_requests')
+          .select()
+          .eq('requester_id', user.id)
+          .eq('status', 'pending')
+          .maybeSingle();
+
+      if (pending != null) {
+        // ✅ FIX: Do NOT send logged-in user to login
+        // Send them to a proper waiting or dashboard screen instead
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/dashboard');
+        }
+        return;
+      }
+
+      // Default → Location permission
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/location_permission');
+      }
     } catch (e) {
       debugPrint('Error in session check: $e');
-      if (mounted) Navigator.pushReplacementNamed(context, '/welcome');
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/welcome');
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Preserve your original splash screen UI
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
