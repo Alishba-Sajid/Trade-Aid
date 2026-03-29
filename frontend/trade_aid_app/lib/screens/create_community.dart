@@ -230,10 +230,21 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
           ),
         ),
       );
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to create community: $e')));
+    }  catch (e) {
+     
+  String message = 'Something went wrong';
+
+  if (e.toString().contains('1 km')) {
+    message = 'A community already exists within 1 km of your location';
+  }
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+      backgroundColor: Colors.red,
+    ),
+  );
+
     } finally {
       setState(() => _isLoading = false);
     }
@@ -290,7 +301,12 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
               SizedBox(
                 width: 260,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : _createCommunity,
+                  onPressed: _isLoading
+    ? null
+    : () {
+        setState(() => _isLoading = true);
+        _createCommunity();
+      },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.teal,
                     foregroundColor: Colors.white,
