@@ -126,8 +126,26 @@ Future<void> _confirmSchedule() async {
     selectedTime!.hour,
     selectedTime!.minute,
   );
+// ✅ STEP 1: Reserve product FIRST
+final updateResponse = await supabase
+    .from('products')
+    .update({
+      'status': 'reserved',
+      'reserved_for': user.id,
+    })
+    .eq('id', widget.productId)
+    .eq('status', 'available')
+    .select();
 
-  // ✅ CREATE transaction
+if (updateResponse.isEmpty) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text("Product already reserved")),
+  );
+  return;
+}
+
+// ✅ STEP 2: THEN create transaction
+try {
   await supabase.from('transactions').insert({
     'product_id': widget.productId,
     'buyer_id': user.id,
@@ -139,18 +157,20 @@ Future<void> _confirmSchedule() async {
     'auto_resolve_at': scheduledDateTime
         .add(const Duration(hours: 48))
         .toIso8601String(),
+        
   });
+} catch (e) {
+  // rollback if insert fails
+  await supabase.from('products').update({
+    'status': 'available',
+    'reserved_for': null,
+  }).eq('id', widget.productId);
 
-  // ✅ UPDATE product status
-final updateResponse = await supabase
-    .from('products')
-    .update({
-      'status': 'reserved',
-      'reserved_for': user.id,
-    })
-    .eq('id', widget.productId)
-    .eq('status', 'available')
-    .select(); // ✅ THIS IS IMPORTANT
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text("Transaction failed: $e")),
+  );
+  return;
+}
 
 // 🚨 IMPORTANT: check if update actually happened
 if (updateResponse.isEmpty) {

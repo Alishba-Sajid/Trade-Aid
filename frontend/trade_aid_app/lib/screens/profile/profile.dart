@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/profile_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -17,6 +18,8 @@ class _ProfileScreenState extends State<ProfileScreen>
   // Dynamic ratings
   double buyerRating = 4.5;
   double sellerRating = 3.5;
+  String? userName;
+  String? profileImageUrl; 
 
   @override
   void initState() {
@@ -33,6 +36,8 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
 
     _starController.forward();
+    _fetchUserName();
+   
   }
 
   @override
@@ -40,7 +45,14 @@ class _ProfileScreenState extends State<ProfileScreen>
     _starController.dispose();
     super.dispose();
   }
+  Future<void> _fetchUserName() async {
+  final data = await ProfileService().getUserProfile();
 
+  setState(() {
+    userName = data?['full_name'];
+    profileImageUrl = data?['profile_image_url'];
+  });
+}
   Widget _menuTile(
     BuildContext context, {
     required IconData icon,
@@ -341,26 +353,31 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                     child: Row(
                       children: [
-                        const CircleAvatar(
-                          radius: 42,
-                          backgroundColor: Color(0xFF009688),
-                          child: Icon(
-                            Icons.person,
-                            size: 40,
-                            color: Colors.white,
-                          ),
-                        ),
+                        CircleAvatar(
+  radius: 42,
+  backgroundColor: const Color(0xFF009688),
+  backgroundImage: profileImageUrl != null && profileImageUrl!.isNotEmpty
+      ? NetworkImage(profileImageUrl!)
+      : null,
+  child: (profileImageUrl == null || profileImageUrl!.isEmpty)
+      ? const Icon(
+          Icons.person,
+          size: 40,
+          color: Colors.white,
+        )
+      : null,
+),
                         const SizedBox(width: 16),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              "Alishba Sajid",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            Text(
+  userName ?? "User",
+  style: const TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.bold,
+  ),
+),
                             const SizedBox(height: 4),
                             _dualRatings(),
                             const SizedBox(height: 4),
@@ -417,13 +434,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           title: "Change Location",
                           onTap: _showChangeLocationDialog,
                         ),
-                        _menuTile(
-                          context,
-                          icon: Icons.block,
-                          title: "Blocked Users",
-                          onTap: () =>
-                              Navigator.pushNamed(context, "/blocked_users"),
-                        ),
+                        
                         _menuTile(
                           context,
                           icon: Icons.description_outlined,

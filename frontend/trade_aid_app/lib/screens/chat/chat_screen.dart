@@ -516,12 +516,7 @@ IconButton(
                     value: 'view_profile',
                     child: Text('View Profile'),
                   ),
-
-                    PopupMenuItem(
-                    value: 'block',
-                    child: Text('Block User'),
-                  ),
-                ],
+                          ],
               ),
             ],
           ),

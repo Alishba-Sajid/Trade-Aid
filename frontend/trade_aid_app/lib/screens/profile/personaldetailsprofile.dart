@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../services/profile_service.dart';
 
 class PersonalDetailsScreen extends StatefulWidget {
   const PersonalDetailsScreen({super.key});
@@ -11,14 +12,34 @@ class PersonalDetailsScreen extends StatefulWidget {
 
 class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
   File? _profileImage;
+  String? profileImageUrl;
   bool _isEditing = false;
+  bool _isLoading = false;
 
-  final _nameController = TextEditingController(text: "Alishba Sajid");
-  final _emailController = TextEditingController(text: "alishba@email.com");
-  final _phoneController = TextEditingController(text: "03001234567");
-  final _addressController = TextEditingController(
-    text: "Gulberg Greens, Islamabad",
-  );
+  final _nameController = TextEditingController(text: "Username");
+  final _phoneController = TextEditingController(text: "0300000000");
+  final _addressController = TextEditingController(text: "123, abc");
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProfile();
+  }
+
+  Future<void> _fetchProfile() async {
+    setState(() => _isLoading = true);
+    final data = await ProfileService().getProfile();
+
+    if (data != null) {
+      setState(() {
+        _nameController.text = data['full_name'] ?? '';
+        _phoneController.text = data['phone'] ?? '';
+        _addressController.text = data['address'] ?? '';
+        profileImageUrl = data['profile_image_url'];
+      });
+    }
+    setState(() => _isLoading = false);
+  }
 
   Future<void> _pickImage() async {
     if (!_isEditing) return;
@@ -30,10 +51,32 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
     }
   }
 
-  void _saveChanges() {
+  Future<void> _saveChanges() async {
+    setState(() => _isLoading = true);
+    String? imageUrl = profileImageUrl;
+
+    if (_profileImage != null) {
+      imageUrl = await ProfileService().uploadProfileImage(_profileImage!);
+    }
+
+    await ProfileService().updateProfile(
+      name: _nameController.text,
+      phone: _phoneController.text,
+      address: _addressController.text,
+      imageUrl: imageUrl,
+    );
+
     setState(() {
-      _isEditing = false; // exit edit mode
+      _isEditing = false;
+      _isLoading = false;
+      profileImageUrl = imageUrl;
     });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Profile updated successfully!")),
+      );
+    }
   }
 
   Future<bool> _onWillPop() async {
@@ -46,7 +89,6 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
     return true;
   }
 
-  // Delete account confirmation dialog
   void _confirmDeleteAccount() async {
     await showDialog<bool>(
       context: context,
@@ -63,7 +105,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF004D40), // dark primary
+                  color: Color(0xFF004D40),
                 ),
               ),
               const SizedBox(height: 10),
@@ -103,18 +145,18 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                             Color.fromARGB(255, 164, 10, 10),
                             Color.fromARGB(255, 220, 50, 50),
                           ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
                         ),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context, true);
-                          Navigator.of(context).pushNamedAndRemoveUntil(
-                            '/welcome',
-                            (route) => false,
-                          );
+                        onPressed: () async {
+                          await ProfileService().deleteAccount();
+                          if (mounted) {
+                            Navigator.of(context).pushNamedAndRemoveUntil(
+                              '/welcome',
+                              (route) => false,
+                            );
+                          }
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
@@ -144,6 +186,11 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
   }
 
   Widget _field(String label, TextEditingController controller, IconData icon) {
+    // Dynamic colors based on edit state
+    final Color contentColor = _isEditing ? Colors.black87 : Colors.grey.shade500;
+    final Color iconColor = _isEditing ? const Color(0xFF009688) : Colors.grey.shade400;
+    final Color labelColor = _isEditing ? const Color(0xFF00695C) : Colors.grey.shade400;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -161,15 +208,15 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
       child: TextField(
         controller: controller,
         enabled: _isEditing,
-        style: const TextStyle(
-          color: Colors.black87,
+        style: TextStyle(
+          color: contentColor,
           fontWeight: FontWeight.w500,
         ),
         decoration: InputDecoration(
-          icon: Icon(icon, color: const Color(0xFF009688)),
+          icon: Icon(icon, color: iconColor),
           labelText: label,
-          labelStyle: const TextStyle(
-            color: Color(0xFF00695C),
+          labelStyle: TextStyle(
+            color: labelColor,
             fontWeight: FontWeight.w500,
           ),
           border: InputBorder.none,
@@ -182,13 +229,20 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
   Widget build(BuildContext context) {
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
 
-    return WillPopScope(
-      onWillPop: _onWillPop,
+    return PopScope(
+      canPop: !_isEditing,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await _onWillPop();
+        if (shouldPop && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
       child: Scaffold(
         backgroundColor: Colors.grey.shade100,
         body: Column(
           children: [
-            // Header
+            // Header Section
             Container(
               width: double.infinity,
               height: 260,
@@ -202,21 +256,14 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
               ),
               child: Stack(
                 children: [
-                  // Back arrow
                   Positioned(
                     top: 60,
                     left: 16,
                     child: GestureDetector(
                       onTap: () => Navigator.pop(context),
-                      child: const Icon(
-                        Icons.arrow_back,
-                        color: Colors.white,
-                        size: 28,
-                      ),
+                      child: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
                     ),
                   ),
-
-                  // Edit/Close button
                   Positioned(
                     top: 60,
                     right: 16,
@@ -226,20 +273,15 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                         color: Colors.white,
                         size: 28,
                       ),
-                      onPressed: () {
-                        setState(() {
-                          _isEditing = !_isEditing;
-                        });
-                      },
+                      onPressed: () => setState(() => _isEditing = !_isEditing),
                     ),
                   ),
-
-                  // Centered title
-                  Positioned.fill(
-                    top: 60,
-                    child: Align(
-                      alignment: Alignment.topCenter,
-                      child: const Text(
+                  const Positioned(
+                    top: 70,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: Text(
                         "Personal Details",
                         style: TextStyle(
                           color: Colors.white,
@@ -249,8 +291,6 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                       ),
                     ),
                   ),
-
-                  // Profile image
                   Positioned(
                     bottom: 20,
                     left: 0,
@@ -265,8 +305,11 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                           backgroundColor: Colors.teal.shade200,
                           backgroundImage: _profileImage != null
                               ? FileImage(_profileImage!)
-                              : null,
-                          child: _profileImage == null
+                              : (profileImageUrl != null && profileImageUrl!.isNotEmpty
+                                  ? NetworkImage(profileImageUrl!)
+                                  : null),
+                          child: (_profileImage == null &&
+                                  (profileImageUrl == null || profileImageUrl!.isEmpty))
                               ? Icon(
                                   _isEditing ? Icons.camera_alt : Icons.person,
                                   size: 42,
@@ -281,82 +324,77 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
               ),
             ),
 
-            // Form + buttons
+            // Form Content
             Expanded(
               child: Stack(
                 children: [
-                  // Scrollable form
                   SingleChildScrollView(
                     padding: EdgeInsets.only(
                       left: 16,
                       right: 16,
                       top: 20,
-                      bottom: _isEditing
-                          ? keyboardHeight + 80
-                          : keyboardHeight +
-                                80, // leave space for delete button
+                      bottom: keyboardHeight + 100,
                     ),
                     child: Column(
                       children: [
                         _field("Full Name", _nameController, Icons.person),
-                        _field("Email", _emailController, Icons.email),
                         _field("Phone", _phoneController, Icons.phone),
                         _field("Address", _addressController, Icons.home),
                       ],
                     ),
                   ),
 
-                  // Save Changes button pinned at bottom
-                  if (_isEditing)
-                    Positioned(
-                      bottom: 80, // leave space for delete button
-                      left: 20,
-                      right: 20,
-                      child: SizedBox(
-                        height: 52,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF009688),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          onPressed: _saveChanges,
-                          child: const Text(
-                            "Save Changes",
-                            style: TextStyle(fontSize: 16, color: Colors.white),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                  // Delete Account button
+                  // Bottom Buttons
                   Positioned(
-                    bottom: 15,
+                    bottom: 20,
                     left: 20,
                     right: 20,
-                    child: SizedBox(
-                      height: 52,
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          side: const BorderSide(
-                            color: const Color.fromARGB(255, 164, 10, 10),
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        onPressed: _confirmDeleteAccount,
-                        child: const Text(
-                          "Delete Account",
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: const Color.fromARGB(255, 164, 10, 10),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child: _isEditing
+                          ? SizedBox(
+                              key: const ValueKey('save'),
+                              height: 52,
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF009688),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                                onPressed: _isLoading ? null : _saveChanges,
+                                child: _isLoading
+                                    ? const CircularProgressIndicator(color: Colors.white)
+                                    : const Text(
+                                        "Save Changes",
+                                        style: TextStyle(fontSize: 16, color: Colors.white),
+                                      ),
+                              ),
+                            )
+                          : SizedBox(
+                              key: const ValueKey('delete'),
+                              height: 52,
+                              width: double.infinity,
+                              child: OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  side: const BorderSide(color: Color.fromARGB(255, 164, 10, 10)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                                onPressed: _confirmDeleteAccount,
+                                child: const Text(
+                                  "Delete Account",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Color.fromARGB(255, 164, 10, 10),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
                     ),
                   ),
                 ],

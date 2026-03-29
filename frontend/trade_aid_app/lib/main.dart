@@ -26,7 +26,6 @@ import 'screens/resources_screens/resource_post.dart';
 import 'screens/profile/profile.dart';
 import 'screens/profile/personaldetailsprofile.dart';
 import 'screens/profile/changepassword.dart';
-import 'screens/profile/blocked_user.dart';
 import 'screens/help&support.dart';
 import 'screens/wish_request/wish_request.dart';
 import 'screens/chat/chat_list_screen.dart';
@@ -194,7 +193,6 @@ class _TradeAidAppState extends State<TradeAidApp> {
         '/forgot_password': (_) => const ForgotPasswordScreen(),
         '/new-password': (_) => const NewPasswordScreen(),
         '/notifications': (_) => const NotificationsScreen(),
-        '/blocked_users': (_) => const BlockedUsersScreen(),
         '/help_support': (_) => const HelpSupportScreen(),
         '/chat_list': (_) => const ChatListScreen(),
       },

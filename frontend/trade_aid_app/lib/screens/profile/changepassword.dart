@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import '../../services/profile_service.dart';
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
 
@@ -16,7 +16,31 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   bool _currentVisible = false;
   bool _newVisible = false;
   bool _confirmVisible = false;
+Future<void> _updatePassword() async {
+  if (newPass.text != confirm.text) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Passwords do not match")),
+    );
+    return;
+  }
 
+  final error = await ProfileService().changePassword(
+    currentPassword: current.text,
+    newPassword: newPass.text,
+  );
+
+  if (error != null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(error)),
+    );
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Password updated successfully")),
+    );
+
+    Navigator.pop(context);
+  }
+}
   Widget field({
     required String label,
     required TextEditingController controller,
@@ -173,7 +197,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      onPressed: () {},
+                     onPressed: _updatePassword,
                       child: const Text(
                         "Update Password",
                         style: TextStyle(fontSize: 16, color: Colors.white),
