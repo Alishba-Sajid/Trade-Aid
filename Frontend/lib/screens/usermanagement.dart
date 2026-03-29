@@ -142,58 +142,78 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                   const SizedBox(height: 25),
 
                   /// DATA TABLE
-              Expanded(
+            // ✅ Scrollable DataTable (vertical + horizontal)
+// ✅ Scrollable DataTable (vertical + horizontal)
+Expanded(
   child: users.isEmpty
       ? const Center(child: CircularProgressIndicator())
       : Scrollbar(
           thumbVisibility: true,
-          trackVisibility: true,
           child: SingleChildScrollView(
-            scrollDirection: Axis.vertical,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: ConstrainedBox( constraints: const BoxConstraints(minWidth: 1400),
-              child: DataTable(
-                headingRowColor:
-                    WidgetStateProperty.all(subtleGrey),
-                columnSpacing: 50,
-                columns: const [
-                  DataColumn(label: Text("Full Name", style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text("Gender", style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text("Phone", style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text("Address", style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text("Action", style: TextStyle(fontWeight: FontWeight.bold))),
-                ],
-                rows: filteredUsers.map((user) {
-                  return DataRow(cells: [
-                    DataCell(Text(user["full_name"] ?? "")),
-                    DataCell(Text(user["gender"] ?? "")),
-                    DataCell(Text(user["phone"] ?? "")),
-                    DataCell(Text(user["address"] ?? "")),
-                    DataCell(
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => UserProfileScreen(
-                                user: user.map((k, v) =>
-                                    MapEntry(k, v.toString())),
-                              ),
-                            ),
-                          );
-                        },
-                        child: const Text("View"),
+            scrollDirection: Axis.horizontal, // ✅ horizontal scroll
+            child: SizedBox(
+              width: 1400,
+              child: ListView.builder(
+                itemCount: filteredUsers.length + 1, // +1 for header
+                itemBuilder: (context, index) {
+                  // 🔹 HEADER ROW
+                  if (index == 0) {
+                    return Container(
+                      color: subtleGrey,
+                      padding: const EdgeInsets.all(14),
+                      child: const Row(
+                        children: [
+                          Expanded(child: Text("Full Name", style: TextStyle(fontWeight: FontWeight.bold))),
+                          Expanded(child: Text("Gender", style: TextStyle(fontWeight: FontWeight.bold))),
+                          Expanded(child: Text("Phone", style: TextStyle(fontWeight: FontWeight.bold))),
+                          Expanded(child: Text("Address", style: TextStyle(fontWeight: FontWeight.bold))),
+                          Expanded(child: Text("Action", style: TextStyle(fontWeight: FontWeight.bold))),
+                        ],
+                      ),
+                    );
+                  }
+
+                  final user = filteredUsers[index - 1];
+
+                  // 🔹 DATA ROW
+                  return Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: const BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(color: Colors.grey),
                       ),
                     ),
-                  ]);
-                }).toList(),
+                    child: Row(
+                      children: [
+                        Expanded(child: Text(user["full_name"] ?? "")),
+                        Expanded(child: Text(user["gender"] ?? "")),
+                        Expanded(child: Text(user["phone"] ?? "")),
+                        Expanded(child: Text(user["address"] ?? "")),
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () {
+                              final userId = user['user_id'];
+                              if (userId == null) return;
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      UserProfile(userId: userId.toString()),
+                                ),
+                              );
+                            },
+                            child: const Text("View"),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
           ),
         ),
 )
-              )
                 ],
               ),
             ),
