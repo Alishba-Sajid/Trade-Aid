@@ -200,20 +200,21 @@ class _ManageCommunityScreenState extends State<ManageCommunityScreen>
                                               Text(data['items'].toString())),
                                           DataCell(Text(data['beneficiaries']
                                               .toString())),
-                                          DataCell(
-                                            TextButton(
-                                              onPressed: () {
-                                                Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (_) =>
-                                                        const CommunityDetails(),
-                                                  ),
-                                                );
-                                              },
-                                              child: const Text("View"),
-                                            ),
-                                          ),
+        DataCell(
+  TextButton(
+    onPressed: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CommunityDetails(
+            communityId: data['id'], // pass the actual id
+          ),
+        ),
+      );
+    },
+    child: const Text("View"),
+  ),
+),
                                         ]);
                                       }).toList(),
                                     ),

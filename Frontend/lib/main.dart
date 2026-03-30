@@ -9,7 +9,7 @@ import 'package:admin_module/screens/dashboard.dart';
 import 'package:admin_module/screens/usermanagement.dart';
 import 'package:admin_module/screens/report_details.dart';
 import 'package:admin_module/screens/managecommunity.dart';
-import 'package:admin_module/screens/viewcommunitydetails.dart';
+//import 'package:admin_module/screens/viewcommunitydetails.dart';
 import 'package:admin_module/screens/escalated_cases.dart';
 import 'package:admin_module/screens/productresourcescreen.dart';
 import 'package:admin_module/screens/resource_screen.dart';
@@ -48,7 +48,7 @@ class MyApp extends StatelessWidget {
         '/dashboard': (context) => const DashboardScreen(),
         '/usermanagement': (context) => const UserManagementScreen(),
         '/communitymanagement': (context) => const ManageCommunityScreen(),
-        '/communitydetails': (context) => const CommunityDetails(),
+        //'/communitydetails': (context) => const CommunityDetails(),
         '/escalatedcases': (context) => const EscalatedCases(),
         '/productresource': (context) => const ProductResource(),
         '/resource': (context) => const ResourceSharing(),
