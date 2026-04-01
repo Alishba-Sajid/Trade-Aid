@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../widgets/app_bar.dart';
 import '../../widgets/time_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 // 🌿 Premium Fintech Palette
 const LinearGradient appGradient = LinearGradient(
@@ -17,21 +18,22 @@ const Color backgroundLight = Color(0xFFF6F7F7);
 const Color subtleGrey = Color(0xFFE3E6E6);
 
 class CashPickupScheduleScreen extends StatefulWidget {
-    final String productId;
+  final String productId;
 
-  const CashPickupScheduleScreen({    super.key,
+  const CashPickupScheduleScreen({
+    super.key,
     required this.productId,
-});
- @override
+  });
+
+  @override
   State<CashPickupScheduleScreen> createState() =>
       _CashPickupScheduleScreenState();
 }
-final supabase = Supabase.instance.client;
-
 
 class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
   DateTime? selectedDate;
   TimeOfDay? selectedTime;
+  final supabase = Supabase.instance.client;
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -49,145 +51,124 @@ class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
     if (picked != null) setState(() => selectedDate = picked);
   }
 
-Future<void> _pickTime() async {
-  final picked = await showTealTimePicker(
-    context,
-    initialTime: TimeOfDay.now(),
-    primary: accentTeal,
-  );
+  Future<void> _pickTime() async {
+    final picked = await showTealTimePicker(
+      context,
+      initialTime: TimeOfDay.now(),
+      primary: accentTeal,
+    );
 
-  if (picked != null) {
-   
-
-    // ❌ Block 11 PM - 9 AM
-    // if (picked.hour <= 24 || picked.hour < 9) {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     const SnackBar(
-    //       content: Text("Pickup allowed only between 9 AM and 12 AM"),
-    //     ),
-    //   );
-    //   return;
-    // }
-
+    if (picked != null) {
       setState(() => selectedTime = picked);
+    }
   }
-}
 
-Future<void> _confirmSchedule() async {
-  final supabase = Supabase.instance.client;
-  final user = supabase.auth.currentUser;
+  Future<void> _confirmSchedule() async {
+    final user = supabase.auth.currentUser;
 
-  if (user == null) return;
+    if (user == null) return;
 
-  final today = DateTime.now();
-  final maxDate = today.add(const Duration(days: 3));
+    final today = DateTime.now();
+    final maxDate = today.add(const Duration(days: 3));
 
-  if (selectedDate!.isAfter(maxDate)) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('You must schedule within the next 3 days')),
+    if (selectedDate!.isAfter(maxDate)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You must schedule within the next 3 days')),
+      );
+      return;
+    }
+
+    final product = await supabase
+        .from('products')
+        .select('user_id, status')
+        .eq('id', widget.productId)
+        .single();
+
+    final sellerId = product['user_id'];
+
+    // 🚨 BLOCK if already reserved
+    if (product['status'] != 'available') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Product already reserved")),
+      );
+      return;
+    }
+
+    // 🔍 CHECK existing pending transaction FIRST
+    final existing = await supabase
+        .from('transactions')
+        .select()
+        .eq('product_id', widget.productId)
+        .eq('status', 'pending');
+
+    if (existing.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Product already reserved")),
+      );
+      return;
+    }
+
+    final scheduledDateTime = DateTime(
+      selectedDate!.year,
+      selectedDate!.month,
+      selectedDate!.day,
+      selectedTime!.hour,
+      selectedTime!.minute,
     );
-    return;
-  }
 
-  final product = await supabase
-      .from('products')
-      .select('user_id, status')
-      .eq('id', widget.productId)
-      .single();
+    // ✅ STEP 1: Reserve product FIRST
+    final updateResponse = await supabase
+        .from('products')
+        .update({
+          'status': 'reserved',
+          'reserved_for': user.id,
+        })
+        .eq('id', widget.productId)
+        .eq('status', 'available')
+        .select();
 
-  final sellerId = product['user_id'];
+    if (updateResponse.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Product already reserved")),
+      );
+      return;
+    }
 
-  // 🚨 BLOCK if already reserved
-  if (product['status'] != 'available') {
+    // ✅ STEP 2: THEN create transaction
+    try {
+      await supabase.from('transactions').insert({
+        'product_id': widget.productId,
+        'buyer_id': user.id,
+        'seller_id': sellerId,
+        'scheduled_at': scheduledDateTime.toIso8601String(),
+        'confirm_at': scheduledDateTime
+            .add(const Duration(minutes: 30))
+            .toIso8601String(),
+        'auto_resolve_at': scheduledDateTime
+            .add(const Duration(hours: 48))
+            .toIso8601String(),
+      });
+    } catch (e) {
+      // rollback if insert fails
+      await supabase.from('products').update({
+        'status': 'available',
+        'reserved_for': null,
+      }).eq('id', widget.productId);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Transaction failed: $e")),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Product already reserved")),
+      const SnackBar(content: Text("Pickup Scheduled Successfully")),
     );
-    return;
+
+    Navigator.pop(context);
   }
-
-  // 🔍 CHECK existing pending transaction FIRST
-  final existing = await supabase
-      .from('transactions')
-      .select()
-      .eq('product_id', widget.productId)
-      .eq('status', 'pending');
-
-  if (existing.isNotEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Product already reserved")),
-    );
-    return;
-  }
-
-  final scheduledDateTime = DateTime(
-    selectedDate!.year,
-    selectedDate!.month,
-    selectedDate!.day,
-    selectedTime!.hour,
-    selectedTime!.minute,
-  );
-// ✅ STEP 1: Reserve product FIRST
-final updateResponse = await supabase
-    .from('products')
-    .update({
-      'status': 'reserved',
-      'reserved_for': user.id,
-    })
-    .eq('id', widget.productId)
-    .eq('status', 'available')
-    .select();
-
-if (updateResponse.isEmpty) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text("Product already reserved")),
-  );
-  return;
-}
-
-// ✅ STEP 2: THEN create transaction
-try {
-  await supabase.from('transactions').insert({
-    'product_id': widget.productId,
-    'buyer_id': user.id,
-    'seller_id': sellerId,
-    'scheduled_at': scheduledDateTime.toIso8601String(),
-    'confirm_at': scheduledDateTime
-        .add(const Duration(minutes: 30))
-        .toIso8601String(),
-    'auto_resolve_at': scheduledDateTime
-        .add(const Duration(hours: 48))
-        .toIso8601String(),
-        
-  });
-} catch (e) {
-  // rollback if insert fails
-  await supabase.from('products').update({
-    'status': 'available',
-    'reserved_for': null,
-  }).eq('id', widget.productId);
-
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text("Transaction failed: $e")),
-  );
-  return;
-}
-
-// 🚨 IMPORTANT: check if update actually happened
-if (updateResponse.isEmpty) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text("Product already reserved by someone else")),
-  );
-  return;
-}
-
-  if (!mounted) return;
-
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text("Pickup Scheduled Successfully")),
-  );
-
-  Navigator.pop(context);
-}
 
   @override
   Widget build(BuildContext context) {
@@ -202,7 +183,6 @@ if (updateResponse.isEmpty) {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            /// Professional Header
             const Text(
               "SCHEDULE DETAILS",
               style: TextStyle(
@@ -213,8 +193,6 @@ if (updateResponse.isEmpty) {
               ),
             ),
             const SizedBox(height: 20),
-
-            /// Section: Date
             _buildSectionHeader("Pick a Date", "When should we collect the cash?"),
             const SizedBox(height: 12),
             _premiumGradientCard(
@@ -226,10 +204,7 @@ if (updateResponse.isEmpty) {
               isSelected: selectedDate != null,
               onTap: _pickDate,
             ),
-
             const SizedBox(height: 24),
-
-            /// Section: Time
             _buildSectionHeader("Select Time Slot", "Choose a convenient window."),
             const SizedBox(height: 12),
             _premiumGradientCard(
@@ -241,10 +216,9 @@ if (updateResponse.isEmpty) {
               isSelected: selectedTime != null,
               onTap: _pickTime,
             ),
-
+            const SizedBox(height: 32),
+            _buildTermsAndConditions(),
             const Spacer(),
-
-            /// Bottom Action Button
             Container(
               height: 58,
               width: double.infinity,
@@ -259,10 +233,10 @@ if (updateResponse.isEmpty) {
                 ],
               ),
               child: ElevatedButton(
-             onPressed: (selectedDate != null && selectedTime != null)
-    ? _confirmSchedule
-    : null,            
-                   style: ElevatedButton.styleFrom(
+                onPressed: (selectedDate != null && selectedTime != null)
+                    ? _confirmSchedule
+                    : null,
+                style: ElevatedButton.styleFrom(
                   backgroundColor: accentTeal,
                   disabledBackgroundColor: accentTeal.withOpacity(0.4),
                   elevation: 0,
@@ -286,7 +260,6 @@ if (updateResponse.isEmpty) {
     );
   }
 
-  /// 🖋️ Professional Section Header
   Widget _buildSectionHeader(String title, String desc) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -310,7 +283,6 @@ if (updateResponse.isEmpty) {
     );
   }
 
-  /// 🌟 Premium Gradient Card Widget
   Widget _premiumGradientCard({
     required IconData icon,
     required String title,
@@ -323,15 +295,15 @@ if (updateResponse.isEmpty) {
       borderRadius: BorderRadius.circular(20),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(20), // Increased Height through Padding
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           gradient: isSelected ? appGradient : null,
           color: isSelected ? null : surface,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: isSelected 
-                  ? accentTeal.withOpacity(0.25) 
+              color: isSelected
+                  ? accentTeal.withOpacity(0.25)
                   : Colors.black.withOpacity(0.04),
               blurRadius: 15,
               offset: const Offset(0, 8),
@@ -340,7 +312,6 @@ if (updateResponse.isEmpty) {
         ),
         child: Row(
           children: [
-            /// White Round Icon Background
             Container(
               height: 52,
               width: 52,
@@ -355,8 +326,6 @@ if (updateResponse.isEmpty) {
               ),
             ),
             const SizedBox(width: 18),
-
-            /// Text Content
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -375,14 +344,14 @@ if (updateResponse.isEmpty) {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: isSelected ? Colors.white.withOpacity(0.85) : Colors.grey.shade500,
+                      color: isSelected
+                          ? Colors.white.withOpacity(0.85)
+                          : Colors.grey.shade500,
                     ),
                   ),
                 ],
               ),
             ),
-
-            /// Selector Dot
             Container(
               height: 24,
               width: 24,
@@ -408,6 +377,76 @@ if (updateResponse.isEmpty) {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildTermsAndConditions() {
+    final terms = [
+      "Once you reserve a product, you can not modify the time. If you need to change, please cancel and rebook.",
+      "In case of not showing up without canceling effects your reliability score.",
+      "Make sure bring the amount in cash",
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(26),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Terms & Conditions',
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: dark,
+              letterSpacing: 0.3,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: List.generate(
+              terms.length,
+              (index) => Padding(
+                padding: EdgeInsets.only(
+                  bottom: index < terms.length - 1 ? 12 : 0,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.check_circle,
+                      color: accentTeal.withOpacity(0.85),
+                      size: 18,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        terms[index],
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          color: Colors.black54,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

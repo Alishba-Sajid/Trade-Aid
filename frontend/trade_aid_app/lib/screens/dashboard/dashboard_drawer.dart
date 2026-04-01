@@ -9,6 +9,7 @@ import 'Voting.dart';
 import 'member_management.dart';
 import 'view_complaints.dart';
 import 'roundtable.dart';
+import 'manage_reservations.dart';
 
 // 🌿 Color Palette
 const LinearGradient appGradient = LinearGradient(
@@ -294,6 +295,20 @@ class DashboardDrawer extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (_) =>
                             ManageUploadsScreen(currentUserName: 'Hania B.'),
+                      ),
+                    );
+                  },
+                ),
+                                _DrawerTile(
+                  icon: Icons.book_online_rounded,
+                  title: 'Manage Reservations',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            ManageReservationsScreen(),
                       ),
                     );
                   },
