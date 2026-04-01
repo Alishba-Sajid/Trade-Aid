@@ -274,11 +274,17 @@ class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
                               children: [
                                 Text(community['name']),
                                 ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF119E90),
+                                    foregroundColor: Colors.white,
+                                  ),
                                   onPressed: _isLoading
                                       ? null
                                       : () => joinCommunity(community),
                                   child: _isLoading
-                                      ? const CircularProgressIndicator()
+                                      ? const CircularProgressIndicator(
+                                          color: Colors.white,
+                                        )
                                       : const Text('Join'),
                                 ),
                               ],
