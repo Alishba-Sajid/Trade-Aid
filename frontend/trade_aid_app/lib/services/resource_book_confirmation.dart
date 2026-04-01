@@ -1,161 +1,183 @@
-import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+// import 'package:flutter/material.dart';
+// import 'package:supabase_flutter/supabase_flutter.dart';
 
-class ResourceTransactionWatcher {
-  static void start(BuildContext context) {
-    _checkPendingResourcePayments(context);
-  }
+// class ResourceTransactionWatcher {
+//   static bool _isDialogOpen = false;
+//   static final Set<String> _shownBookings = {};
 
-  static Future<void> _checkPendingResourcePayments(
-      BuildContext context) async {
-    final supabase = Supabase.instance.client;
-    final user = supabase.auth.currentUser;
+//   static Future<void> start(BuildContext context) async {
+//   await _checkPendingResourcePayments(context);
+// }
 
-    if (user == null) return;
+//   static Future<void> _checkPendingResourcePayments(
+//       BuildContext context) async {
+//     final supabase = Supabase.instance.client;
+//     final user = supabase.auth.currentUser;
 
-    try {
-      final now = DateTime.now();
+//     if (user == null) return;
 
-      /// ✅ Fetch bookings WITH resource name (JOIN)
-      final bookings = await supabase
-          .from('resource_bookings')
-          .select('''
-            *,
-            resources(name)
-          ''')
-          .or('user_id.eq.${user.id},owner_id.eq.${user.id}')
-          .eq('status', 'confirmed'); // ✅ only active bookings
+//     try {
+  
+//       final now = DateTime.now();
 
-      for (final booking in bookings) {
-        /// ✅ Combine date + time properly
-        final bookingDate = DateTime.parse(booking['booking_date']);
+//       /// ✅ Fetch bookings WITH resource name (JOIN)
+//       final bookings = await supabase
+//           .from('resource_bookings')
+//           .select('''
+//             *,
+//             resources(name)
+//           ''')
+//           .or('user_id.eq.${user.id},owner_id.eq.${user.id}')
+          
+//           .eq('status', 'confirmed'); 
 
-        final endParts = booking['end_time'].split(':');
+//       for (final booking in bookings) {
+//         if (_shownBookings.contains(booking['id']) || _isDialogOpen) continue;
+//         /// ✅ Combine date + time properly
+//         final bookingDate = DateTime.parse(booking['booking_date']);
+
+//         final endParts = booking['end_time'].split(':');
 
 
-        final endDateTime = DateTime(
-          bookingDate.year,
-          bookingDate.month,
-          bookingDate.day,
-          int.parse(endParts[0]),
-          int.parse(endParts[1]),
-        );
+//         final endDateTime = DateTime(
+//           bookingDate.year,
+//           bookingDate.month,
+//           bookingDate.day,
+//           int.parse(endParts[0]),
+//           int.parse(endParts[1]),
+//         );
 
-        /// ✅ Check if 30 minutes passed after end
-        if (now.isAfter(endDateTime.add(const Duration(minutes: 30)))) {
-         final isBuyer = booking['user_id'] == user.id;
+//         /// ✅ Check if 30 minutes passed after end
+//         if (now.isAfter(endDateTime.add(const Duration(minutes: 30)))) {
+//          final isBuyer = booking['user_id'] == user.id;
 
-final alreadyResponded = isBuyer
-    ? booking['buyer_confirmed'] == true
-    : booking['owner_confirmed'] == true;
+// final alreadyResponded = isBuyer
+//     ? booking['buyer_confirmed'] == true
+//     : booking['owner_confirmed'] == true;
 
-if (alreadyResponded) continue;
+// if (alreadyResponded) continue;
 
-          _showPaymentDialog(context, booking, user.id);
-          break; // only one dialog at a time
-        }
-      }
-    } catch (e) {
-      debugPrint("Resource watcher error: $e");
-    }
-  }
+//           Future.delayed(Duration.zero, () {
+//   _showPaymentDialog(context, booking, user.id);
+// });
+//           _shownBookings.add(booking['id']);
+//           _isDialogOpen = true;
 
-  static void _showPaymentDialog(
-      BuildContext context, Map booking, String userId) {
-    final supabase = Supabase.instance.client;
+// _isDialogOpen = true;
 
-    final isBuyer = booking['user_id'] == userId;
+// Future.delayed(Duration.zero, () {
+//   _showPaymentDialog(context, booking, user.id);
+// });
 
-    /// ✅ Get resource name from JOIN
-    final resourceName = booking['resources']?['name'] ?? 'Resource';
+// _shownBookings.add(booking['id']);;
+//           break; // only one dialog at a time
+//         }
+//       }
+//     } catch (e) {
+//       debugPrint("Resource watcher error: $e");
+//     }
+//   }
 
-    final start = booking['start_time'];
-    final end = booking['end_time'];
+//   static void _showPaymentDialog(
+//       BuildContext context, Map booking, String userId) {
+//     final supabase = Supabase.instance.client;
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        title: const Text("Payment Confirmation"),
-        content: Text(
-          isBuyer
-              ? "Have you paid for $resourceName from $start to $end?"
-              : "Have you received payment for $resourceName from $start to $end?",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              /// ✅ YES
-              if (isBuyer) {
-                await supabase.from('resource_bookings').update({
-                  'buyer_confirmed': true,
-                }).eq('id', booking['id']);
-              } else {
-                await supabase.from('resource_bookings').update({
-                  'owner_confirmed': true,
-                }).eq('id', booking['id']);
-              }
+//     final isBuyer = booking['user_id'] == userId;
 
-              await _resolveBooking(booking['id']);
+//     /// ✅ Get resource name from JOIN
+//     final resourceName = booking['resources']?['name'] ?? 'Resource';
 
-              Navigator.pop(context);
-            },
-            child: const Text("Yes"),
-          ),
-          TextButton(
-            onPressed: () async {
-              /// ❌ DISPUTE
-              if (isBuyer) {
-  await supabase.from('resource_bookings').update({
-    'buyer_confirmed': false,
-  }).eq('id', booking['id']);
-} else {
-  await supabase.from('resource_bookings').update({
-    'owner_confirmed': false,
-  }).eq('id', booking['id']);
-}
+//     final start = booking['start_time'];
+//     final end = booking['end_time'];
 
-await _resolveBooking(booking['id']);
+//     showDialog(
+//       context: context,
+//       barrierDismissible: false,
+//       builder: (_) => AlertDialog(
+//         title: const Text("Payment Confirmation"),
+//         content: Text(
+//           isBuyer
+//               ? "Have you paid for $resourceName from $start to $end?"
+//               : "Have you received payment for $resourceName from $start to $end?",
+//         ),
+//         actions: [
+//           TextButton(
+//             onPressed: () async {
+//               /// ✅ YES
+//               if (isBuyer) {
+//                 await supabase.from('resource_bookings').update({
+//                   'buyer_confirmed': true,
+//                 }).eq('id', booking['id']);
+//               } else {
+//                 await supabase.from('resource_bookings').update({
+//                   'owner_confirmed': true,
+//                 }).eq('id', booking['id']);
+//               }
 
-              Navigator.pop(context);
-            },
-            child: const Text("No"),
-          ),
-        ],
-      ),
-    );
-  }
+//               await _resolveBooking(booking['id']);
 
-static Future<void> _resolveBooking(String bookingId) async {
-  final supabase = Supabase.instance.client;
+//             // 👇 ADD HERE
+//     Navigator.pop(context);
+//     _isDialogOpen = false;
+//             },
+//             child: const Text("Yes"),
+//           ),
+//           TextButton(
+//             onPressed: () async {
+//               /// ❌ DISPUTE
+//               if (isBuyer) {
+//   await supabase.from('resource_bookings').update({
+//     'buyer_confirmed': false,
+//   }).eq('id', booking['id']);
+// } else {
+//   await supabase.from('resource_bookings').update({
+//     'owner_confirmed': false,
+//   }).eq('id', booking['id']);
+// }
 
-  final booking = await supabase
-      .from('resource_bookings')
-      .select()
-      .eq('id', bookingId)
-      .maybeSingle();
+// await _resolveBooking(booking['id']);
 
-  if (booking == null) return;
+//            // 👇 ADD HERE
+//     Navigator.pop(context);
+//     _isDialogOpen = false;
+//             },
+//             child: const Text("No"),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
 
-  final buyerConfirmed = booking['buyer_confirmed'] == true;
-  final ownerConfirmed = booking['owner_confirmed'] == true;
+// static Future<void> _resolveBooking(String bookingId) async {
+//   final supabase = Supabase.instance.client;
 
-  /// ✅ CASE 1: BOTH YES → COMPLETE
-  if (buyerConfirmed && ownerConfirmed) {
-    await supabase.from('resource_bookings').update({
-      'status': 'completed_final'
-    }).eq('id', bookingId);
-  }
+//   final booking = await supabase
+//       .from('resource_bookings')
+//       .select()
+//       .eq('id', bookingId)
+//       .maybeSingle();
 
-  /// ❌ CASE 2: ANYONE SAID NO → DISPUTED
-  else if (
-    (buyerConfirmed && !ownerConfirmed) ||
-    (!buyerConfirmed && ownerConfirmed) ||
-    (!buyerConfirmed && !ownerConfirmed)
-  ) {
-    await supabase.from('resource_bookings').update({
-      'status': 'disputed'
-    }).eq('id', bookingId);
-  }
-}
-}
+//   if (booking == null) return;
+
+//   final buyerConfirmed = booking['buyer_confirmed'] == true;
+//   final ownerConfirmed = booking['owner_confirmed'] == true;
+
+//   /// ✅ CASE 1: BOTH YES → COMPLETE
+//   if (buyerConfirmed && ownerConfirmed) {
+//     await supabase.from('resource_bookings').update({
+//       'status': 'completed_final'
+//     }).eq('id', bookingId);
+//   }
+
+//   /// ❌ CASE 2: ANYONE SAID NO → DISPUTED
+//   else if (
+//     (buyerConfirmed && !ownerConfirmed) ||
+//     (!buyerConfirmed && ownerConfirmed) ||
+//     (!buyerConfirmed && !ownerConfirmed)
+//   ) {
+//     await supabase.from('resource_bookings').update({
+//       'status': 'disputed'
+//     }).eq('id', bookingId);
+//   }
+// }
+// }
