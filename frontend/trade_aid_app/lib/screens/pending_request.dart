@@ -173,10 +173,15 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
 
   Future<void> rejectRequest(UserRequest req) async {
     try {
-      await Supabase.instance.client
+      final response = await Supabase.instance.client
           .from('community_join_requests')
           .update({'status': 'rejected'})
-          .eq('id', req.id);
+          .eq('id', req.id)
+          .select();
+
+      if (response.isEmpty) {
+        throw Exception("Not allowed");
+      }
 
       setState(() {
         requests.removeWhere((r) => r.id == req.id);
@@ -190,9 +195,10 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
       );
     } catch (e) {
       debugPrint('Error rejecting request: $e');
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Failed to reject request'),
+          content: Text('You are not allowed to reject this request'),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -300,11 +306,13 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
                         child: CircleAvatar(
                           radius: 40,
                           backgroundColor: Colors.white,
-                          backgroundImage: (data.profileImageUrl != null &&
+                          backgroundImage:
+                              (data.profileImageUrl != null &&
                                   data.profileImageUrl!.trim().isNotEmpty)
                               ? NetworkImage(data.profileImageUrl!.trim())
                               : null,
-                          child: (data.profileImageUrl != null &&
+                          child:
+                              (data.profileImageUrl != null &&
                                   data.profileImageUrl!.trim().isNotEmpty)
                               ? null
                               : const Icon(
@@ -443,10 +451,7 @@ class _RequestCard extends StatelessWidget {
                         : null,
                     child: (imageUrl != null && imageUrl.isNotEmpty)
                         ? null
-                        : const Icon(
-                            Icons.person,
-                            color: AppColors.accentTeal,
-                          ),
+                        : const Icon(Icons.person, color: AppColors.accentTeal),
                   ),
                   const SizedBox(width: 12),
                   Expanded(

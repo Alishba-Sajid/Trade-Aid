@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'create_community.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-// ✅ Animated card widget (same as other screens)
+// ✅ Animated card widget
 class AnimatedCard extends StatefulWidget {
   final String message;
   final IconData? icon;
@@ -55,28 +55,15 @@ class _AnimatedCardState extends State<AnimatedCard>
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
             decoration: BoxDecoration(
-              color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: const Color.fromARGB(255, 17, 158, 144),
-                width: 1,
-              ),
+              border: Border.all(color: const Color(0xFF119E90)),
             ),
             child: Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
                 if (widget.icon != null)
-                  Icon(
-                    widget.icon,
-                    color: const Color.fromARGB(255, 17, 158, 144),
-                  ),
+                  Icon(widget.icon, color: const Color(0xFF119E90)),
                 if (widget.icon != null) const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    widget.message,
-                    style: const TextStyle(color: Colors.black),
-                  ),
-                ),
+                Expanded(child: Text(widget.message)),
               ],
             ),
           ),
@@ -111,7 +98,6 @@ class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
     }
   }
 
-  // ✅ Animated card helper
   void _showAnimatedCard(String message, {IconData? icon}) {
     final overlay = Overlay.of(context);
 
@@ -129,10 +115,11 @@ class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
   }
 
   // =========================
-  // ✅ Step 1: Send Join Request
+  // ✅ FIXED JOIN LOGIC
   // =========================
   Future<void> joinCommunity(Map<String, dynamic> community) async {
     final userId = supabase.auth.currentUser?.id;
+
     if (userId == null) {
       _showAnimatedCard(
         'You must be logged in to join a community',
@@ -144,6 +131,7 @@ class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
     setState(() => _isLoading = true);
 
     try {
+      // ✅ Check if already a member
       final memberCheck = await supabase
           .from('community_members')
           .select()
@@ -159,6 +147,7 @@ class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
         return;
       }
 
+      // ✅ Check existing request (ANY status)
       final existingRequest = await supabase
           .from('community_join_requests')
           .select()
@@ -167,13 +156,38 @@ class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
           .maybeSingle();
 
       if (existingRequest != null) {
-        _showAnimatedCard(
-          'You already requested to join this community',
-          icon: Icons.info,
-        );
-        return;
+        final status = existingRequest['status'];
+
+        // 🔒 Already pending
+        if (status == 'pending') {
+          _showAnimatedCard(
+            'You already requested to join this community',
+            icon: Icons.info,
+          );
+          return;
+        }
+
+        // 🔁 Previously rejected → UPDATE instead of INSERT
+        if (status == 'rejected') {
+          final updateRes = await supabase
+              .from('community_join_requests')
+              .update({'status': 'pending'})
+              .eq('id', existingRequest['id'])
+              .select();
+
+          if (updateRes.isNotEmpty) {
+            _showAnimatedCard(
+              'Request sent again to "${community['name']}"',
+              icon: Icons.refresh,
+            );
+          } else {
+            _showAnimatedCard('Failed to resend request', icon: Icons.error);
+          }
+          return;
+        }
       }
 
+      // ✅ Fresh insert
       final response = await supabase
           .from('community_join_requests')
           .insert({
@@ -210,17 +224,13 @@ class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
         height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
+            colors: [Color(0xFF0F777C), Color(0xFF119E90)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color.fromARGB(255, 15, 119, 124),
-              Color.fromARGB(255, 17, 158, 144),
-            ],
           ),
         ),
         child: SafeArea(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
             children: [
               const SizedBox(height: 150),
               const Icon(
@@ -233,28 +243,19 @@ class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
                 'Select Your Community',
                 style: TextStyle(
                   color: Colors.white,
-                  fontFamily: 'Poppins',
                   fontSize: 26,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
                 ),
-                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
                 noCommunitiesNearby
                     ? 'No communities found near your location.'
                     : 'Choose a community from the list below.',
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontFamily: 'Poppins',
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w400,
-                  letterSpacing: 0.3,
-                ),
-                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white70),
               ),
               const SizedBox(height: 40),
+
               if (!noCommunitiesNearby)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -262,57 +263,29 @@ class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
                     ),
-                    elevation: 3,
-                    color: Colors.white,
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.all(16),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: nearbyCommunities.map((community) {
                           return Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  community['name'],
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black87,
-                                  ),
-                                ),
+                                Text(community['name']),
                                 ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF119E90),
+                                    foregroundColor: Colors.white,
+                                  ),
                                   onPressed: _isLoading
                                       ? null
                                       : () => joinCommunity(community),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.teal,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                      vertical: 12,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
                                   child: _isLoading
-                                      ? const SizedBox(
-                                          width: 16,
-                                          height: 16,
-                                          child: CircularProgressIndicator(
-                                            color: Colors.white,
-                                            strokeWidth: 2,
-                                          ),
+                                      ? const CircularProgressIndicator(
+                                          color: Colors.white,
                                         )
-                                      : const Text(
-                                          'Join',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
+                                      : const Text('Join'),
                                 ),
                               ],
                             ),
@@ -322,39 +295,18 @@ class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
                     ),
                   ),
                 ),
+
               if (noCommunitiesNearby)
-                SizedBox(
-                  width: 220,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const CreateCommunityScreen(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(
-                      Icons.add_location_alt_rounded,
-                      color: Colors.teal,
-                    ),
-                    label: const Text(
-                      'Create Community',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const CreateCommunityScreen(),
                       ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.teal,
-                      elevation: 3,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                    ),
-                  ),
+                    );
+                  },
+                  child: const Text('Create Community'),
                 ),
             ],
           ),

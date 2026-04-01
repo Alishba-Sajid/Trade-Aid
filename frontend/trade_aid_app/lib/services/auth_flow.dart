@@ -89,6 +89,46 @@ class AuthFlow {
         return;
       }
 
+      // ✅ Check if request was rejected
+      final rejectedRequest = await supabase
+          .from('community_join_requests')
+          .select()
+          .eq('requester_id', userId)
+          .eq('status', 'rejected')
+          .maybeSingle();
+
+      if (rejectedRequest != null) {
+        // Delete the rejected request to prevent repeated snackbars
+        await supabase
+            .from('community_join_requests')
+            .delete()
+            .eq('id', rejectedRequest['id']);
+
+        // Show rejection snackbar on current screen
+        Future.delayed(const Duration(milliseconds: 300), () {
+          _showAnimatedCard(
+            navigatorKey,
+            "Your request has been rejected. Please try again.",
+            icon: Icons.error_outline,
+          );
+        });
+
+        // Delay navigation to allow snackbar to show, then navigate and show location snackbar
+        Future.delayed(const Duration(seconds: 2), () {
+          navigatorKey.currentState?.pushReplacementNamed(
+            '/location_permission',
+          );
+          Future.delayed(const Duration(milliseconds: 300), () {
+            _showAnimatedCard(
+              navigatorKey,
+              "Please allow location permission to continue.",
+              icon: Icons.location_on,
+            );
+          });
+        });
+        return;
+      }
+
       // ✅ If profile exists but not in a community
       navigatorKey.currentState?.pushReplacementNamed('/location_permission');
 
