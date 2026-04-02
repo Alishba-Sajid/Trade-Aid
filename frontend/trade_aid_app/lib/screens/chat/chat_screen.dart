@@ -13,7 +13,6 @@ import '../../services/chat_service.dart';
 import '../../models/chat_message.dart';
 import 'member_profile_screen.dart';
 
-
 const LinearGradient appGradient = LinearGradient(
   colors: [Color(0xFF2E9499), Color(0xFF119E90)],
   begin: Alignment.topLeft,
@@ -25,7 +24,6 @@ class ChatScreen extends StatefulWidget {
   final String receiverId;
   final String? profileImage;
   final String? address;
-  
 
   const ChatScreen({
     super.key,
@@ -39,13 +37,7 @@ class ChatScreen extends StatefulWidget {
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
-
-
-
- 
-
 class _ChatScreenState extends State<ChatScreen> {
-
   final ChatService _chatService = ChatService();
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -77,81 +69,78 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
-Future<void> _initConversation() async {
-final id = await _chatService.getOrCreateConversation(widget.receiverId);
+  Future<void> _initConversation() async {
+    final id = await _chatService.getOrCreateConversation(widget.receiverId);
 
-  setState(() {
-    chatId = id;
-  });
-
-  /// ✅ MARK AS SEEN
-  await _chatService.markMessagesAsSeen(id);
-
-  /// ✅ LISTEN TO MESSAGES (FIXED POSITION)
-  _messagesSubscription?.cancel();
-  _messagesSubscription = _chatService.getMessages(id).listen((messages) {
     setState(() {
-      _messages = messages;
+      chatId = id;
     });
-  });
-}
 
- 
+    /// ✅ MARK AS SEEN
+    await _chatService.markMessagesAsSeen(id);
+
+    /// ✅ LISTEN TO MESSAGES (FIXED POSITION)
+    _messagesSubscription?.cancel();
+    _messagesSubscription = _chatService.getMessages(id).listen((messages) {
+      setState(() {
+        _messages = messages;
+      });
+    });
+  }
 
   /// SEND TEXT
-Future<void> _sendMessage(String text) async {
+  Future<void> _sendMessage(String text) async {
+    if (chatId == null) return;
 
-  if (chatId == null) return;
+    await _chatService.sendMessage(chatId!, text);
 
-  await _chatService.sendMessage(chatId!, text);
-
-  /// auto scroll after sending
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-  _scrollController.position.maxScrollExtent,
+    /// auto scroll after sending
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
           duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-      );
-    }
-  });
-}
-Future<void> _deleteMessage(String messageId, {String? mediaUrl}) async {
-  // Find the message index
-  final index = _messages.indexWhere((m) => m.id == messageId);
-  if (index == -1) return;
-
-  final msg = _messages[index];
-
-  // Remove from list immediately for instant UI update
-  setState(() {
-    _messages.removeAt(index);
-  });
-
-  // Delete from database
-  try {
-    await _chatService.deleteMessage(messageId, mediaUrl);
-  } catch (e) {
-    // If delete fails, add the message back
-    setState(() {
-      _messages.insert(index, msg);
+          curve: Curves.easeOut,
+        );
+      }
     });
-    // Show error to user
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to delete message')),
-      );
-    }
-    debugPrint("Error deleting message: $e");
   }
-}
+
+  Future<void> _deleteMessage(String messageId, {String? mediaUrl}) async {
+    // Find the message index
+    final index = _messages.indexWhere((m) => m.id == messageId);
+    if (index == -1) return;
+
+    final msg = _messages[index];
+
+    // Remove from list immediately for instant UI update
+    setState(() {
+      _messages.removeAt(index);
+    });
+
+    // Delete from database
+    try {
+      await _chatService.deleteMessage(messageId, mediaUrl);
+    } catch (e) {
+      // If delete fails, add the message back
+      setState(() {
+        _messages.insert(index, msg);
+      });
+      // Show error to user
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to delete message')),
+        );
+      }
+      debugPrint("Error deleting message: $e");
+    }
+  }
+
   /// START RECORDING
   Future<void> _startRecording() async {
-
     _recorder = AudioRecorder();
 
     if (await _recorder!.hasPermission()) {
-
       final dir = await getTemporaryDirectory();
       final path =
           '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
@@ -194,72 +183,68 @@ Future<void> _deleteMessage(String messageId, {String? mediaUrl}) async {
   }
 
   /// SEND VOICE NOTE
-Future<void> _sendVoice() async {
+  Future<void> _sendVoice() async {
+    if (_recordedFile == null) return;
 
-  if (_recordedFile == null) return;
+    // STOP recorder first
+    await _stopRecording();
 
-  // STOP recorder first
-  await _stopRecording();
+    final file = File(_recordedFile!);
+    final bytes = await file.readAsBytes();
 
-  final file = File(_recordedFile!);
-  final bytes = await file.readAsBytes();
+    final fileName = "${DateTime.now().millisecondsSinceEpoch}.m4a";
+    final storagePath = "voice_notes/$fileName";
 
-  final fileName = "${DateTime.now().millisecondsSinceEpoch}.m4a";
-  final storagePath = "voice_notes/$fileName";
+    await Supabase.instance.client.storage
+        .from('chat-media')
+        .uploadBinary(
+          storagePath,
+          bytes,
+          fileOptions: const FileOptions(
+            contentType: 'audio/m4a',
+            upsert: true,
+          ),
+        );
 
-  await Supabase.instance.client.storage
-      .from('chat-media')
-      .uploadBinary(
-        storagePath,
-        bytes,
-        fileOptions: const FileOptions(
-          contentType: 'audio/m4a',
-          upsert: true,
-        ),
-      );
+    final url = Supabase.instance.client.storage
+        .from('chat-media')
+        .getPublicUrl(storagePath);
+    await _chatService.sendMedia(chatId!, url);
 
-  final url = Supabase.instance.client.storage
-      .from('chat-media')
-      .getPublicUrl(storagePath);
-await _chatService.sendMedia(chatId!, url);
+    _deleteRecording();
 
-_deleteRecording();
-
-  /// auto scroll after sending
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        0.0, // Scroll to bottom (newest message) in reverse ListView
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-      );
-    }
-  });
-}
+    /// auto scroll after sending
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          0.0, // Scroll to bottom (newest message) in reverse ListView
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
 
   /// CAMERA + GALLERY PICKER
   Future<void> _pickMedia() async {
-
     final picker = ImagePicker();
 
     showModalBottomSheet(
       context: context,
       builder: (context) {
-
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-
               ListTile(
                 leading: const Icon(Icons.camera_alt),
                 title: const Text("Camera"),
                 onTap: () async {
-
                   Navigator.pop(context);
 
-                  final file =
-                      await picker.pickImage(source: ImageSource.camera);
+                  final file = await picker.pickImage(
+                    source: ImageSource.camera,
+                  );
 
                   if (file != null) _previewImage(file);
                 },
@@ -269,11 +254,11 @@ _deleteRecording();
                 leading: const Icon(Icons.photo),
                 title: const Text("Gallery"),
                 onTap: () async {
-
                   Navigator.pop(context);
 
-                  final file =
-                      await picker.pickImage(source: ImageSource.gallery);
+                  final file = await picker.pickImage(
+                    source: ImageSource.gallery,
+                  );
 
                   if (file != null) _previewImage(file);
                 },
@@ -287,20 +272,17 @@ _deleteRecording();
 
   /// IMAGE PREVIEW
   void _previewImage(XFile file) {
-
     showDialog(
       context: context,
       builder: (_) => Dialog(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-
             Image.file(File(file.path)),
 
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-
                 TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: const Text("Cancel"),
@@ -308,15 +290,15 @@ _deleteRecording();
 
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF119E90)),
+                    backgroundColor: const Color(0xFF119E90),
+                  ),
                   onPressed: () async {
-
                     Navigator.pop(context);
 
                     final bytes = await file.readAsBytes();
 
-                    final fileName =
-                        DateTime.now().millisecondsSinceEpoch.toString();
+                    final fileName = DateTime.now().millisecondsSinceEpoch
+                        .toString();
 
                     final path = 'chat_media/$fileName.jpg';
 
@@ -344,7 +326,7 @@ _deleteRecording();
                   child: const Text("Send"),
                 ),
               ],
-            )
+            ),
           ],
         ),
       ),
@@ -353,17 +335,14 @@ _deleteRecording();
 
   /// CHAT INPUT
   Widget _buildChatInput() {
-
     return Column(
       children: [
-
         if (_isRecording)
           Container(
             padding: const EdgeInsets.all(12),
             color: Colors.red.withOpacity(0.1),
             child: Row(
               children: [
-
                 const Icon(Icons.mic, color: Colors.red),
 
                 const SizedBox(width: 10),
@@ -377,7 +356,7 @@ _deleteRecording();
                 IconButton(
                   icon: const Icon(Icons.delete, color: Colors.red),
                   onPressed: _deleteRecording,
-                )
+                ),
               ],
             ),
           ),
@@ -390,7 +369,6 @@ _deleteRecording();
           ),
           child: Row(
             children: [
-
               IconButton(
                 icon: const Icon(Icons.add, color: Color(0xFF119E90)),
                 onPressed: _pickMedia,
@@ -411,23 +389,22 @@ _deleteRecording();
                 onPressed: _startRecording,
               ),
 
-IconButton(
-  icon: const Icon(Icons.send, color: Color(0xFF119E90)),
-  onPressed: () async {
+              IconButton(
+                icon: const Icon(Icons.send, color: Color(0xFF119E90)),
+                onPressed: () async {
+                  if (_recordedFile != null) {
+                    await _sendVoice();
+                    return;
+                  }
 
-    if (_recordedFile != null) {
-      await _sendVoice();
-      return;
-    }
+                  final text = _controller.text.trim();
 
-    final text = _controller.text.trim();
+                  if (text.isEmpty) return;
 
-    if (text.isEmpty) return;
-
-    _controller.clear();
-    _sendMessage(text);
-  },
-),
+                  _controller.clear();
+                  _sendMessage(text);
+                },
+              ),
             ],
           ),
         ),
@@ -437,7 +414,6 @@ IconButton(
 
   /// HEADER (UNCHANGED)
   Widget _buildPremiumHeader(BuildContext context) {
-
     return Container(
       height: 130,
       decoration: const BoxDecoration(
@@ -450,7 +426,6 @@ IconButton(
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Row(
             children: [
-
               IconButton(
                 icon: const Icon(Icons.arrow_back, color: Colors.white),
                 onPressed: () => Navigator.pop(context),
@@ -459,11 +434,13 @@ IconButton(
               CircleAvatar(
                 radius: 20,
                 backgroundColor: Colors.white,
-                backgroundImage: (widget.profileImage != null &&
+                backgroundImage:
+                    (widget.profileImage != null &&
                         widget.profileImage!.isNotEmpty)
                     ? NetworkImage(widget.profileImage!)
                     : null,
-                child: (widget.profileImage == null ||
+                child:
+                    (widget.profileImage == null ||
                         widget.profileImage!.isEmpty)
                     ? const Icon(Icons.person, color: Colors.grey)
                     : null,
@@ -476,13 +453,13 @@ IconButton(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-
                     Text(
                       widget.sellerName,
                       style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold),
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
 
                     Text(
@@ -503,24 +480,19 @@ IconButton(
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => MemberProfileScreen(
-                          userId: widget.receiverId,
-                        ),
+                        builder: (_) =>
+                            MemberProfileScreen(userId: widget.receiverId),
                       ),
                     );
                   }
                 },
                 itemBuilder: (context) => const [
-
                   PopupMenuItem(
                     value: 'view_profile',
                     child: Text('View Profile'),
                   ),
 
-                    PopupMenuItem(
-                    value: 'block',
-                    child: Text('Block User'),
-                  ),
+                  PopupMenuItem(value: 'block', child: Text('Block User')),
                 ],
               ),
             ],
@@ -531,44 +503,49 @@ IconButton(
   }
 
   /// CHAT BODY
- @override
-Widget build(BuildContext context) {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF0F9F8),
+      body: Column(
+        children: [
+          _buildPremiumHeader(context),
 
-  return Scaffold(
-    backgroundColor: const Color(0xFFF0F9F8),
-    body: Column(
-      children: [
+          Expanded(
+            child: chatId == null
+                ? const Center(child: CircularProgressIndicator())
+                : ListView.builder(
+                    controller: _scrollController,
+                    reverse: false,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 20,
+                    ),
+                    itemCount: _messages.length,
+                    itemBuilder: (context, index) {
+                      final msg = _messages[index];
 
-        _buildPremiumHeader(context),
+                      return KeyedSubtree(
+                        key: ValueKey(
+                          msg.id,
+                        ), // important for Flutter to track items
+                        child: MessageBubble(
+                          isMe: msg.isMe,
+                          message: msg.text,
+                          mediaUrl: msg.mediaUrl,
+                          createdAt: msg.createdAt,
+                          status: msg.status,
+                          onDelete: () =>
+                              _deleteMessage(msg.id, mediaUrl: msg.mediaUrl),
+                        ),
+                      );
+                    },
+                  ),
+          ),
 
-        Expanded(
-          child: chatId == null
-              ? const Center(child: CircularProgressIndicator())
-              : ListView.builder(
-                  controller: _scrollController,
-                  reverse: false,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-                  itemCount: _messages.length,
-                  itemBuilder: (context, index) {
-                    final msg = _messages[index];
-
-                    return KeyedSubtree(
-                      key: ValueKey(msg.id), // important for Flutter to track items
-                      child: MessageBubble(
-                        isMe: msg.isMe,
-                        message: msg.text,
-                        mediaUrl: msg.mediaUrl,
-                        createdAt: msg.createdAt,
-                        status: msg.status,
-                        onDelete: () => _deleteMessage(msg.id, mediaUrl: msg.mediaUrl),
-                      ),
-                    );
-                  },
-                ),
-        ),
-
-        _buildChatInput(),
-      ],
-    ),
-  );
-}}
+          _buildChatInput(),
+        ],
+      ),
+    );
+  }
+}

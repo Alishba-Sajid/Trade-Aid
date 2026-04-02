@@ -17,9 +17,9 @@ class MemberProfileScreen extends StatefulWidget {
   const MemberProfileScreen({super.key, required this.userId});
 
   @override
-  State<MemberProfileScreen> createState() =>
-      _MemberProfileScreenState();
+  State<MemberProfileScreen> createState() => _MemberProfileScreenState();
 }
+
 class _MemberProfileScreenState extends State<MemberProfileScreen> {
   final MemberProfileService _service = MemberProfileService();
   late Future<MemberProfile> _profileFuture;
