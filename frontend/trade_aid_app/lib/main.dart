@@ -16,20 +16,19 @@ import 'screens/select_community.dart';
 import 'screens/create_account.dart';
 import 'screens/dashboard/dashboard.dart';
 import 'screens/dashboard/notification_screen.dart';
-import 'screens/product_listing.dart';
-import 'screens/product_details.dart';
-import 'screens/resource_listing.dart';
-import 'screens/resource_details.dart';
-import 'screens/booking_screen.dart';
+import 'screens/products/product_listing.dart';
+import 'screens/products/product_details.dart';
+import 'screens/resources_screens/resource_listing.dart';
+import 'screens/resources_screens/resource_details.dart';
+import 'screens/resources_screens/booking_screen.dart';
 import 'screens/cart_screen.dart';
-import 'screens/product_post.dart';
-import 'screens/resource_post.dart';
+import 'screens/products/product_post.dart';
+import 'screens/resources_screens/resource_post.dart';
 import 'screens/profile/profile.dart';
 import 'screens/profile/personaldetailsprofile.dart';
 import 'screens/profile/changepassword.dart';
-import 'screens/profile/blocked_user.dart';
 import 'screens/help&support.dart';
-import 'screens/wish_request.dart';
+import 'screens/wish_request/wish_request.dart';
 import 'screens/chat/chat_list_screen.dart';
 import 'screens/profile/terms&conditions.dart';
 import 'screens/welcomeT&C.dart';
@@ -210,7 +209,6 @@ class _TradeAidAppState extends State<TradeAidApp> {
         '/forgot_password': (_) => const ForgotPasswordScreen(),
         '/new-password': (_) => const NewPasswordScreen(),
         '/notifications': (_) => const NotificationsScreen(),
-        '/blocked_users': (_) => const BlockedUsersScreen(),
         '/help_support': (_) => const HelpSupportScreen(),
         '/chat_list': (_) => const ChatListScreen(),
       },
@@ -297,6 +295,8 @@ class _TradeAidAppState extends State<TradeAidApp> {
               resourceId: args['resourceId'],
               resourceName: args['resourceName'],
               ownerId: args['ownerId'] as String,
+              startTimeLimit: args['startTimeLimit'],
+              endTimeLimit: args['endTimeLimit'],
             ),
             settings: settings,
           );

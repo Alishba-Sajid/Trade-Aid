@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../services/profile_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -17,6 +19,8 @@ class _ProfileScreenState extends State<ProfileScreen>
   // Dynamic ratings
   double buyerRating = 4.5;
   double sellerRating = 3.5;
+  String? userName;
+  String? profileImageUrl;
 
   @override
   void initState() {
@@ -33,12 +37,23 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
 
     _starController.forward();
+    _fetchUserName();
   }
 
   @override
   void dispose() {
     _starController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchUserName() async {
+    final data = await ProfileService().getProfile();
+
+    setState(() {
+      userName = data?['full_name'];
+      profileImageUrl = data?['profile_image_url'];
+      _notificationsEnabled = data?['notifications_enabled'] ?? true;
+    });
   }
 
   Widget _menuTile(
@@ -341,22 +356,31 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                     child: Row(
                       children: [
-                        const CircleAvatar(
+                        CircleAvatar(
                           radius: 42,
-                          backgroundColor: Color(0xFF009688),
-                          child: Icon(
-                            Icons.person,
-                            size: 40,
-                            color: Colors.white,
-                          ),
+                          backgroundColor: const Color(0xFF009688),
+                          backgroundImage:
+                              profileImageUrl != null &&
+                                  profileImageUrl!.isNotEmpty
+                              ? NetworkImage(profileImageUrl!)
+                              : null,
+                          child:
+                              (profileImageUrl == null ||
+                                  profileImageUrl!.isEmpty)
+                              ? const Icon(
+                                  Icons.person,
+                                  size: 40,
+                                  color: Colors.white,
+                                )
+                              : null,
                         ),
                         const SizedBox(width: 16),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              "Alishba Sajid",
-                              style: TextStyle(
+                            Text(
+                              userName ?? "User",
+                              style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -398,10 +422,28 @@ class _ProfileScreenState extends State<ProfileScreen>
                           trailing: Switch(
                             value: _notificationsEnabled,
                             activeColor: const Color(0xFF009688),
-                            onChanged: (val) {
+                            onChanged: (val) async {
                               setState(() {
                                 _notificationsEnabled = val;
                               });
+
+                              final user =
+                                  Supabase.instance.client.auth.currentUser;
+                              if (user != null) {
+                                await Supabase.instance.client
+                                    .from('profiles')
+                                    .update({'notifications_enabled': val})
+                                    .eq('user_id', user.id);
+                              }
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(val
+                                      ? 'Notifications Enabled'
+                                      : 'Notifications Disabled'),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
                             },
                           ),
                         ),
@@ -417,13 +459,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           title: "Change Location",
                           onTap: _showChangeLocationDialog,
                         ),
-                        _menuTile(
-                          context,
-                          icon: Icons.block,
-                          title: "Blocked Users",
-                          onTap: () =>
-                              Navigator.pushNamed(context, "/blocked_users"),
-                        ),
+
                         _menuTile(
                           context,
                           icon: Icons.description_outlined,

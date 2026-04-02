@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/profile_service.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -10,45 +11,97 @@ class HistoryScreen extends StatefulWidget {
 class _HistoryScreenState extends State<HistoryScreen> {
   int selectedIndex = 0; // 0=Bought, 1=Sold, 2=Taken, 3=Given
 
-  // ---------------- MOCK DATA ----------------
-  final List<_HistoryItem> boughtItems = [
-    _HistoryItem(
-      title: "Leather Jacket",
-      subtitle: "Bought for Rs 5000",
-      icon: Icons.shopping_bag,
-    ),
-    _HistoryItem(
-      title: "Shoes",
-      subtitle: "Bought for Rs 2000",
-      icon: Icons.shopping_bag,
-    ),
-  ];
+  List<_HistoryItem> boughtItems = [];
+  List<_HistoryItem> soldItems = [];
+  List<_HistoryItem> resourcesTaken = [];
+  List<_HistoryItem> resourcesGiven = [];
+  List<_HistoryItem> resourcesUploaded = [];
 
-  final List<_HistoryItem> soldItems = [
-    _HistoryItem(
-      title: "Ceramic Vase",
-      subtitle: "Sold for Rs 1200",
-      icon: Icons.sell,
-    ),
-  ];
+  bool isLoading = true;
+  Future<void> fetchHistory() async {
+    final service = ProfileService();
 
-  final List<_HistoryItem> resourcesTaken = [
-    _HistoryItem(
-      title: "Spacious Lawn",
-      subtitle: "Booked for Rs 2000 / hour",
-      icon: Icons.event_available,
-    ),
-  ];
+    final bought = await service.getBoughtProducts();
+    final sold = await service.getSoldProducts();
+    final provided = await service.getProvidedResources();
+    final availed = await service.getAvailedResources();
+    final uploaded = await service.getUploadedResources();
 
-  final List<_HistoryItem> resourcesGiven = [
-    _HistoryItem(
-      title: "Washing Machine",
-      subtitle: "Provided at Rs 300 / hour",
-      icon: Icons.handshake,
-    ),
-  ];
+    setState(() {
+      boughtItems = bought.map((e) {
+        return _HistoryItem(
+          title: e['title'] ?? '',
+          subtitle: "Bought for Rs ${e['price']}",
+          image: (e['images'] != null && e['images'].isNotEmpty)
+              ? e['images'][0]
+              : null,
+        );
+      }).toList();
+      print("AVAILED DATA: $availed");
+
+      soldItems = sold.map((e) {
+        final product = e['product_id'];
+
+        return _HistoryItem(
+          title: product?['title'] ?? '',
+          subtitle: "Sold to ${e['buyer_name']} • Rs ${product?['price']}",
+          image: (product?['images'] != null && product['images'].isNotEmpty)
+              ? product['images'][0]
+              : null,
+        );
+      }).toList();
+      resourcesGiven = provided.map((e) {
+        final resource = e['resources'];
+
+        return _HistoryItem(
+          title: resource['name'] ?? '',
+          subtitle: "To ${e['buyer_name']} • Rs ${resource['rate']}/hour",
+          image: (resource['images'] != null && resource['images'].isNotEmpty)
+              ? resource['images'][0]
+              : null,
+        );
+      }).toList();
+
+      resourcesUploaded = uploaded.map((e) {
+        final images = e['images'];
+        return _HistoryItem(
+          title: e['name'] ?? '',
+          subtitle: "Uploaded • Rs ${e['rate'] ?? 0}/hour",
+          image: (images != null && images is List && images.isNotEmpty)
+              ? images[0]
+              : null,
+        );
+      }).toList();
+
+      resourcesTaken = availed
+          .map((e) {
+            final resource = e['resources'];
+
+            if (resource == null) return null; // 🚨 prevent crash
+
+            return _HistoryItem(
+              title: resource['name'] ?? '',
+              subtitle:
+                  "From ${e['owner_name'] ?? 'Owner'} • Rs ${resource['rate'] ?? 0}/hour",
+              image:
+                  (resource['images'] != null && resource['images'].isNotEmpty)
+                  ? resource['images'][0]
+                  : null,
+            );
+          })
+          .whereType<_HistoryItem>()
+          .toList();
+
+      isLoading = false;
+    });
+  }
 
   @override
+  void initState() {
+    super.initState();
+    fetchHistory();
+  }
+
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
@@ -60,8 +113,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
             height: 260,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color.fromARGB(255, 15, 119, 124),
-              Color.fromARGB(255, 17, 158, 144),],
+                colors: [
+                  Color.fromARGB(255, 15, 119, 124),
+                  Color.fromARGB(255, 17, 158, 144),
+                ],
               ),
             ),
             child: Stack(
@@ -116,8 +171,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     children: [
                       _tabButton("Products Bought", 0),
                       _tabButton("Products Sold", 1),
-                      _tabButton("Resources Availed", 2),
-                      _tabButton("Resources Provided", 3),
+                      _tabButton("Resources Availed", 2),                
+                      _tabButton("Resources Uploaded", 3),
                     ],
                   ),
                 ),
@@ -126,7 +181,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: _buildSelectedSection(),
+                    child: isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : _buildSelectedSection(),
                   ),
                 ),
               ],
@@ -175,7 +232,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   // ---------------- SELECTED SECTION ----------------
+
   Widget _buildSelectedSection() {
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     switch (selectedIndex) {
       case 0:
         return _buildSection("Products Bought", boughtItems);
@@ -184,7 +246,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
       case 2:
         return _buildSection("Resources Availed", resourcesTaken);
       case 3:
-        return _buildSection("Resources Provided", resourcesGiven);
+        return _buildSection("Resources Uploaded", resourcesUploaded);
+      
       default:
         return _buildSection("Products Bought", boughtItems);
     }
@@ -256,7 +319,12 @@ class _HistoryCard extends StatelessWidget {
           CircleAvatar(
             radius: 26,
             backgroundColor: Colors.teal.withOpacity(0.1),
-            child: Icon(item.icon, color: Colors.teal),
+            backgroundImage: item.image != null
+                ? NetworkImage(item.image!)
+                : null,
+            child: item.image == null
+                ? const Icon(Icons.image, color: Colors.teal)
+                : null,
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -284,14 +352,10 @@ class _HistoryCard extends StatelessWidget {
   }
 }
 
-// ---------------- MODEL ----------------
 class _HistoryItem {
   final String title;
   final String subtitle;
-  final IconData icon;
-  _HistoryItem({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-  });
+  final String? image;
+
+  _HistoryItem({required this.title, required this.subtitle, this.image});
 }

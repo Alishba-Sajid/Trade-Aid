@@ -9,6 +9,7 @@ import 'Voting.dart';
 import 'member_management.dart';
 import 'view_complaints.dart';
 import 'roundtable.dart';
+import 'manage_reservations.dart';
 
 // 🌿 Color Palette
 const LinearGradient appGradient = LinearGradient(
@@ -29,13 +30,11 @@ class DashboardDrawer extends StatelessWidget {
   final bool isAdmin; // added for role-based
 
   const DashboardDrawer({
-  super.key,
-  required this.communityName,
-  required this.inviteLink,
-  this.isAdmin = false,
-});
-
-
+    super.key,
+    required this.communityName,
+    required this.inviteLink,
+    this.isAdmin = false,
+  });
 
   void onCopy(BuildContext context) {
     Clipboard.setData(ClipboardData(text: inviteLink));
@@ -299,6 +298,19 @@ class DashboardDrawer extends StatelessWidget {
                   },
                 ),
                 _DrawerTile(
+                  icon: Icons.book_online_rounded,
+                  title: 'Manage Reservations',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ManageReservationsScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _DrawerTile(
                   icon: Icons.table_bar,
                   title: 'Community Roundtable',
                   onTap: () {
@@ -307,7 +319,7 @@ class DashboardDrawer extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (_) =>
-                            const CommunityRoundtableScreen(isAdmin: true),
+                            CommunityRoundtableScreen(isAdmin: isAdmin),
                       ),
                     );
                   },

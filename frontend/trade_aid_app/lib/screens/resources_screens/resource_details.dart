@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/resource.dart';
-import '../providers/cart_provider.dart';
-import '../widgets/app_bar.dart';
-import 'chat/chat_screen.dart';
+import '../../models/resource.dart';
+import '../../providers/cart_provider.dart';
+import '../../widgets/app_bar.dart';
+import '../chat/chat_screen.dart';
 
 const LinearGradient appGradient = LinearGradient(
   colors: [
@@ -28,6 +28,19 @@ class ResourceDetailsScreen extends StatefulWidget {
 
 class _ResourceDetailsScreenState extends State<ResourceDetailsScreen> {
   int currentImageIndex = 0;
+
+  String formatTo12Hour(String time) {
+    final parts = time.split(":");
+    int hour = int.parse(parts[0]);
+    final minute = parts[1];
+
+    final period = hour >= 12 ? "PM" : "AM";
+
+    hour = hour % 12;
+    if (hour == 0) hour = 12;
+
+    return "$hour:$minute $period";
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -130,21 +143,25 @@ class _ResourceDetailsScreenState extends State<ResourceDetailsScreen> {
                   bottom: Radius.circular(40),
                 ),
                 child: Image.network(
-  images[i],
-  fit: BoxFit.cover,
-  width: double.infinity,
-  loadingBuilder: (context, child, progress) {
-    if (progress == null) return child;
-    return const Center(
-      child: CircularProgressIndicator(color: Colors.white),
-    );
-  },
-  errorBuilder: (context, error, stackTrace) {
-    return const Center(
-      child: Icon(Icons.broken_image, color: Colors.white, size: 40),
-    );
-  },
-),
+                  images[i],
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  loadingBuilder: (context, child, progress) {
+                    if (progress == null) return child;
+                    return const Center(
+                      child: CircularProgressIndicator(color: Colors.white),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Center(
+                      child: Icon(
+                        Icons.broken_image,
+                        color: Colors.white,
+                        size: 40,
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
           ),
@@ -241,7 +258,12 @@ class _ResourceDetailsScreenState extends State<ResourceDetailsScreen> {
   Widget _buildInfoGrid(String availableTime, String availability) {
     return Column(
       children: [
-        _InfoCard(icon: Icons.access_time, label: 'Time', value: availableTime),
+        _InfoCard(
+          icon: Icons.access_time,
+          label: "Time",
+          value:
+              "${formatTo12Hour(availableTime.split(' - ')[0])} - ${formatTo12Hour(availableTime.split(' - ')[1])}",
+        ),
         const SizedBox(height: 14),
         _InfoCard(
           icon: Icons.calendar_today,
@@ -406,6 +428,10 @@ class _ResourceDetailsScreenState extends State<ResourceDetailsScreen> {
                         'resourceId': resource.id,
                         'resourceName': resource.name,
                         'ownerId': resource.ownerUserId,
+                        'startTimeLimit': resource.availableTime.split(
+                          ' - ',
+                        )[0],
+                        'endTimeLimit': resource.availableTime.split(' - ')[1],
                       },
                     );
                   },
@@ -553,7 +579,10 @@ class _SellerCardState extends State<_SellerCard> {
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => ChatScreen(sellerName: widget.ownerName,receiverId: widget.ownerUserId,),
+                    builder: (_) => ChatScreen(
+                      sellerName: widget.ownerName,
+                      receiverId: widget.ownerUserId,
+                    ),
                   ),
                 ),
                 borderRadius: BorderRadius.circular(16),
@@ -741,18 +770,21 @@ class _ZoomImageViewerState extends State<_ZoomImageViewer> {
                 maxScale: 4,
                 child: Center(
                   child: Image.network(
-  widget.images[index],
-  fit: BoxFit.contain,
-  loadingBuilder: (context, child, progress) {
-    if (progress == null) return child;
-    return const Center(
-      child: CircularProgressIndicator(color: Colors.white),
-    );
-  },
-  errorBuilder: (context, error, stackTrace) {
-    return const Icon(Icons.broken_image, color: Colors.white);
-  },
-),
+                    widget.images[index],
+                    fit: BoxFit.contain,
+                    loadingBuilder: (context, child, progress) {
+                      if (progress == null) return child;
+                      return const Center(
+                        child: CircularProgressIndicator(color: Colors.white),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Icon(
+                        Icons.broken_image,
+                        color: Colors.white,
+                      );
+                    },
+                  ),
                 ),
               ),
             ),

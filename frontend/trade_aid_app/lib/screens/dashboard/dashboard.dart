@@ -8,6 +8,14 @@ import '../chat/chat_list_screen.dart';
 import '../cart_screen.dart';
 import '../profile/profile.dart';
 import '/services/chat_service.dart';
+import '/services/product_transaction.dart';
+
+// --- GLOBAL LOCK MANAGER ---
+// Shared between Products and Resources to prevent dialog stacking
+class GlobalDialogManager {
+  static bool isDialogOpen = false;
+  static final Set<String> shownIds = {}; // Stores unique interaction keys (e.g., "prod_buyer_123")
+}
 
 const LinearGradient appGradient = LinearGradient(
   colors: [
@@ -22,10 +30,14 @@ const Color dark = Color(0xFF004D40);
 const Color light = Color(0xFFE0F2F1);
 
 class DashboardScreen extends StatefulWidget {
-  final bool isAdmin;
-   final String inviteLink;
+ 
+  final String inviteLink;
+  
+  const DashboardScreen({
+    super.key,
    
-  const DashboardScreen({super.key, this.isAdmin = false, this.inviteLink = ''});
+    this.inviteLink = '',
+  });
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -34,449 +46,242 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _currentIndex = 0;
   bool _hasNotifications = false;
+  bool _isAdmin = false;
 
   String? _communityId;
   String _communityName = 'Community';
   String _userName = 'User';
   String _inviteLink = '';
- 
-  
 
   @override
   void initState() {
     super.initState();
     _checkLoggedInUser();
-    _fetchUserCommunity(); 
+    _fetchUserCommunity();
     _checkNotifications();
-    _checkPendingTransactions();
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startWatchers();
+    });
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-
-    final args =
-        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-
-    if (args != null) {
-      _communityId = args['communityId'];
-      _communityName = args['communityName'] ?? 'Community';
-      _userName = args['userName'] ?? 'User';
+  // Unified watcher loop
+  void _startWatchers() async {
+    while (mounted) {
+      await ProductTransactionService.checkPendingTransactions(context);
+      await ResourceTransactionWatcher.start(context);
+      await Future.delayed(const Duration(seconds: 10));
     }
   }
-Future<void> _checkPendingTransactions() async {
-  final supabase = Supabase.instance.client;
-  final user = supabase.auth.currentUser;
-
-  if (user == null) return;
-
-  final data = await supabase
-      .from('transactions')
-      .select()
-      .or('buyer_id.eq.${user.id},seller_id.eq.${user.id}')
-      .eq('status', 'pending');
-
-  for (final tx in data) {
-    final isBuyer = tx['buyer_id'] == user.id;
-    final isSeller = tx['seller_id'] == user.id;
-
-    final buyerConfirmed = tx['buyer_confirmed'] == true;
-    final sellerConfirmed = tx['seller_confirmed'] == true;
-
-    // ✅ Show only if THIS user has not confirmed yet
-    if ((isBuyer && !buyerConfirmed) || (isSeller && !sellerConfirmed)) {
-      Future.delayed(Duration.zero, () {
-        _showConfirmationDialog(tx);
-      });
-      break; // show one at a time
-    }
-  }
-}
-
   void _checkLoggedInUser() {
     final user = Supabase.instance.client.auth.currentUser;
     if (user != null) {
-      print("✅ Logged in as: ${user.id}");
-    } else {
-      print("❌ No user logged in");
+      debugPrint("✅ Logged in as: ${user.id}");
     }
   }
-  Future<void> _resolveTransaction(String transactionId) async {
-  final supabase = Supabase.instance.client;
-
-  final tx = await supabase
-      .from('transactions')
-      .select()
-      .eq('id', transactionId)
-      .maybeSingle();
-
-  if (tx == null) return;
-
-  if (tx['buyer_confirmed'] == true && tx['seller_confirmed'] == true) {
-    await supabase.from('transactions').update({
-      'status': 'completed'
-    }).eq('id', transactionId);
-
-    await supabase.from('products').update({
-      'status': 'sold'
-    }).eq('id', tx['product_id']);
-  }
-}
 
   Future<void> _checkNotifications() async {
-  final supabase = Supabase.instance.client;
-  final user = supabase.auth.currentUser;
+    final supabase = Supabase.instance.client;
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
 
-  if (user == null) return;
+    try {
+      final members = await supabase.from('community_members').select('community_id').eq('user_id', user.id);
+      if (members.isEmpty) return;
+      final communityId = members[0]['community_id'];
 
-  try {
-    // ✅ Get user's communities (FIXED)
-    final members = await supabase
-        .from('community_members')
-        .select('community_id')
-        .eq('user_id', user.id);
+      final profile = await supabase.from('profiles').select('last_notification_seen, notifications_enabled').eq('user_id', user.id).maybeSingle();
+      final notificationsEnabled = profile?['notifications_enabled'] ?? true;
 
-    if (members.isEmpty) return;
+      if (!notificationsEnabled) {
+        setState(() => _hasNotifications = false);
+        return;
+      }
 
-    final communityId = members[0]['community_id'];
+      final lastSeen = profile?['last_notification_seen'];
+      final data = await supabase.from('notifications').select('id').eq('community_id', communityId).gt('created_at', lastSeen ?? '1970-01-01');
 
-    // Get last seen time
-    final profile = await supabase
-        .from('profiles')
-        .select('last_notification_seen')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-    final lastSeen = profile?['last_notification_seen'];
-
-    // Fetch notifications
-    final data = await supabase
-        .from('notifications')
-        .select('id')
-        .eq('community_id', communityId)
-        .gt('created_at', lastSeen ?? '1970-01-01');
-
-    setState(() {
-      _hasNotifications = data.isNotEmpty;
-    });
-  } catch (e) {
-    print("Notification check error: $e");
+      setState(() => _hasNotifications = data.isNotEmpty);
+    } catch (e) {
+      debugPrint("Notification check error: $e");
+    }
   }
-}
 
-Future<void> _fetchUserCommunity() async {
+ Future<void> _fetchUserCommunity() async {
   final supabase = Supabase.instance.client;
   final user = supabase.auth.currentUser;
-
   if (user == null) return;
 
   try {
-    // ✅ STEP 1: Get membership
     final members = await supabase
         .from('community_members')
         .select('community_id, role')
         .eq('user_id', user.id);
 
-    // ✅ If NOT member → block access
-    if (members.isEmpty) {
-      print('❌ User is not part of any community');
+    if (members.isEmpty) return;
 
-      await supabase.auth.signOut(); // optional
-      return;
-    }
+    final communityId = members[0]['community_id'];
+    final role = members[0]['role'];
 
-    // ✅ STEP 2: Extract values
-    final memberResponse = members[0];
-    final communityId = memberResponse['community_id'];
-
-    // ✅ STEP 3: Get community info
     final communityResponse = await supabase
         .from('communities')
         .select('name, invite_link')
         .eq('id', communityId)
         .maybeSingle();
 
-    final communityName = communityResponse?['name'] ?? 'Community';
-    final inviteLink = communityResponse?['invite_link'] ?? '';
-
-    // ✅ STEP 4: Get user profile
     final profileResponse = await supabase
         .from('profiles')
         .select('full_name')
         .eq('user_id', user.id)
         .maybeSingle();
 
-    final userName = profileResponse?['full_name'] ?? 'User';
-
-    // ✅ STEP 5: Update UI
     setState(() {
       _communityId = communityId;
-      _communityName = communityName;
-      _userName = userName;
-      _inviteLink = inviteLink;
-    });
+      _communityName = communityResponse?['name'] ?? 'Community';
+      _userName = profileResponse?['full_name'] ?? 'User';
+      _inviteLink = communityResponse?['invite_link'] ?? '';
 
+      _isAdmin = role == 'admin'; // ✅ THIS DRIVES EVERYTHING
+    });
   } catch (e) {
-    print('⚠️ Error fetching dashboard data: $e');
+    debugPrint('⚠️ Error fetching dashboard data: $e');
   }
 }
+
   void _onBottomTap(int index) {
-    if (index == 1 || index == 2 || index == 3 || index == 4) {
-      switch (index) {
-        case 1:
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const ChatListScreen()),
-          ).then((_) => setState(() => _currentIndex = 0));
-          break;
-
-        case 2:
-          _showPostDialog();
-          break;
-
-        case 3:
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const CartScreen()),
-          ).then((_) => setState(() => _currentIndex = 0));
-          break;
-
-        case 4:
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const ProfileScreen()),
-          ).then((_) => setState(() => _currentIndex = 0));
-          break;
-      }
-      return;
+    if (index == 0) { setState(() => _currentIndex = index); return; }
+    
+    Widget screen;
+    switch (index) {
+      case 1: screen = const ChatListScreen(); break;
+      case 2: _showPostDialog(); return;
+      case 3: screen = const CartScreen(); break;
+      case 4: screen = const ProfileScreen(); break;
+      default: return;
     }
 
-    setState(() => _currentIndex = index);
+    Navigator.push(context, MaterialPageRoute(builder: (_) => screen)).then((_) {
+      if (index == 4) _checkNotifications();
+      setState(() => _currentIndex = 0);
+    });
   }
-
-void _showConfirmationDialog(Map transaction) {
-  final supabase = Supabase.instance.client;
-  final user = supabase.auth.currentUser;
-
-  final isBuyer = transaction['buyer_id'] == user?.id;
-
-  showDialog(
+void _showPostDialog() {
+  showGeneralDialog(
     context: context,
-    barrierDismissible: false,
-    builder: (_) => AlertDialog(
-      title: const Text("Transaction Confirmation"),
-      content: Text(
-        isBuyer
-            ? "Have you paid?"
-            : "Have you received payment?",
-      ),
-      actions: [
-        TextButton(
-          onPressed: () async {
-            // ✅ YES
-            if (isBuyer) {
-              await supabase.from('transactions').update({
-                'buyer_confirmed': true,
-              }).eq('id', transaction['id']);
-            } else {
-              await supabase.from('transactions').update({
-                'seller_confirmed': true,
-              }).eq('id', transaction['id']);
-            }
-
-            await _resolveTransaction(transaction['id']);
-
-            Navigator.pop(context);
-          },
-          child: const Text("Yes"),
-        ),
-        TextButton(
-          onPressed: () async {
-            // ❌ NO → mark as disputed AND stop future dialogs
-            if (isBuyer) {
-              await supabase.from('transactions').update({
-                'buyer_confirmed': true,
-                'status': 'disputed'
-              }).eq('id', transaction['id']);
-            } else {
-              await supabase.from('transactions').update({
-                'seller_confirmed': true,
-                'status': 'disputed'
-              }).eq('id', transaction['id']);
-            }
-
-            await supabase.from('products').update({
-              'status': 'disputed'
-            }).eq('id', transaction['product_id']);
-
-            Navigator.pop(context);
-          },
-          child: const Text("No"),
-        ),
-      ],
-    ),
-  );
-}
-
-  void _showPostDialog() {
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: 'Post',
-      barrierColor: Colors.black45,
-      pageBuilder: (_, __, ___) {
-        return BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-          child: Center(
-            child: Material(
-              color: Colors.transparent,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.25),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
+    barrierDismissible: true,
+    barrierLabel: 'Post',
+    barrierColor: Colors.black45,
+    pageBuilder: (_, __, ___) {
+      return BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+        child: Center(
+          child: Material(
+            color: Colors.transparent,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.25),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Create a Post',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: dark,
                       ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        'Create a Post',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: dark,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Choose what you want to share with your community',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.black54,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Choose what you want to share with your community',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 14, color: Colors.black54),
+                    ),
+                    const SizedBox(height: 24),
 
-                      // POST PRODUCT
-                      _PremiumPostCard(
-                        icon: Icons.shopping_bag_outlined,
-                        title: 'Post Product',
-                        subtitle: 'Sell Items',
-                        onTap: () {
-                          Navigator.pop(context);
+                    _PremiumPostCard(
+                      icon: Icons.shopping_bag_outlined,
+                      title: 'Post Product',
+                      subtitle: 'Sell Items',
+                      onTap: () => _navigateToPost('/product_post'),
+                    ),
 
-                          if (_communityId == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                    'You are not part of any community.'),
-                              ),
-                            );
-                            return;
-                          }
+                    const SizedBox(height: 16),
+                    Divider(color: Colors.grey[300]),
+                    const SizedBox(height: 16),
 
-                          Navigator.pushNamed(
-                            context,
-                            '/product_post',
-                            arguments: _communityId,
-                          ).then((_) => setState(() => _currentIndex = 0));
-                        },
-                      ),
-
-                      const SizedBox(height: 16),
-                      Divider(color: Colors.grey[300]),
-                      const SizedBox(height: 16),
-
-                      // POST RESOURCE
-                      _PremiumPostCard(
-                        icon: Icons.groups_outlined,
-                        title: 'Post Resource',
-                        subtitle: 'Resource Availability',
-                        onTap: () {
-                          Navigator.pop(context);
-
-                          if (_communityId == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                    'You are not part of any community.'),
-                              ),
-                            );
-                            return;
-                          }
-
-                          Navigator.pushNamed(
-                            context,
-                            '/resource_post',
-                            arguments: _communityId,
-                          ).then((_) => setState(() => _currentIndex = 0));
-                        },
-                      ),
-                    ],
-                  ),
+                    _PremiumPostCard(
+                      icon: Icons.groups_outlined,
+                      title: 'Post Resource',
+                      subtitle: 'Resource Availability',
+                      onTap: () => _navigateToPost('/resource_post'),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-        );
-      },
-    );
+        ),
+      );
+    },
+  );
+}
+  void _navigateToPost(String route) {
+    Navigator.pop(context);
+    if (_communityId == null) return;
+    Navigator.pushNamed(context, route, arguments: _communityId).then((_) => setState(() => _currentIndex = 0));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      drawer: DashboardDrawer(
-        communityName: _communityName,
-        inviteLink: _inviteLink,
-        isAdmin: widget.isAdmin,
-      ),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFF5F5F5),
-        elevation: 0,
-        centerTitle: true,
-        title: const Text(
-          'Trade&Aid',
-          style: TextStyle(color: dark, fontWeight: FontWeight.w600),
-        ),
-        iconTheme: const IconThemeData(color: dark),
- actions: [
+      drawer: DashboardDrawer(communityName: _communityName, inviteLink: _inviteLink, isAdmin: _isAdmin ),
+    appBar: AppBar(
+  backgroundColor: const Color(0xFFF5F5F5),
+  elevation: 0,
+  centerTitle: true,
+  title: const Text(
+    'Trade&Aid',
+    style: TextStyle(color: dark, fontWeight: FontWeight.w600),
+  ),
+  iconTheme: const IconThemeData(color: dark),
+  actions: [
     Stack(
       children: [
-      IconButton(
-  icon: const Icon(Icons.notifications_none),
-  onPressed: () async {
-    final user = Supabase.instance.client.auth.currentUser;
+        IconButton(
+          icon: const Icon(Icons.notifications_none),
+          onPressed: () async {
+            final user = Supabase.instance.client.auth.currentUser;
+            if (user != null) {
+              await Supabase.instance.client
+                  .from('profiles')
+                  .update({
+                'last_notification_seen':
+                    DateTime.now().toIso8601String(),
+              }).eq('user_id', user.id);
+            }
 
-    if (user != null) {
-      await Supabase.instance.client
-          .from('profiles')
-          .update({
-            'last_notification_seen': DateTime.now().toIso8601String()
-          })
-          .eq('user_id', user.id);
-    }
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const NotificationsScreen(),
-      ),
-    ).then((_) => _checkNotifications());
-  },
-),
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const NotificationsScreen(),
+              ),
+            ).then((_) => _checkNotifications());
+          },
+        ),
         if (_hasNotifications)
           Positioned(
             right: 10,
@@ -493,64 +298,70 @@ void _showConfirmationDialog(Map transaction) {
       ],
     ),
   ],
-      ),
-      body: DashboardBody(
-        userName: _userName,
-        communityName: _communityName,
-        isAdmin: widget.isAdmin,
-        communityId: _communityId ?? '',
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.white,
-        currentIndex: _currentIndex,
-        onTap: _onBottomTap,
-        selectedItemColor: appGradient.colors[1],
-        unselectedItemColor: Colors.black45,
-        type: BottomNavigationBarType.fixed,
-        items:  [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-  label: 'Chat',
-  icon: StreamBuilder<bool>(
-    stream: ChatService().hasUnreadMessages(),
-    builder: (context, snapshot) {
-
-      final hasUnread = snapshot.data ?? false;
-
-      return Stack(
-        clipBehavior: Clip.none,
-        children: [
-
-          const Icon(Icons.chat),
-
-          /// 🔴 GLOBAL UNREAD DOT
-          if (hasUnread)
-            Positioned(
-              right: -2,
-              top: -2,
-              child: Container(
-                width: 10,
-                height: 10,
-                decoration: const BoxDecoration(
-                  color: Colors.red,
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
-        ],
-      );
-    },
-  ),
 ),
-          BottomNavigationBarItem(icon: Icon(Icons.add_box), label: 'Post'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.shopping_cart), label: 'Cart'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-        ],
+      body: DashboardBody(userName: _userName, communityName: _communityName, isAdmin: _isAdmin, communityId: _communityId ?? ''),
+     bottomNavigationBar: BottomNavigationBar(
+  backgroundColor: Colors.white,
+  currentIndex: _currentIndex,
+  onTap: _onBottomTap,
+  selectedItemColor: appGradient.colors[1],
+  unselectedItemColor: Colors.black45,
+  type: BottomNavigationBarType.fixed,
+  items: [
+    const BottomNavigationBarItem(
+      icon: Icon(Icons.home),
+      label: 'Home',
+    ),
+    BottomNavigationBarItem(
+      label: 'Chat',
+      icon: StreamBuilder<bool>(
+        stream: ChatService().hasUnreadMessages(),
+        builder: (context, snapshot) {
+
+
+          final hasUnread = snapshot.data ?? false;
+
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              const Icon(Icons.chat),
+
+              if (hasUnread)
+                Positioned(
+                  right: -2,
+                  top: -2,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
+    ),
+    const BottomNavigationBarItem(
+      icon: Icon(Icons.add_box),
+      label: 'Post',
+    ),
+    const BottomNavigationBarItem(
+      icon: Icon(Icons.shopping_cart),
+      label: 'Cart',
+    ),
+    const BottomNavigationBarItem(
+      icon: Icon(Icons.person),
+      label: 'Profile',
+    ),
+  ],
+),
     );
   }
 }
+
 
 class _PremiumPostCard extends StatelessWidget {
   final IconData icon;
@@ -558,12 +369,7 @@ class _PremiumPostCard extends StatelessWidget {
   final String subtitle;
   final VoidCallback onTap;
 
-  const _PremiumPostCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
+  const _PremiumPostCard({required this.icon, required this.title, required this.subtitle, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -572,44 +378,15 @@ class _PremiumPostCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: appGradient,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: dark.withOpacity(0.25),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
+        decoration: BoxDecoration(gradient: appGradient, borderRadius: BorderRadius.circular(16)),
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 22,
-              backgroundColor: Colors.white,
-              child: Icon(icon, color: dark),
-            ),
+            CircleAvatar(radius: 22, backgroundColor: Colors.white, child: Icon(icon, color: dark)),
             const SizedBox(width: 14),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.white70,
-                  ),
-                ),
-              ],
-            ),
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+              Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.white70)),
+            ]),
           ],
         ),
       ),
