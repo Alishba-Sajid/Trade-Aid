@@ -248,7 +248,13 @@ void _showPostDialog() {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      drawer: DashboardDrawer(communityName: _communityName, inviteLink: _inviteLink, isAdmin: _isAdmin ),
+      drawer: DashboardDrawer(
+  communityName: _communityName,
+  inviteLink: _inviteLink,
+  communityId: _communityId ?? '',
+  adminName: _userName,
+  isAdmin: _isAdmin,
+       ),
     appBar: AppBar(
   backgroundColor: const Color(0xFFF5F5F5),
   elevation: 0,

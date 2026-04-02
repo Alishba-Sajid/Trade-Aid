@@ -27,13 +27,16 @@ const Color light = Color(0xFFE0F2F1);
 class DashboardDrawer extends StatelessWidget {
   final String communityName;
   final String inviteLink;
-  final bool isAdmin; // added for role-based
+  final bool isAdmin; 
+  final String communityId;
+  final String adminName;
 
   const DashboardDrawer({
-    super.key,
-    required this.communityName,
-    required this.inviteLink,
-    this.isAdmin = false,
+  required this.communityName,
+  required this.inviteLink,
+  required this.communityId,
+  required this.adminName,
+  this.isAdmin = false,
   });
 
   void onCopy(BuildContext context) {
@@ -269,7 +272,6 @@ class DashboardDrawer extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               children: [
-                // ✅ Pending Requests - Fixed
                 _DrawerTile(
                   icon: Icons.person_add_alt_1_rounded,
                   title: 'Pending Requests',
@@ -319,24 +321,30 @@ class DashboardDrawer extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (_) =>
-                            CommunityRoundtableScreen(isAdmin: isAdmin),
+                            CommunityRoundtableScreen( isAdmin: isAdmin,
+  communityId: communityId,
+  adminName: adminName, ),
                       ),
                     );
                   },
                 ),
-                _DrawerTile(
-                  icon: Icons.help_rounded,
-                  title: 'Help & Support',
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const HelpSupportScreen(),
-                      ),
-                    );
-                  },
-                ),
+                
+                // 🔹 Help & Support - Visible to Members only (Hidden for Admin)
+                if (!isAdmin)
+                  _DrawerTile(
+                    icon: Icons.help_rounded,
+                    title: 'Help & Support',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const HelpSupportScreen(),
+                        ),
+                      );
+                    },
+                  ),
+
                 _DrawerTile(
                   icon: Icons.how_to_vote_rounded,
                   title: 'Cast Your Vote',
@@ -348,6 +356,7 @@ class DashboardDrawer extends StatelessWidget {
                     );
                   },
                 ),
+                
                 // 🔹 Admin Only Options
                 if (isAdmin) ...[
                   _DrawerTile(
