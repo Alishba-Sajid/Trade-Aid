@@ -30,13 +30,11 @@ class DashboardDrawer extends StatelessWidget {
   final bool isAdmin; // added for role-based
 
   const DashboardDrawer({
-  super.key,
-  required this.communityName,
-  required this.inviteLink,
-  this.isAdmin = false,
-});
-
-
+    super.key,
+    required this.communityName,
+    required this.inviteLink,
+    this.isAdmin = false,
+  });
 
   void onCopy(BuildContext context) {
     Clipboard.setData(ClipboardData(text: inviteLink));
@@ -299,7 +297,7 @@ class DashboardDrawer extends StatelessWidget {
                     );
                   },
                 ),
-                                _DrawerTile(
+                _DrawerTile(
                   icon: Icons.book_online_rounded,
                   title: 'Manage Reservations',
                   onTap: () {
@@ -307,8 +305,7 @@ class DashboardDrawer extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) =>
-                            ManageReservationsScreen(),
+                        builder: (_) => ManageReservationsScreen(),
                       ),
                     );
                   },
@@ -322,7 +319,7 @@ class DashboardDrawer extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (_) =>
-                            const CommunityRoundtableScreen(isAdmin: true),
+                            CommunityRoundtableScreen(isAdmin: isAdmin),
                       ),
                     );
                   },

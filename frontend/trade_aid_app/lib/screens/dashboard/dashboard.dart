@@ -30,12 +30,12 @@ const Color dark = Color(0xFF004D40);
 const Color light = Color(0xFFE0F2F1);
 
 class DashboardScreen extends StatefulWidget {
-  final bool isAdmin;
+ 
   final String inviteLink;
   
   const DashboardScreen({
     super.key,
-    this.isAdmin = false,
+   
     this.inviteLink = '',
   });
 
@@ -46,6 +46,7 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _currentIndex = 0;
   bool _hasNotifications = false;
+  bool _isAdmin = false;
 
   String? _communityId;
   String _communityName = 'Community';
@@ -72,18 +73,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       await Future.delayed(const Duration(seconds: 10));
     }
   }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    if (args != null) {
-      _communityId = args['communityId'];
-      _communityName = args['communityName'] ?? 'Community';
-      _userName = args['userName'] ?? 'User';
-    }
-  }
-
   void _checkLoggedInUser() {
     final user = Supabase.instance.client.auth.currentUser;
     if (user != null) {
@@ -118,29 +107,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Future<void> _fetchUserCommunity() async {
-    final supabase = Supabase.instance.client;
-    final user = supabase.auth.currentUser;
-    if (user == null) return;
+ Future<void> _fetchUserCommunity() async {
+  final supabase = Supabase.instance.client;
+  final user = supabase.auth.currentUser;
+  if (user == null) return;
 
-    try {
-      final members = await supabase.from('community_members').select('community_id, role').eq('user_id', user.id);
-      if (members.isEmpty) return;
+  try {
+    final members = await supabase
+        .from('community_members')
+        .select('community_id, role')
+        .eq('user_id', user.id);
 
-      final communityId = members[0]['community_id'];
-      final communityResponse = await supabase.from('communities').select('name, invite_link').eq('id', communityId).maybeSingle();
-      final profileResponse = await supabase.from('profiles').select('full_name').eq('user_id', user.id).maybeSingle();
+    if (members.isEmpty) return;
 
-      setState(() {
-        _communityId = communityId;
-        _communityName = communityResponse?['name'] ?? 'Community';
-        _userName = profileResponse?['full_name'] ?? 'User';
-        _inviteLink = communityResponse?['invite_link'] ?? '';
-      });
-    } catch (e) {
-      debugPrint('⚠️ Error fetching dashboard data: $e');
-    }
+    final communityId = members[0]['community_id'];
+    final role = members[0]['role'];
+
+    final communityResponse = await supabase
+        .from('communities')
+        .select('name, invite_link')
+        .eq('id', communityId)
+        .maybeSingle();
+
+    final profileResponse = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+    setState(() {
+      _communityId = communityId;
+      _communityName = communityResponse?['name'] ?? 'Community';
+      _userName = profileResponse?['full_name'] ?? 'User';
+      _inviteLink = communityResponse?['invite_link'] ?? '';
+
+      _isAdmin = role == 'admin'; // ✅ THIS DRIVES EVERYTHING
+    });
+  } catch (e) {
+    debugPrint('⚠️ Error fetching dashboard data: $e');
   }
+}
 
   void _onBottomTap(int index) {
     if (index == 0) { setState(() => _currentIndex = index); return; }
@@ -242,7 +248,7 @@ void _showPostDialog() {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      drawer: DashboardDrawer(communityName: _communityName, inviteLink: _inviteLink, isAdmin: widget.isAdmin),
+      drawer: DashboardDrawer(communityName: _communityName, inviteLink: _inviteLink, isAdmin: _isAdmin ),
     appBar: AppBar(
   backgroundColor: const Color(0xFFF5F5F5),
   elevation: 0,
@@ -293,7 +299,7 @@ void _showPostDialog() {
     ),
   ],
 ),
-      body: DashboardBody(userName: _userName, communityName: _communityName, isAdmin: widget.isAdmin, communityId: _communityId ?? ''),
+      body: DashboardBody(userName: _userName, communityName: _communityName, isAdmin: _isAdmin, communityId: _communityId ?? ''),
      bottomNavigationBar: BottomNavigationBar(
   backgroundColor: Colors.white,
   currentIndex: _currentIndex,
@@ -311,6 +317,8 @@ void _showPostDialog() {
       icon: StreamBuilder<bool>(
         stream: ChatService().hasUnreadMessages(),
         builder: (context, snapshot) {
+
+
           final hasUnread = snapshot.data ?? false;
 
           return Stack(
