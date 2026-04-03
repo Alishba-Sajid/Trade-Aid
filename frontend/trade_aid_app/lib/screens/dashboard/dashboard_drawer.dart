@@ -4,10 +4,10 @@ import 'package:flutter/services.dart';
 import '../manage_upload/manage_uploads_screen.dart';
 import '../welcome_screen.dart';
 import '../pending_request.dart';
-import '../help&support.dart';
+import 'help&support.dart';
 import 'Voting.dart';
 import 'member_management.dart';
-import 'view_complaints.dart';
+import 'User_complaints.dart';
 import 'roundtable.dart';
 import 'manage_reservations.dart';
 

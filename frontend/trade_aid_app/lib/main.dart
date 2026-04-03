@@ -27,7 +27,7 @@ import 'screens/resources_screens/resource_post.dart';
 import 'screens/profile/profile.dart';
 import 'screens/profile/personaldetailsprofile.dart';
 import 'screens/profile/changepassword.dart';
-import 'screens/help&support.dart';
+import 'screens/dashboard/help&support.dart';
 import 'screens/wish_request/wish_request.dart';
 import 'screens/chat/chat_list_screen.dart';
 import 'screens/profile/terms&conditions.dart';
