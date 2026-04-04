@@ -29,13 +29,14 @@ class DashboardDrawer extends StatelessWidget {
   final String inviteLink;
   final String communityId; // ✅ ADD THIS
   final bool isAdmin;
+  final bool isModerator;
 
   const DashboardDrawer({
-    super.key,
     required this.communityName,
     required this.inviteLink,
     required this.communityId, // ✅ ADD THIS
-    this.isAdmin = false,
+    required this.isAdmin,
+    required this.isModerator,
   });
 
   void onCopy(BuildContext context) {
@@ -176,6 +177,8 @@ class DashboardDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool canManageRequests = isAdmin || isModerator;
+
     return Drawer(
       backgroundColor: const Color(0xFFF6F9FB),
       child: Column(
@@ -272,19 +275,20 @@ class DashboardDrawer extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 12),
               children: [
                 // ✅ Pending Requests - Fixed
-                _DrawerTile(
-                  icon: Icons.person_add_alt_1_rounded,
-                  title: 'Pending Requests',
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const PendingRequestsScreen(),
-                      ),
-                    );
-                  },
-                ),
+                if (canManageRequests)
+                  _DrawerTile(
+                    icon: Icons.person_add_alt_1_rounded,
+                    title: 'Pending Requests',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const PendingRequestsScreen(),
+                        ),
+                      );
+                    },
+                  ),
                 _DrawerTile(
                   icon: Icons.upload_rounded,
                   title: 'Manage Uploads',

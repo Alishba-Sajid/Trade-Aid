@@ -43,6 +43,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _currentIndex = 0;
   bool _hasNotifications = false;
   bool _isAdmin = false;
+  bool _isModerator = false;
 
   String? _communityId;
   String _communityName = 'Community';
@@ -149,7 +150,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _userName = profileResponse?['full_name'] ?? 'User';
         _inviteLink = communityResponse?['invite_link'] ?? '';
 
-        _isAdmin = role == 'admin'; // ✅ THIS DRIVES EVERYTHING
+        _isAdmin = role == 'admin';
+        _isModerator = role == 'moderator';
+        // ✅ THIS DRIVES EVERYTHING
       });
     } catch (e) {
       debugPrint('⚠️ Error fetching dashboard data: $e');
@@ -281,6 +284,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         inviteLink: _inviteLink,
         communityId: _communityId ?? '',
         isAdmin: _isAdmin,
+        isModerator: _isModerator,
       ),
       appBar: AppBar(
         backgroundColor: const Color(0xFFF5F5F5),
