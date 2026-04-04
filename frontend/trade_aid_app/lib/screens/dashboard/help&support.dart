@@ -130,12 +130,21 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
     });
 
     // 3. Send notification
-    await NotificationService.createNotification(
-      communityId: communityId,
-      title: "New Complaint Submitted",
-      message: "$subject - complaint submitted",
-      type: "complaint",
-    );
+    // 🔥 Notify Admins
+    final admins = await supabase
+        .from('community_members')
+        .select('user_id')
+        .eq('community_id', communityId)
+        .eq('role', 'admin'); // ⚠️ make sure column exists
+
+    for (var admin in admins) {
+      await NotificationService.createNotification(
+        userId: admin['user_id'],
+        title: "🚨 New Complaint",
+        message: "A new complaint has been filed.",
+        type: "complaint",
+      );
+    }
 
     bool success = true;
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '/widgets/app_bar.dart';
 import '/models/view_complaints.dart';
+import '../../services/notification_service.dart';
 
 // Assuming these are defined in your theme constants
 const Color backgroundLight = Color(0xFFF5F5F5);
@@ -20,21 +21,17 @@ class ComplaintRepository {
   Future<List<ComplaintModel>> fetchComplaints() async {
     final supabase = Supabase.instance.client;
 
-  final complaintsRes = await supabase
-    .from('complaints')
-    .select();
+    final complaintsRes = await supabase.from('complaints').select();
 
     List<ComplaintModel> list = [];
 
     for (var e in complaintsRes) {
-      // accused profile
       final accused = await supabase
           .from('profiles')
           .select()
           .eq('user_id', e['accused_user_id'])
           .maybeSingle();
 
-      // complainant profile
       final complainant = await supabase
           .from('profiles')
           .select()
@@ -46,7 +43,7 @@ class ComplaintRepository {
           id: e['id'],
           subject: e['subject'],
           reporterName: complainant?['full_name'] ?? "Unknown",
-          complainantName: complainant?['full_name'], // ✅ ADD THIS
+          complainantName: complainant?['full_name'],
           description: e['description'],
           imageUrl: e['attachment_url'],
           complainantId: e['complainant_id'],
@@ -94,11 +91,12 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
 
   Future<void> _loadComplaints() async {
     final data = await _repository.fetchComplaints();
-
-    setState(() {
-      _allComplaints = data;
-      _loading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _allComplaints = data;
+        _loading = false;
+      });
+    }
   }
 
   /// ================= ACTIONS =================
@@ -108,13 +106,21 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text("Validate Complaint", style: TextStyle(fontWeight: FontWeight.bold)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text(
+            "Validate Complaint",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           content: const Text(
-              "Is this complaint valid?\n\nValid → Count increases\nInvalid → Ignored"),
-          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            "Is this complaint valid?\n\nValid → Count increases\nInvalid → Ignored",
+          ),
+          actionsPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
           actions: [
-            // INVALID BUTTON: White background, Gradient border, Gradient text
             InkWell(
               onTap: () => Navigator.pop(context, false),
               child: Container(
@@ -122,7 +128,7 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(width: 2, color: Colors.teal), // Fallback for border color
+                  border: Border.all(width: 2, color: Colors.teal),
                 ),
                 child: ShaderMask(
                   shaderCallback: (bounds) => appGradient.createShader(
@@ -131,14 +137,13 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
                   child: const Text(
                     "Invalid",
                     style: TextStyle(
-                      color: Colors.white, // Required for ShaderMask
+                      color: Colors.white,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
               ),
             ),
-            // VALID BUTTON: Gradient background, White text
             InkWell(
               onTap: () => Navigator.pop(context, true),
               child: Container(
@@ -163,30 +168,35 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
 
     if (result == null) return;
 
-  final response = await Supabase.instance.client
-    .from('complaints')
-    .update({
-      'status': 'resolved',
-      'is_valid': result,
-    })
-    .eq('id', complaint.id)
-    .select();
-
-print("Update response: $response");
-
     _showSnackBar("Complaint reviewed", Colors.green);
 
-    await _loadComplaints(); 
+    await Supabase.instance.client
+        .from('complaints')
+        .update({'status': 'resolved', 'is_valid': result}).eq('id', complaint.id);
+
+    await _loadComplaints();
+    await NotificationService.createNotification(
+      userId: complaint.complainantId,
+      title: "Complaint Resolved",
+      message: "Your complaint has been reviewed.",
+      type: "resolved",
+    );
+
+    await NotificationService.createNotification(
+      userId: complaint.accusedUserId,
+      title: "Complaint Update",
+      message: "A complaint involving you has been reviewed.",
+      type: "update",
+    );
   }
 
   void _notifyAccused(ComplaintModel complaint) async {
-    await Supabase.instance.client.from('notifications').insert({
-      "community_id": complaint.communityId,
-      "title": "Warning",
-      "message": "Complaints have been filed against you.",
-      "type": "warning",
-    });
-
+    await NotificationService.createNotification(
+      userId: complaint.accusedUserId,
+      title: "Warning",
+      message: "Complaints have been filed against you.",
+      type: "warning",
+    );
     _showSnackBar("User notified", Colors.orange);
   }
 
@@ -210,6 +220,188 @@ print("Update response: $response");
     );
   }
 
+/// PREMIUM: Detailed View Popup
+  void _showComplaintDetails(ComplaintModel complaint, int count) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.85,
+        decoration: const BoxDecoration(
+          color: backgroundLight,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        child: Column(
+          children: [
+            // Handle Bar
+            Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 8),
+              width: 50,
+              height: 5,
+              decoration: BoxDecoration(
+                  color: Colors.grey[300], borderRadius: BorderRadius.circular(10)),
+            ),
+            
+            // Scrollable Content
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header Info
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(complaint.subject,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 24, color: Colors.black87)),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: complaint.status == 'pending' ? Colors.orange.withOpacity(0.1) : Colors.green.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            complaint.status.toUpperCase(),
+                            style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: complaint.status == 'pending' ? Colors.orange : Colors.green),
+                          ),
+                        )
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text("Reported by: ${complaint.complainantName ?? complaint.reporterName}",
+                        style: TextStyle(color: Colors.teal.shade700, fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 20),
+
+                    // Accused Profile Card
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: surface,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          _avatar(complaint.accusedImage, complaint.accusedName),
+                          const SizedBox(width: 15),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text("Accused User", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                                Text(complaint.accusedName ?? "Unknown User",
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                Text(complaint.accusedAddress ?? "No address listed",
+                                    style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.1),
+                                shape: BoxShape.circle),
+                            child: Text("$count",
+                                style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                          )
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 25),
+                    const Text("Case Description",
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                    const SizedBox(height: 10),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: surface,
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: Text(complaint.description,
+                          style: const TextStyle(fontSize: 15, height: 1.5, color: Colors.black87)),
+                    ),
+
+                    if (complaint.imageUrl != null) ...[
+                      const SizedBox(height: 25),
+                      const Text("Evidence / Attachments",
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                      const SizedBox(height: 10),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: Image.network(
+                          complaint.imageUrl!,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ),
+
+            // FIXED BOTTOM ACTION BAR (Moved from bottomSheet to here)
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                color: surface,
+                boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -2))],
+              ),
+              child: complaint.status == 'pending'
+                  ? Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.pop(context);
+                              _resolveComplaint(complaint);
+                            },
+                            child: Container(
+                              height: 55,
+                              decoration: BoxDecoration(
+                                gradient: appGradient,
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              child: const Center(
+                                child: Text("Validate & Resolve",
+                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : SizedBox(
+                      width: double.infinity,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: Text(
+                          "RESOLVED AS ${complaint.isValid == true ? 'VALID' : 'INVALID'}",
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+                        ),
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// ================= UI =================
 
   @override
@@ -222,7 +414,6 @@ print("Update response: $response");
       ),
       body: Column(
         children: [
-          /// TABS
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -243,7 +434,6 @@ print("Update response: $response");
 
   Widget _tabBtn(String title, int index) {
     final selected = _tabIndex == index;
-
     return GestureDetector(
       onTap: () => setState(() => _tabIndex = index),
       child: Container(
@@ -277,10 +467,9 @@ print("Update response: $response");
     }
   }
 
-  Widget _buildComplaintList(List<ComplaintModel> list,
-      {bool isResolved = false}) {
+  Widget _buildComplaintList(List<ComplaintModel> list, {bool isResolved = false}) {
     if (list.isEmpty) {
-      return const Center(child: Text("No complaints"));
+      return const Center(child: Text("No complaints found"));
     }
 
     return ListView.builder(
@@ -288,7 +477,6 @@ print("Update response: $response");
       itemCount: list.length,
       itemBuilder: (context, index) {
         final complaint = list[index];
-
         final count = _allComplaints
             .where((c) =>
                 c.accusedUserId == complaint.accusedUserId &&
@@ -296,14 +484,17 @@ print("Update response: $response");
                 c.isValid == true)
             .length;
 
-        return _ComplaintCard(
-          complaint: complaint,
-          count: count,
-          isResolved: isResolved,
-          onResolve: () => _resolveComplaint(complaint),
-          onNotify: () => _notifyAccused(complaint),
-          onRemove: () => _removeUser(complaint),
-          onChat: () => _showSnackBar("Opening chat...", Colors.teal),
+        return GestureDetector(
+          onTap: () => _showComplaintDetails(complaint, count), 
+          child: _ComplaintCard(
+            complaint: complaint,
+            count: count,
+            isResolved: isResolved,
+            onResolve: () => _resolveComplaint(complaint),
+            onNotify: () => _notifyAccused(complaint),
+            onRemove: () => _removeUser(complaint),
+            onChat: () => _showSnackBar("Opening chat...", Colors.teal),
+          ),
         );
       },
     );
@@ -315,7 +506,6 @@ print("Update response: $response");
         .toList();
 
     final Map<String, List<ComplaintModel>> grouped = {};
-
     for (var c in validResolved) {
       grouped.putIfAbsent(c.accusedUserId, () => []).add(c);
     }
@@ -323,7 +513,7 @@ print("Update response: $response");
     final users = grouped.values.toList();
 
     if (users.isEmpty) {
-      return const Center(child: Text("No valid complaints"));
+      return const Center(child: Text("No valid complaints record"));
     }
 
     return ListView.builder(
@@ -333,14 +523,21 @@ print("Update response: $response");
         final list = users[index];
         final user = list.first;
 
-        return ListTile(
-          leading: _avatar(user.accusedImage, user.accusedName),
-          title: Text(user.accusedName ?? "Unknown"),
-          subtitle: Text(user.accusedAddress ?? "No address"),
-          trailing: CircleAvatar(
-            backgroundColor: Colors.red.withOpacity(0.1),
-            child: Text("${list.length}",
-                style: const TextStyle(color: Colors.red)),
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(color: surface, borderRadius: BorderRadius.circular(15)),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            leading: _avatar(user.accusedImage, user.accusedName),
+            title: Text(user.accusedName ?? "Unknown", style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text(user.accusedAddress ?? "No address"),
+            trailing: CircleAvatar(
+              backgroundColor: Colors.red.withOpacity(0.1),
+              child: Text(
+                "${list.length}",
+                style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              ),
+            ),
           ),
         );
       },
@@ -349,16 +546,14 @@ print("Update response: $response");
 
   Widget _avatar(String? image, String? name) {
     if (image != null && image.isNotEmpty) {
-      return CircleAvatar(
-        backgroundImage: NetworkImage(image),
-      );
+      return CircleAvatar(radius: 25, backgroundImage: NetworkImage(image));
     }
-
     return CircleAvatar(
-      backgroundColor: Colors.teal,
+      radius: 25,
+      backgroundColor: Colors.teal.shade100,
       child: Text(
         name != null && name.isNotEmpty ? name[0].toUpperCase() : "?",
-        style: const TextStyle(color: Colors.white),
+        style: TextStyle(color: Colors.teal.shade800, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -387,97 +582,108 @@ class _ComplaintCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          )
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(complaint.subject,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 6),
-          Text("By ${complaint.complainantName ?? complaint.reporterName}"),
-          const SizedBox(height: 12),
-          Text(complaint.description),
-          if (complaint.isValid != null) ...[
-            const SizedBox(height: 6),
-            Text(
-              complaint.isValid! ? "✔ Valid Complaint" : "✖ Invalid Complaint",
-              style: TextStyle(
-                color: complaint.isValid! ? Colors.green : Colors.red,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-          if (complaint.imageUrl != null) ...[
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                complaint.imageUrl!,
-                height: 150,
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
-            ),
-          ],
-          const SizedBox(height: 12),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              CircleAvatar(
-                radius: 16,
-                backgroundColor: Colors.red.withOpacity(0.1),
+              Expanded(
                 child: Text(
-                  count.toString(),
-                  style: const TextStyle(
-                      color: Colors.red, fontWeight: FontWeight.bold),
+                  complaint.subject,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
                 ),
               ),
-              const SizedBox(width: 10),
-              const Text("Complaints against this user"),
+              const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
             ],
           ),
-          const SizedBox(height: 16),
-          if (!isResolved) ...[
+          const SizedBox(height: 6),
+          Text(
+            "By ${complaint.complainantName ?? complaint.reporterName}",
+            style: TextStyle(color: Colors.teal.shade600, fontSize: 13, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            complaint.description,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: Colors.grey.shade700, height: 1.4),
+          ),
+          if (complaint.isValid != null) ...[
+            const SizedBox(height: 10),
             Row(
               children: [
-                Expanded(child: _btn("Resolve", Icons.check, onResolve)),
-                const SizedBox(width: 8),
-                _iconBtn(Icons.notifications, Colors.orange, onNotify),
-                if (count >= 3) _iconBtn(Icons.delete, Colors.red, onRemove),
+                Icon(complaint.isValid! ? Icons.verified : Icons.error_outline, 
+                     size: 16, color: complaint.isValid! ? Colors.green : Colors.red),
+                const SizedBox(width: 4),
+                Text(
+                  complaint.isValid! ? "Valid Complaint" : "Invalid Complaint",
+                  style: TextStyle(
+                    color: complaint.isValid! ? Colors.green : Colors.red,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12
+                  ),
+                ),
               ],
-            )
-          ] else ...[
-            const Text("Resolved",
-                style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold))
-          ]
+            ),
+          ],
+          const Divider(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                    child: Text("$count", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12)),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text("Strikes", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                ],
+              ),
+              if (!isResolved) ...[
+                Row(
+                  children: [
+                    _iconBtn(Icons.notifications_active_outlined, Colors.orange, onNotify),
+                    if (count >= 3) _iconBtn(Icons.person_remove_outlined, Colors.red, onRemove),
+                    const SizedBox(width: 8),
+                    _actionTextBtn("Resolve", onResolve),
+                  ],
+                ),
+              ] else ...[
+                const Text("Closed", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 12)),
+              ],
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _btn(String text, IconData icon, VoidCallback onTap) {
+  Widget _actionTextBtn(String text, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       child: Container(
-        height: 45,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.teal.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
+          gradient: appGradient,
+          borderRadius: BorderRadius.circular(10),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 18, color: Colors.teal),
-            const SizedBox(width: 6),
-            Text(text,
-                style: const TextStyle(
-                    color: Colors.teal, fontWeight: FontWeight.bold)),
-          ],
-        ),
+        child: Text(text, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
       ),
     );
   }
@@ -487,13 +693,12 @@ class _ComplaintCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(left: 6),
-        width: 45,
-        height: 45,
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(icon, color: color),
+        child: Icon(icon, color: color, size: 18),
       ),
     );
   }

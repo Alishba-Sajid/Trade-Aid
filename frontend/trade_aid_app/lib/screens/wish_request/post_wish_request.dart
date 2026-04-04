@@ -16,13 +16,9 @@ const LinearGradient appGradient = LinearGradient(
 
 class PostWishRequestScreen extends StatefulWidget {
   final String communityId;
-  const PostWishRequestScreen({
-    super.key,
-    required this.communityId,
-  });
+  const PostWishRequestScreen({super.key, required this.communityId});
 
-
-@override
+  @override
   State<PostWishRequestScreen> createState() => _PostWishRequestScreenState();
 }
 
@@ -45,9 +41,7 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Center(
           child: Text(
             "Confirm Post",
@@ -137,7 +131,7 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
     final description = _descController.text.trim();
     final urgent = isHighUrgency;
 
-    String? communityId;
+    late final String communityId;
 
     if (itemName.isEmpty) return;
 
@@ -146,9 +140,9 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
       final user = supabase.auth.currentUser;
 
       if (user == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("User not logged in")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("User not logged in")));
         return;
       }
 
@@ -168,40 +162,51 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
         return;
       }
 
-      communityId = member['community_id'];
-/// INSERT WISH REQUEST
-await supabase.from('wish_requests').insert({
-  'community_id': communityId,
-  'user_id': userId,
-  'item_name': itemName,
-  'description': description,
-  'urgent': urgent,
-});
+      communityId = member['community_id'] as String;
 
+      /// INSERT WISH REQUEST
+      await supabase.from('wish_requests').insert({
+        'community_id': communityId,
+        'user_id': userId,
+        'item_name': itemName,
+        'description': description,
+        'urgent': urgent,
+      });
 
-/// FETCH USER NAME FROM PROFILE
-/// FETCH USER NAME FROM PROFILE
-final profile = await supabase
-    .from('profiles')
-    .select('full_name')
-    .eq('user_id', userId)
-    .single();
+      /// FETCH USER NAME FROM PROFILE
+      /// FETCH USER NAME FROM PROFILE
+      final profile = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('user_id', userId)
+          .single();
 
-final userName = profile['full_name'];
+      final userName = profile['full_name'];
 
-debugPrint("USER ID: ${user.id}");
-     
-/// INSERT COMMUNITY NOTIFICATION
-await supabase.from('notifications').insert({
-  'community_id': communityId,
-  'title': 'New Wish Request',
-  'message': '$userName requested $itemName',
-  'type': 'wish_request',
-});
+      debugPrint("USER ID: ${user.id}");
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Wish posted successfully")),
-      );
+      /// INSERT COMMUNITY NOTIFICATION
+      /// 🔥 FETCH ALL COMMUNITY MEMBERS
+      final members = await supabase
+          .from('community_members')
+          .select('user_id')
+          .eq('community_id', communityId);
+
+      /// 🔥 SEND NOTIFICATION TO EACH MEMBER
+      for (var m in members) {
+        await supabase.from('notifications').insert({
+          'user_id': m['user_id'], // ✅ REQUIRED
+          'community_id': communityId,
+          'title': 'New Wish Request',
+          'message': '$userName requested $itemName',
+          'type': 'wish_request',
+        });
+        print("Inserted notifications for ${members.length} users");
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Wish posted successfully")));
 
       _itemController.clear();
       _descController.clear();
@@ -213,9 +218,9 @@ await supabase.from('notifications').insert({
       debugPrint("POST ERROR: $e");
       debugPrint("Community ID: $communityId");
 
-      ScaffoldMessenger.of(context).showSnackBar(
-       SnackBar(content: Text("Error : $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error : $e")));
     }
   }
 
@@ -237,7 +242,9 @@ await supabase.from('notifications').insert({
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildSectionHeader(
-                      "What do you need?", Icons.lightbulb_outline),
+                    "What do you need?",
+                    Icons.lightbulb_outline,
+                  ),
                   const SizedBox(height: 16),
                   _buildCustomTextField(
                     controller: _itemController,
@@ -246,7 +253,9 @@ await supabase.from('notifications').insert({
                   ),
                   const SizedBox(height: 24),
                   _buildSectionHeader(
-                      "Add some details", Icons.description_outlined),
+                    "Add some details",
+                    Icons.description_outlined,
+                  ),
                   const SizedBox(height: 16),
                   _buildCustomTextField(
                     controller: _descController,

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../services/notification_service.dart';
 
 const LinearGradient appGradient = LinearGradient(
   colors: [
@@ -63,8 +64,10 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
 
   Future<void> _pickImage(int slot) async {
     FocusScope.of(context).unfocus();
-    final picked =
-        await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    final picked = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
     if (picked != null) setState(() => _images[slot] = picked);
   }
 
@@ -93,8 +96,10 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
               },
             ),
             ListTile(
-              leading:
-                  const Icon(Icons.delete_outline_rounded, color: Colors.red),
+              leading: const Icon(
+                Icons.delete_outline_rounded,
+                color: Colors.red,
+              ),
               title: const Text(
                 'Remove Photo',
                 style: TextStyle(fontWeight: FontWeight.w600),
@@ -113,8 +118,7 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
   Widget _buildImageSlot(int index) {
     final img = _images[index];
     return GestureDetector(
-      onTap: () =>
-          img == null ? _pickImage(index) : _showImageOptions(index),
+      onTap: () => img == null ? _pickImage(index) : _showImageOptions(index),
       child: Container(
         height: 150,
         decoration: BoxDecoration(
@@ -133,16 +137,20 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
             ? Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.photo_camera_outlined,
-                      size: 28, color: accentTeal.withOpacity(0.6)),
+                  Icon(
+                    Icons.photo_camera_outlined,
+                    size: 28,
+                    color: accentTeal.withOpacity(0.6),
+                  ),
                   const SizedBox(height: 6),
                   const Text(
                     'UPLOAD',
                     style: TextStyle(
-                        letterSpacing: 1.2,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: darkPrimary),
+                      letterSpacing: 1.2,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: darkPrimary,
+                    ),
                   ),
                 ],
               )
@@ -247,8 +255,11 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(displayText, style: const TextStyle(fontSize: 14)),
-              const Icon(Icons.keyboard_arrow_down_rounded,
-                  size: 20, color: Colors.grey),
+              const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                size: 20,
+                color: Colors.grey,
+              ),
             ],
           ),
         ),
@@ -276,100 +287,117 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
 
   // ---------------- SUBMIT ----------------
 
-Future<void> _submit() async {
-  FocusScope.of(context).unfocus();
+  Future<void> _submit() async {
+    FocusScope.of(context).unfocus();
 
-  if (_isLoading) return;
+    if (_isLoading) return;
 
-  if (!_images.any((e) => e != null)) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        backgroundColor: Colors.redAccent,
-        content: Text('Please upload at least one image'),
-      ),
-    );
-    return;
+    if (!_images.any((e) => e != null)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.redAccent,
+          content: Text('Please upload at least one image'),
+        ),
+      );
+      return;
+    }
+
+    if (!_formKey.currentState!.validate()) return;
+    _formKey.currentState!.save();
+
+    setState(() => _isLoading = true);
+
+    try {
+      final supabase = Supabase.instance.client;
+      final user = supabase.auth.currentUser;
+
+      if (user == null) {
+        throw Exception("User not authenticated");
+      }
+
+      List<String> imageUrls = [];
+
+      for (var image in _images.whereType<XFile>()) {
+        final file = File(image.path);
+
+        final filePath =
+            "${widget.communityId}/${user.id}/${DateTime.now().millisecondsSinceEpoch}.jpg";
+
+        await supabase.storage.from('product-images').upload(filePath, file);
+
+        final imageUrl = supabase.storage
+            .from('product-images')
+            .getPublicUrl(filePath);
+
+        imageUrls.add(imageUrl);
+      }
+
+      /// BASE PRODUCT DATA
+      final Map<String, dynamic> data = {
+        'community_id': widget.communityId,
+        'user_id': user.id,
+        'title': _productName!.trim(),
+        'description': _description!.trim(),
+        'price': double.parse(_price!.trim()),
+        'category': _productCategoryValue,
+        'condition': _conditionValue,
+        'used_time': _usedTimeValue,
+        'images': imageUrls,
+      };
+
+      /// IF PRODUCT IS FULFILLING A WISH
+      if (widget.wishId != null) {
+        final expiresAt = DateTime.now().add(const Duration(hours: 48));
+
+        data.addAll({
+          'wish_request_id': widget.wishId, // ✅ FIXED COLUMN NAME
+          'reserved_for': widget.requesterId,
+          'make_public_after_48h': widget.makePublicAfter48Hours ?? false,
+          'expires_at': expiresAt.toIso8601String(),
+        });
+      }
+
+      await supabase.from('products').insert(data);
+
+      if (widget.wishId != null && widget.requesterId != null) {
+        final requesterNotification = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('user_id', user.id)
+            .single();
+
+        final uploaderName =
+            requesterNotification['full_name'] as String? ?? 'Someone';
+
+        await NotificationService.createNotification(
+          userId: widget.requesterId,
+          title: 'Product posted for your wish',
+          message: '$uploaderName has posted the product you requested.',
+          type: 'wish_fulfilled',
+        );
+      }
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: darkPrimary,
+          content: Text('Product Published Successfully'),
+        ),
+      );
+
+      Navigator.pop(context, true);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red,
+          content: Text("Error: ${e.toString()}"),
+        ),
+      );
+    }
+
+    if (mounted) setState(() => _isLoading = false);
   }
-
-  if (!_formKey.currentState!.validate()) return;
-  _formKey.currentState!.save();
-
-  setState(() => _isLoading = true);
-
-  try {
-    final supabase = Supabase.instance.client;
-    final user = supabase.auth.currentUser;
-
-    if (user == null) {
-      throw Exception("User not authenticated");
-    }
-
-    List<String> imageUrls = [];
-
-    for (var image in _images.whereType<XFile>()) {
-      final file = File(image.path);
-
-      final filePath =
-          "${widget.communityId}/${user.id}/${DateTime.now().millisecondsSinceEpoch}.jpg";
-
-      await supabase.storage
-          .from('product-images')
-          .upload(filePath, file);
-
-      final imageUrl =
-          supabase.storage.from('product-images').getPublicUrl(filePath);
-
-      imageUrls.add(imageUrl);
-    }
-
-    /// BASE PRODUCT DATA
-    final Map<String, dynamic> data = {
-      'community_id': widget.communityId,
-      'user_id': user.id,
-      'title': _productName!.trim(),
-      'description': _description!.trim(),
-      'price': double.parse(_price!.trim()),
-      'category': _productCategoryValue,
-      'condition': _conditionValue,
-      'used_time': _usedTimeValue,
-      'images': imageUrls,
-    };
-
-    /// IF PRODUCT IS FULFILLING A WISH
-    if (widget.wishId != null) {
-      final expiresAt = DateTime.now().add(const Duration(hours: 48));
-
-      data.addAll({
-        'wish_request_id': widget.wishId, // ✅ FIXED COLUMN NAME
-        'reserved_for': widget.requesterId,
-        'make_public_after_48h': widget.makePublicAfter48Hours ?? false,
-        'expires_at': expiresAt.toIso8601String(),
-      });
-    }
-
-    await supabase.from('products').insert(data);
-
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        backgroundColor: darkPrimary,
-        content: Text('Product Published Successfully'),
-      ),
-    );
-
-    Navigator.pop(context, true);
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: Colors.red,
-        content: Text("Error: ${e.toString()}"),
-      ),
-    );
-  }
-
-  if (mounted) setState(() => _isLoading = false);
-}
   // ---------------- UI ----------------
 
   @override
@@ -407,14 +435,16 @@ Future<void> _submit() async {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back, color: Colors.white)),
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    ),
                     const Text(
                       "Product Post",
                       style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600),
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(width: 48),
                   ],
@@ -463,8 +493,10 @@ Future<void> _submit() async {
                     child: Column(
                       children: [
                         TextFormField(
-                          decoration: _modernInput('Product Name',
-                              icon: Icons.shopping_bag_outlined),
+                          decoration: _modernInput(
+                            'Product Name',
+                            icon: Icons.shopping_bag_outlined,
+                          ),
                           validator: (v) =>
                               v == null || v.isEmpty ? 'Required' : null,
                           onSaved: (v) => _productName = v,
@@ -473,25 +505,28 @@ Future<void> _submit() async {
                         TextFormField(
                           maxLines: 3,
                           maxLength: 200,
-                          buildCounter: (
-                            BuildContext context, {
-                            required int currentLength,
-                            required bool isFocused,
-                            required int? maxLength,
-                          }) {
-                            return Align(
-                              alignment: Alignment.centerRight,
-                              child: Text(
-                                '$currentLength/$maxLength',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.blueGrey[400],
-                                ),
-                              ),
-                            );
-                          },
-                          decoration: _modernInput('Description',
-                              icon: Icons.description_outlined),
+                          buildCounter:
+                              (
+                                BuildContext context, {
+                                required int currentLength,
+                                required bool isFocused,
+                                required int? maxLength,
+                              }) {
+                                return Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Text(
+                                    '$currentLength/$maxLength',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.blueGrey[400],
+                                    ),
+                                  ),
+                                );
+                              },
+                          decoration: _modernInput(
+                            'Description',
+                            icon: Icons.description_outlined,
+                          ),
                           validator: (v) =>
                               v == null || v.isEmpty ? 'Required' : null,
                           onSaved: (v) => _description = v,
@@ -499,7 +534,10 @@ Future<void> _submit() async {
                         const SizedBox(height: 12),
                         TextFormField(
                           keyboardType: TextInputType.number,
-                          decoration: _modernInput('Price', icon: Icons.payments_outlined),
+                          decoration: _modernInput(
+                            'Price',
+                            icon: Icons.payments_outlined,
+                          ),
                           validator: (v) =>
                               v == null || v.isEmpty ? 'Required' : null,
                           onSaved: (v) => _price = v,

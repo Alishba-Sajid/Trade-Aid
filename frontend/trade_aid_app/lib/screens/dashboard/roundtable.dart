@@ -209,13 +209,22 @@ class _CommunityRoundtableScreenState extends State<CommunityRoundtableScreen> {
         'created_by': supabase.auth.currentUser!.id,
       });
 
-      await NotificationService.createNotification(
-        communityId: widget.communityId,
-        title: "📢 New Community Meeting",
-        message:
-            "${widget.adminName} scheduled a meeting on ${DateFormat('EEE, MMM dd • hh:mm a').format(selectedDate!)}",
-        type: "meeting",
-      );
+     // 🔥 Send to ALL members (loop)
+final members = await supabase
+    .from('community_members')
+    .select('user_id')
+    .eq('community_id', widget.communityId);
+
+for (var m in members) {
+  await NotificationService.createNotification(
+    userId: m['user_id'], // ✅ REQUIRED FIX
+    communityId: widget.communityId,
+    title: "📢 New Community Meeting",
+    message:
+        "${widget.adminName} scheduled a meeting on ${DateFormat('EEE, MMM dd • hh:mm a').format(selectedDate!)}",
+    type: "meeting",
+  );
+}
 
       _titleController.clear();
       _linkController.clear();

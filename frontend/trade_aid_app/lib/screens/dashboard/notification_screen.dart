@@ -47,36 +47,26 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         .subscribe();
   }
 
-Future<void> fetchNotifications() async {
-  final user = supabase.auth.currentUser;
+  Future<void> fetchNotifications() async {
+    final user = supabase.auth.currentUser;
 
-  if (user == null) return;
+    if (user == null) return;
 
-  try {
-    // Get user's community
-    final member = await supabase
-        .from('community_members')
-        .select('community_id')
-        .eq('user_id', user.id)
-        .single();
+    try {
+      final data = await supabase
+          .from('notifications')
+          .select('*')
+          .order('created_at', ascending: false);
 
-    final communityId = member['community_id'];
+      print("Fetched notifications: $data");
 
-    // Fetch notifications for that community
-final data = await supabase
-    .from('notifications')
-    .select()
-    .eq('community_id', communityId)
-    .gte('created_at', DateTime.now().subtract(const Duration(days: 7)).toIso8601String())
-    .order('created_at', ascending: false);
-
-    setState(() {
-      notifications = data;
-    });
-  } catch (e) {
-    print("Error fetching notifications: $e");
+      setState(() {
+        notifications = (data as List<dynamic>?) ?? [];
+      });
+    } catch (e) {
+      print("Error fetching notifications: $e");
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -91,20 +81,18 @@ final data = await supabase
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
 
         children: [
+          _buildSectionHeader("Recent Updates"),
 
-  _buildSectionHeader("Recent Updates"),
-
-  ...notifications.map((n) {
-    return _PremiumNotificationCard(
-      icon: Icons.notifications,
-      title: n['title'] ?? '',
-      message: n['message'] ?? '',
-      time: n['created_at'].toString(),
-      isUnread: true,
-    );
-  }).toList(),
-
-],
+          ...notifications.map((n) {
+            return _PremiumNotificationCard(
+              icon: Icons.notifications,
+              title: n['title'] ?? '',
+              message: n['message'] ?? '',
+              time: n['created_at'].toString(),
+              isUnread: true,
+            );
+          }).toList(),
+        ],
       ),
     );
   }
@@ -185,8 +173,7 @@ class _PremiumNotificationCard extends StatelessWidget {
                   Text(
                     title,
                     style: GoogleFonts.poppins(
-                      fontWeight:
-                          isUnread ? FontWeight.w700 : FontWeight.w600,
+                      fontWeight: isUnread ? FontWeight.w700 : FontWeight.w600,
                       fontSize: 15,
                       color: darkPrimary,
                     ),
