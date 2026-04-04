@@ -65,6 +65,28 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
     }
   }
 
+  // ✅ NEW: Animated Card Snack
+  void _showAnimatedSnack(String message, {Color color = kAccent}) {
+    final overlay = Overlay.of(context);
+
+    late OverlayEntry entry;
+
+    entry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: 40,
+        left: 20,
+        right: 20,
+        child: _AnimatedSnackCard(
+          message: message,
+          color: color,
+          onDismiss: () => entry.remove(),
+        ),
+      ),
+    );
+
+    overlay.insert(entry);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -99,7 +121,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
           .update({'status': 'removed'})
           .eq('community_id', widget.communityId)
           .eq('user_id', userId)
-          .select(); // 👈 IMPORTANT
+          .select();
 
       debugPrint("Update response: $response");
 
@@ -107,12 +129,126 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
         members.removeAt(index);
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Member removed successfully")),
+      _showAnimatedSnack(
+        "Member removed successfully",
+        color: Colors.redAccent,
       );
     } catch (e) {
       debugPrint("Error removing member: $e");
     }
+  }
+
+  void _showModeratorConfirmation(int index) {
+    final member = members[index];
+    final name = member['profiles']?['full_name'] ?? "this member";
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: TweenAnimationBuilder(
+            duration: const Duration(milliseconds: 300),
+            tween: Tween(begin: 0.8, end: 1.0),
+            curve: Curves.easeOutBack,
+            builder: (context, double scale, child) {
+              return Transform.scale(scale: scale, child: child);
+            },
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: kSurface,
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: kDark.withOpacity(0.15),
+                    blurRadius: 30,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.info_outline, color: Colors.green, size: 48),
+                  const SizedBox(height: 16),
+
+                  Text(
+                    "Make Moderator",
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: kDark,
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  Text(
+                    "$name will become a moderator.\n\nModerators can accept and reject join requests.",
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      color: kTextSecondary,
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: kAccent),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: Text(
+                            "No",
+                            style: GoogleFonts.plusJakartaSans(
+                              color: kAccent,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            Navigator.pop(context);
+                            await _makeModerator(index);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: Text(
+                            "Yes",
+                            style: GoogleFonts.plusJakartaSans(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildMemberCard(dynamic member, int index) {
@@ -194,9 +330,9 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                   const SizedBox(height: 20),
                   Row(
                     children: [
-                      _buildRatingTag("Seller", 4.0), // Placeholder rating
+                      _buildRatingTag("Seller", 4.0),
                       const SizedBox(width: 10),
-                      _buildRatingTag("Buyer", 4.5), // Placeholder rating
+                      _buildRatingTag("Buyer", 4.5),
                     ],
                   ),
                 ],
@@ -342,8 +478,8 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
               "Make Moderator",
               Colors.green,
               () async {
-                await _makeModerator(index);
                 Navigator.pop(context);
+                _showModeratorConfirmation(index);
               },
             ),
             _buildActionTile(
@@ -429,9 +565,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                         child: OutlinedButton(
                           onPressed: () => Navigator.pop(context),
                           style: OutlinedButton.styleFrom(
-                            side: const BorderSide(
-                              color: kAccent,
-                            ), // teal border
+                            side: const BorderSide(color: kAccent),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14),
@@ -440,7 +574,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                           child: Text(
                             "Cancel",
                             style: GoogleFonts.plusJakartaSans(
-                              color: kAccent, // ✅ teal text
+                              color: kAccent,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -468,7 +602,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                           child: Text(
                             "Remove",
                             style: GoogleFonts.plusJakartaSans(
-                              color: Colors.white, // ✅ WHITE TEXT
+                              color: Colors.white,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -488,29 +622,39 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
   Future<void> _makeModerator(int index) async {
     final supabase = Supabase.instance.client;
     final member = members[index];
-    final userId =
-        member['profiles']['user_id']; // Make sure your select includes user_id
+
+    final userId = member['user_id'];
 
     try {
+      final existingModerator = await supabase
+          .from('community_members')
+          .select('user_id')
+          .eq('community_id', widget.communityId)
+          .eq('role', 'moderator')
+          .maybeSingle();
+
+      if (existingModerator != null) {
+        _showAnimatedSnack(
+          "A moderator already exists for this community",
+          color: Colors.orange,
+        );
+        return;
+      }
+
       await supabase
           .from('community_members')
           .update({'role': 'moderator'})
           .eq('community_id', widget.communityId)
           .eq('user_id', userId);
 
-      // Update local state
       setState(() {
         members[index]['role'] = 'moderator';
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Member promoted to moderator")),
-      );
+      _showAnimatedSnack("Member promoted to moderator", color: Colors.green);
     } catch (e) {
       debugPrint("Error making moderator: $e");
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Failed to promote member")));
+      _showAnimatedSnack("Failed to promote member", color: Colors.redAccent);
     }
   }
 
@@ -530,6 +674,108 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
         ),
       ),
       onTap: onTap,
+    );
+  }
+}
+
+// ✅ Animated Snack Card Widget
+class _AnimatedSnackCard extends StatefulWidget {
+  final String message;
+  final Color color;
+  final VoidCallback onDismiss;
+
+  const _AnimatedSnackCard({
+    required this.message,
+    required this.color,
+    required this.onDismiss,
+  });
+
+  @override
+  State<_AnimatedSnackCard> createState() => _AnimatedSnackCardState();
+}
+
+class _AnimatedSnackCardState extends State<_AnimatedSnackCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _slide;
+  late Animation<double> _fade;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+
+    _slide = Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+
+    _fade = Tween<double>(begin: 0, end: 1).animate(_controller);
+
+    _controller.forward();
+
+    Future.delayed(const Duration(seconds: 3), () {
+      _controller.reverse().then((_) => widget.onDismiss());
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SlideTransition(
+      position: _slide,
+      child: FadeTransition(
+        opacity: _fade,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: BoxDecoration(
+              color: kSurface,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: kDark.withOpacity(0.15),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+              border: Border.all(color: widget.color.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 6,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: widget.color,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    widget.message,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w600,
+                      color: kDark,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
