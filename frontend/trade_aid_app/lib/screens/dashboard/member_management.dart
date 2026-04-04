@@ -23,8 +23,13 @@ const LinearGradient appGradient = LinearGradient(
 
 class MemberManagementScreen extends StatefulWidget {
   final String communityId;
+  final bool isAdmin; // ✅ ADD THIS
 
-  const MemberManagementScreen({super.key, required this.communityId});
+  const MemberManagementScreen({
+    super.key,
+    required this.communityId,
+    required this.isAdmin,
+  });
 
   @override
   State<MemberManagementScreen> createState() => _MemberManagementScreenState();
@@ -311,10 +316,13 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                           ],
                         ),
                       ),
-                      IconButton(
-                        onPressed: () => _showActionMenu(index),
-                        icon: const Icon(Icons.more_horiz, color: kAccent),
-                      ),
+
+                      // ✅ ONLY SHOW FOR ADMIN
+                      if (widget.isAdmin)
+                        IconButton(
+                          onPressed: () => _showActionMenu(index),
+                          icon: const Icon(Icons.more_horiz, color: kAccent),
+                        ),
                     ],
                   ),
                   const Padding(
@@ -443,6 +451,9 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
   }
 
   void _showActionMenu(int index) {
+    // ✅ Safety check
+    if (!widget.isAdmin) return;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -473,24 +484,28 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            _buildActionTile(
-              Icons.security_rounded,
-              "Make Moderator",
-              Colors.green,
-              () async {
-                Navigator.pop(context);
-                _showModeratorConfirmation(index);
-              },
-            ),
-            _buildActionTile(
-              Icons.delete_outline_rounded,
-              "Remove Member",
-              Colors.redAccent,
-              () {
-                Navigator.pop(context);
-                _confirmRemove(index);
-              },
-            ),
+
+            // ✅ Admin-only actions
+            if (widget.isAdmin) ...[
+              _buildActionTile(
+                Icons.security_rounded,
+                "Make Moderator",
+                Colors.green,
+                () async {
+                  Navigator.pop(context);
+                  _showModeratorConfirmation(index);
+                },
+              ),
+              _buildActionTile(
+                Icons.delete_outline_rounded,
+                "Remove Member",
+                Colors.redAccent,
+                () {
+                  Navigator.pop(context);
+                  _confirmRemove(index);
+                },
+              ),
+            ],
           ],
         ),
       ),

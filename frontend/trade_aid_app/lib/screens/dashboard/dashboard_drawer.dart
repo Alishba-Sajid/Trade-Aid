@@ -351,21 +351,24 @@ class DashboardDrawer extends StatelessWidget {
                   },
                 ),
                 // 🔹 Admin Only Options
-                if (isAdmin) ...[
-                  _DrawerTile(
-                    icon: Icons.people_alt_outlined,
-                    title: 'Community Members',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              MemberManagementScreen(communityId: communityId),
+                _DrawerTile(
+                  icon: Icons.people_alt_outlined,
+                  title: 'Community Members',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => MemberManagementScreen(
+                          communityId: communityId,
+                          isAdmin: isAdmin,
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    );
+                  },
+                ),
+
+                if (isAdmin) ...[
                   _DrawerTile(
                     icon: Icons.report_problem_outlined,
                     title: 'Users Complaints',
