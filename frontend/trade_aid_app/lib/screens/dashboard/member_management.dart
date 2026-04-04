@@ -2,10 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '/widgets/app_bar.dart';
-import '/models/member_managemnt.dart';   
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 // 🌿 Shared Premium Industrial Palette
-
 const Color kDark = Color(0xFF0B2F2A);
 const Color kLight = Color(0xFFF4FAF9);
 const Color kAccent = Color(0xFF119E90);
@@ -15,47 +14,53 @@ const Color kBackgroundLight = Color(0xFFF8FAFA);
 const Color kSubtleGrey = Color(0xFFF2F2F2);
 const Color kTextSecondary = Color(0xFF5A716E);
 
+// Gradient used for avatar border
+const LinearGradient appGradient = LinearGradient(
+  colors: [Color(0xFF119E90), Color(0xFF004D40)],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+);
+
 class MemberManagementScreen extends StatefulWidget {
-  const MemberManagementScreen({super.key});
+  final String communityId;
+
+  const MemberManagementScreen({super.key, required this.communityId});
 
   @override
   State<MemberManagementScreen> createState() => _MemberManagementScreenState();
 }
 
 class _MemberManagementScreenState extends State<MemberManagementScreen> {
-  // Backend-ready: List<Member>
-  List<Member> members = [
-    Member(
-      name: "Alice Johnson",
-      location: "Cityville, USA",
-      email: "alice@example.com",
-      phone: "+1 234 567 890",
-      ratingSeller: 4.5,
-      ratingBuyer: 4.0,
-      image: "https://i.pravatar.cc/150?u=alice",
-      status: "Active",
-    ),
-    Member(
-      name: "Bob Smith",
-      location: "Townsville, USA",
-      email: "bob@example.com",
-      phone: "+1 987 654 321",
-      ratingSeller: 3.8,
-      ratingBuyer: 4.2,
-      image: "https://i.pravatar.cc/150?u=bob",
-      status: "Away",
-    ),
-    Member(
-      name: "Carol White",
-      location: "Villagecity, USA",
-      email: "carol@example.com",
-      phone: "+1 555 666 777",
-      ratingSeller: 5.0,
-      ratingBuyer: 4.8,
-      image: "https://i.pravatar.cc/150?u=carol",
-      status: "Active",
-    ),
-  ];
+  List members = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchMembers();
+  }
+
+  Future<void> fetchMembers() async {
+    final supabase = Supabase.instance.client;
+
+    try {
+      final data = await supabase
+          .from('community_members')
+          .select('''
+            role,
+            profiles(full_name, phone, address, profile_image_url)
+          ''')
+          .eq('community_id', widget.communityId);
+
+      setState(() {
+        members = data;
+        isLoading = false;
+      });
+    } catch (e) {
+      debugPrint("Error fetching members: $e");
+      setState(() => isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,25 +70,24 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
         title: "Community Members",
         onBack: () => Navigator.pop(context),
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [kLight, kSurface],
-          ),
-        ),
-        child: ListView.builder(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
-          itemCount: members.length,
-          physics: const BouncingScrollPhysics(),
-          itemBuilder: (context, index) => _buildMemberCard(members[index], index),
-        ),
-      ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : members.isEmpty
+          ? const Center(child: Text("No members found"))
+          : ListView.builder(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+              itemCount: members.length,
+              physics: const BouncingScrollPhysics(),
+              itemBuilder: (context, index) =>
+                  _buildMemberCard(members[index], index),
+            ),
     );
   }
 
-  Widget _buildMemberCard(Member member, int index) {
+  Widget _buildMemberCard(dynamic member, int index) {
+    final profile = member['profiles'] ?? {};
+    final String status = "Active"; // You can customize if you track status
+
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
@@ -115,14 +119,14 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                 children: [
                   Row(
                     children: [
-                      _buildAvatar(member.image, member.status),
+                      _buildAvatar(profile['profile_image_url'] ?? '', status),
                       const SizedBox(width: 16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              member.name,
+                              profile['full_name'] ?? 'Unknown',
                               style: GoogleFonts.plusJakartaSans(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 18,
@@ -130,7 +134,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                               ),
                             ),
                             Text(
-                              member.email,
+                              member['role'] ?? '-',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13,
                                 color: kTextSecondary,
@@ -143,22 +147,25 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                       IconButton(
                         onPressed: () => _showActionMenu(index),
                         icon: const Icon(Icons.more_horiz, color: kAccent),
-                      )
+                      ),
                     ],
                   ),
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 16),
                     child: Divider(height: 1, color: kSubtleGrey),
                   ),
-                  _buildInfoRow(Icons.location_on_outlined, member.location),
+                  _buildInfoRow(
+                    Icons.location_on_outlined,
+                    profile['address'] ?? '-',
+                  ),
                   const SizedBox(height: 8),
-                  _buildInfoRow(Icons.phone_outlined, member.phone),
+                  _buildInfoRow(Icons.phone_outlined, profile['phone'] ?? '-'),
                   const SizedBox(height: 20),
                   Row(
                     children: [
-                      _buildRatingTag("Seller", member.ratingSeller),
+                      _buildRatingTag("Seller", 4.0), // Placeholder rating
                       const SizedBox(width: 10),
-                      _buildRatingTag("Buyer", member.ratingBuyer),
+                      _buildRatingTag("Buyer", 4.5), // Placeholder rating
                     ],
                   ),
                 ],
@@ -182,7 +189,16 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
           child: CircleAvatar(
             radius: 32,
             backgroundColor: kSurface,
-            backgroundImage: NetworkImage(url),
+            backgroundImage: url.isNotEmpty ? NetworkImage(url) : null,
+            child: url.isEmpty
+                ? Text(
+                    "N/A",
+                    style: GoogleFonts.plusJakartaSans(
+                      color: kTextSecondary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  )
+                : null,
           ),
         ),
         Positioned(
@@ -229,9 +245,14 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
         ),
         child: Column(
           children: [
-            Text(label,
-                style: GoogleFonts.plusJakartaSans(
-                    fontSize: 10, color: kTextSecondary, fontWeight: FontWeight.bold)),
+            Text(
+              label,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 10,
+                color: kTextSecondary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 4),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -241,7 +262,10 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                 Text(
                   rating.toString(),
                   style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14, fontWeight: FontWeight.w700, color: kDarkPrimary),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: kDarkPrimary,
+                  ),
                 ),
               ],
             ),
@@ -267,27 +291,89 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
             Container(
               width: 40,
               height: 4,
-              decoration: BoxDecoration(color: kSubtleGrey, borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(
+                color: kSubtleGrey,
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             const SizedBox(height: 24),
-            Text("Member Actions",
-                style: GoogleFonts.plusJakartaSans(
-                    fontSize: 18, fontWeight: FontWeight.w800, color: kDark)),
+            Text(
+              "Member Actions",
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: kDark,
+              ),
+            ),
             const SizedBox(height: 24),
-            _buildActionTile(Icons.delete_outline_rounded, "Remove Member", Colors.redAccent, () {
-              setState(() => members.removeAt(index));
-              Navigator.pop(context);
-            }),
+            _buildActionTile(
+              Icons.security_rounded,
+              "Make Moderator",
+              Colors.green,
+              () async {
+                await _makeModerator(index);
+                Navigator.pop(context);
+              },
+            ),
+            _buildActionTile(
+              Icons.delete_outline_rounded,
+              "Remove Member",
+              Colors.redAccent,
+              () {
+                setState(() => members.removeAt(index));
+                Navigator.pop(context);
+              },
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildActionTile(IconData icon, String title, Color color, VoidCallback onTap) {
+  Future<void> _makeModerator(int index) async {
+    final supabase = Supabase.instance.client;
+    final member = members[index];
+    final userId =
+        member['profiles']['user_id']; // Make sure your select includes user_id
+
+    try {
+      await supabase
+          .from('community_members')
+          .update({'role': 'moderator'})
+          .eq('community_id', widget.communityId)
+          .eq('user_id', userId);
+
+      // Update local state
+      setState(() {
+        members[index]['role'] = 'moderator';
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Member promoted to moderator")),
+      );
+    } catch (e) {
+      debugPrint("Error making moderator: $e");
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Failed to promote member")));
+    }
+  }
+
+  Widget _buildActionTile(
+    IconData icon,
+    String title,
+    Color color,
+    VoidCallback onTap,
+  ) {
     return ListTile(
       leading: Icon(icon, color: color),
-      title: Text(title, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600, color: color)),
+      title: Text(
+        title,
+        style: GoogleFonts.plusJakartaSans(
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
       onTap: onTap,
     );
   }

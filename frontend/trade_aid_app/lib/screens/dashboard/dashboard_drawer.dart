@@ -27,12 +27,14 @@ const Color light = Color(0xFFE0F2F1);
 class DashboardDrawer extends StatelessWidget {
   final String communityName;
   final String inviteLink;
-  final bool isAdmin; // added for role-based
+  final String communityId; // ✅ ADD THIS
+  final bool isAdmin;
 
   const DashboardDrawer({
     super.key,
     required this.communityName,
     required this.inviteLink,
+    required this.communityId, // ✅ ADD THIS
     this.isAdmin = false,
   });
 
@@ -358,7 +360,8 @@ class DashboardDrawer extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const MemberManagementScreen(),
+                          builder: (_) =>
+                              MemberManagementScreen(communityId: communityId),
                         ),
                       );
                     },
