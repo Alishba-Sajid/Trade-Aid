@@ -47,10 +47,13 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
       final data = await supabase
           .from('community_members')
           .select('''
-            role,
-            profiles(full_name, phone, address, profile_image_url)
-          ''')
-          .eq('community_id', widget.communityId);
+      user_id,
+      role,
+      status,
+      profiles(user_id, full_name, phone, address, profile_image_url)
+    ''')
+          .eq('community_id', widget.communityId)
+          .eq('status', 'active');
 
       setState(() {
         members = data;
@@ -84,9 +87,37 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
     );
   }
 
+  Future<void> _removeMember(int index) async {
+    final supabase = Supabase.instance.client;
+    final member = members[index];
+
+    final userId = member['user_id'];
+
+    try {
+      final response = await supabase
+          .from('community_members')
+          .update({'status': 'removed'})
+          .eq('community_id', widget.communityId)
+          .eq('user_id', userId)
+          .select(); // 👈 IMPORTANT
+
+      debugPrint("Update response: $response");
+
+      setState(() {
+        members.removeAt(index);
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Member removed successfully")),
+      );
+    } catch (e) {
+      debugPrint("Error removing member: $e");
+    }
+  }
+
   Widget _buildMemberCard(dynamic member, int index) {
     final profile = member['profiles'] ?? {};
-    final String status = "Active"; // You can customize if you track status
+    final String status = member['status'] ?? 'active';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -320,13 +351,137 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
               "Remove Member",
               Colors.redAccent,
               () {
-                setState(() => members.removeAt(index));
                 Navigator.pop(context);
+                _confirmRemove(index);
               },
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Future<void> _confirmRemove(int index) async {
+    final member = members[index];
+    final name = member['profiles']?['full_name'] ?? "this member";
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: TweenAnimationBuilder(
+            duration: const Duration(milliseconds: 300),
+            tween: Tween(begin: 0.8, end: 1.0),
+            curve: Curves.easeOutBack,
+            builder: (context, double scale, child) {
+              return Transform.scale(scale: scale, child: child);
+            },
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: kSurface,
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: kDark.withOpacity(0.15),
+                    blurRadius: 30,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.redAccent,
+                    size: 48,
+                  ),
+                  const SizedBox(height: 16),
+
+                  Text(
+                    "Remove Member",
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: kDark,
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  Text(
+                    "Are you sure you want to remove $name?",
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      color: kTextSecondary,
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(
+                              color: kAccent,
+                            ), // teal border
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: Text(
+                            "Cancel",
+                            style: GoogleFonts.plusJakartaSans(
+                              color: kAccent, // ✅ teal text
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            Navigator.pop(context);
+                            await _removeMember(index);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color.fromARGB(
+                              255,
+                              198,
+                              68,
+                              68,
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: Text(
+                            "Remove",
+                            style: GoogleFonts.plusJakartaSans(
+                              color: Colors.white, // ✅ WHITE TEXT
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

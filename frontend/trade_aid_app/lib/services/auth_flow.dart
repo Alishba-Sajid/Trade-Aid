@@ -25,7 +25,7 @@ class AuthFlow {
     Future.delayed(const Duration(seconds: 2), () => overlayEntry.remove());
   }
 
-  /// ✅ Main auth handler (NO context issues anymore)
+  /// ✅ Main auth handler (FIXED FLOW ORDER)
   static Future<void> handle(
     GlobalKey<NavigatorState> navigatorKey,
     String userId,
@@ -53,19 +53,9 @@ class AuthFlow {
         return;
       }
 
-      // ✅ Check if user is already in a community
-      final membership = await supabase
-          .from('community_members')
-          .select('community_id')
-          .eq('user_id', userId)
-          .maybeSingle();
-
-      if (membership != null) {
-        navigatorKey.currentState?.pushReplacementNamed('/dashboard');
-        return;
-      }
-
-      // ✅ Check if request is pending
+      // ================================
+      // ✅ 1. CHECK PENDING FIRST
+      // ================================
       final pendingRequest = await supabase
           .from('community_join_requests')
           .select()
@@ -74,9 +64,7 @@ class AuthFlow {
           .maybeSingle();
 
       if (pendingRequest != null) {
-        navigatorKey.currentState?.pushReplacementNamed(
-          '/login',
-        ); // stay safe screen
+        navigatorKey.currentState?.pushReplacementNamed('/login');
 
         Future.delayed(const Duration(milliseconds: 300), () {
           _showAnimatedCard(
@@ -89,7 +77,9 @@ class AuthFlow {
         return;
       }
 
-      // ✅ Check if request was rejected
+      // ================================
+      // ✅ 2. CHECK REJECTED
+      // ================================
       final rejectedRequest = await supabase
           .from('community_join_requests')
           .select()
@@ -98,13 +88,11 @@ class AuthFlow {
           .maybeSingle();
 
       if (rejectedRequest != null) {
-        // Delete the rejected request to prevent repeated snackbars
         await supabase
             .from('community_join_requests')
             .delete()
             .eq('id', rejectedRequest['id']);
 
-        // Show rejection snackbar on current screen
         Future.delayed(const Duration(milliseconds: 300), () {
           _showAnimatedCard(
             navigatorKey,
@@ -113,11 +101,11 @@ class AuthFlow {
           );
         });
 
-        // Delay navigation to allow snackbar to show, then navigate and show location snackbar
         Future.delayed(const Duration(seconds: 2), () {
           navigatorKey.currentState?.pushReplacementNamed(
             '/location_permission',
           );
+
           Future.delayed(const Duration(milliseconds: 300), () {
             _showAnimatedCard(
               navigatorKey,
@@ -126,10 +114,67 @@ class AuthFlow {
             );
           });
         });
+
         return;
       }
 
-      // ✅ If profile exists but not in a community
+      // ================================
+      // ✅ 3. CHECK REMOVED (AFTER REQUESTS)
+      // ================================
+      final removedMember = await supabase
+          .from('community_members')
+          .select('community_id, communities(name)')
+          .eq('user_id', userId)
+          .eq('status', 'removed')
+          .maybeSingle();
+
+      if (removedMember != null) {
+        final communityName =
+            removedMember['communities']?['name'] ?? 'your community';
+
+        Future.delayed(const Duration(milliseconds: 300), () {
+          _showAnimatedCard(
+            navigatorKey,
+            "You have been removed from '$communityName' community.",
+            icon: Icons.remove_circle_outline,
+          );
+        });
+
+        Future.delayed(const Duration(seconds: 2), () {
+          navigatorKey.currentState?.pushReplacementNamed(
+            '/location_permission',
+          );
+
+          Future.delayed(const Duration(milliseconds: 300), () {
+            _showAnimatedCard(
+              navigatorKey,
+              "Please allow location permission to continue.",
+              icon: Icons.location_on,
+            );
+          });
+        });
+
+        return;
+      }
+
+      // ================================
+      // ✅ 4. CHECK ACTIVE MEMBERSHIP
+      // ================================
+      final membership = await supabase
+          .from('community_members')
+          .select('community_id')
+          .eq('user_id', userId)
+          .eq('status', 'active')
+          .maybeSingle();
+
+      if (membership != null) {
+        navigatorKey.currentState?.pushReplacementNamed('/dashboard');
+        return;
+      }
+
+      // ================================
+      // ✅ DEFAULT FLOW
+      // ================================
       navigatorKey.currentState?.pushReplacementNamed('/location_permission');
 
       Future.delayed(const Duration(milliseconds: 300), () {
