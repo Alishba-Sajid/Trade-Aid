@@ -21,10 +21,7 @@ const Color subtleGrey = Color(0xFFE3E6E6);
 class CashPickupScheduleScreen extends StatefulWidget {
   final String productId;
 
-  const CashPickupScheduleScreen({
-    super.key,
-    required this.productId,
-  });
+  const CashPickupScheduleScreen({super.key, required this.productId});
 
   @override
   State<CashPickupScheduleScreen> createState() =>
@@ -35,6 +32,7 @@ class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
   DateTime? selectedDate;
   TimeOfDay? selectedTime;
   final supabase = Supabase.instance.client;
+  bool isLoading = false;
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -43,9 +41,9 @@ class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 3)),
       builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(primary: accentTeal),
-        ),
+        data: Theme.of(
+          context,
+        ).copyWith(colorScheme: const ColorScheme.light(primary: accentTeal)),
         child: child!,
       ),
     );
@@ -65,78 +63,71 @@ class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
   }
 
   Future<void> _confirmSchedule() async {
+    if (selectedDate == null || selectedTime == null) return;
+
+    setState(() => isLoading = true);
     final user = supabase.auth.currentUser;
 
-    if (user == null) return;
+    if (user == null) {
+      setState(() => isLoading = false);
+      return;
+    }
 
     final today = DateTime.now();
     final maxDate = today.add(const Duration(days: 3));
 
     if (selectedDate!.isAfter(maxDate)) {
+      setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You must schedule within the next 3 days')),
+        const SnackBar(
+          content: Text('You must schedule within the next 3 days'),
+        ),
       );
       return;
     }
 
-    final product = await supabase
-        .from('products')
-        .select('user_id, status')
-        .eq('id', widget.productId)
-        .single();
-
-    final sellerId = product['user_id'];
-
-    // 🚨 BLOCK if already reserved
-    if (product['status'] != 'available') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Product already reserved")),
-      );
-      return;
-    }
-
-    // 🔍 CHECK existing pending transaction FIRST
-    final existing = await supabase
-        .from('transactions')
-        .select()
-        .eq('product_id', widget.productId)
-        .eq('status', 'pending');
-
-    if (existing.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Product already reserved")),
-      );
-      return;
-    }
-
-    final scheduledDateTime = DateTime(
-      selectedDate!.year,
-      selectedDate!.month,
-      selectedDate!.day,
-      selectedTime!.hour,
-      selectedTime!.minute,
-    );
-
-    // ✅ STEP 1: Reserve product FIRST
-    final updateResponse = await supabase
-        .from('products')
-        .update({
-          'status': 'reserved',
-          'reserved_for': user.id,
-        })
-        .eq('id', widget.productId)
-        .eq('status', 'available')
-        .select();
-
-    if (updateResponse.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Product already reserved")),
-      );
-      return;
-    }
-
-    // ✅ STEP 2: THEN create transaction
     try {
+      final product = await supabase
+          .from('products')
+          .select('user_id, status')
+          .eq('id', widget.productId)
+          .single();
+
+      final sellerId = product['user_id'];
+
+      if (product['status'] != 'available') {
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Product already reserved")),
+        );
+        return;
+      }
+
+      final scheduledDateTime = DateTime(
+        selectedDate!.year,
+        selectedDate!.month,
+        selectedDate!.day,
+        selectedTime!.hour,
+        selectedTime!.minute,
+      );
+
+      // ✅ STEP 1: Reserve product
+      final updateResponse = await supabase
+          .from('products')
+          .update({'status': 'reserved', 'reserved_for': user.id})
+          .eq('id', widget.productId)
+          .eq('status', 'available')
+          .select();
+
+      if (updateResponse.isEmpty) {
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Product already reserved")),
+        );
+        return;
+      }
+
+      // ✅ STEP 2: Create transaction
       await supabase.from('transactions').insert({
         'product_id': widget.productId,
         'buyer_id': user.id,
@@ -149,51 +140,70 @@ class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
             .add(const Duration(hours: 48))
             .toIso8601String(),
       });
-    } catch (e) {
-      // rollback if insert fails
-      await supabase.from('products').update({
-        'status': 'available',
-        'reserved_for': null,
-      }).eq('id', widget.productId);
+
+      // 🔔 NOTIFICATIONS
+      final buyerProfile = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('user_id', user.id)
+          .single();
+
+      final productDetails = await supabase
+          .from('products')
+          .select('title')
+          .eq('id', widget.productId)
+          .single();
+
+      final formattedTime = selectedTime!.format(context);
+
+      await NotificationService.createNotification(
+        userId: sellerId,
+        title: "New Reservation",
+        message:
+            "${buyerProfile['full_name']} has reserved your product '${productDetails['title']}' at $formattedTime",
+        type: "product_booking",
+      );
+
+      if (!mounted) return;
+
+      setState(() => isLoading = false);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Transaction failed: $e")),
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: accentTeal,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          duration: const Duration(seconds: 3),
+          content: Row(
+            children: const [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  "Pickup Scheduled Successfully 🎉",
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+        ),
       );
-      return;
-    }
-    // 🔔 FETCH buyer name + product name
-final buyerProfile = await supabase
-    .from('profiles')
-    .select('full_name')
-    .eq('user_id', user.id)
-    .single();
 
-final productDetails = await supabase
-    .from('products')
-    .select('name')
-    .eq('id', widget.productId)
-    .single();
+     // Navigator.pop(context);
+    } on PostgrestException catch (e) {
+  setState(() => isLoading = false);
 
-// ⏰ FORMAT TIME (12-hour)
-final formattedTime =
-    TimeOfDay.fromDateTime(scheduledDateTime).format(context);
+  print("ERROR MESSAGE: ${e.message}");
+  print("ERROR DETAILS: ${e.details}");
+  print("ERROR HINT: ${e.hint}");
 
-// 🔔 SEND NOTIFICATION TO SELLER
-await NotificationService.createNotification(
-  userId: sellerId,
-  title: "New Booking",
-  message:
-      "${buyerProfile['full_name']} has booked your product '${productDetails['name']}' at $formattedTime",
-  type: "product_booking",
-);
-
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Pickup Scheduled Successfully")),
-    );
-
-    Navigator.pop(context);
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(e.message)),
+  );
+}
   }
 
   @override
@@ -219,7 +229,10 @@ await NotificationService.createNotification(
               ),
             ),
             const SizedBox(height: 20),
-            _buildSectionHeader("Pick a Date", "When should we collect the cash?"),
+            _buildSectionHeader(
+              "Pick a Date",
+              "When should we collect the cash?",
+            ),
             const SizedBox(height: 12),
             _premiumGradientCard(
               icon: Icons.calendar_month_rounded,
@@ -231,7 +244,10 @@ await NotificationService.createNotification(
               onTap: _pickDate,
             ),
             const SizedBox(height: 24),
-            _buildSectionHeader("Select Time Slot", "Choose a convenient window."),
+            _buildSectionHeader(
+              "Select Time Slot",
+              "Choose a convenient window.",
+            ),
             const SizedBox(height: 12),
             _premiumGradientCard(
               icon: Icons.history_toggle_off_rounded,
@@ -255,11 +271,12 @@ await NotificationService.createNotification(
                     color: accentTeal.withOpacity(0.2),
                     blurRadius: 10,
                     offset: const Offset(0, 5),
-                  )
+                  ),
                 ],
               ),
               child: ElevatedButton(
-                onPressed: (selectedDate != null && selectedTime != null)
+                onPressed:
+                    (selectedDate != null && selectedTime != null && !isLoading)
                     ? _confirmSchedule
                     : null,
                 style: ElevatedButton.styleFrom(
@@ -270,14 +287,23 @@ await NotificationService.createNotification(
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: const Text(
-                  "Confirm Schedule",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
+                child: isLoading
+                    ? const SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 3,
+                        ),
+                      )
+                    : const Text(
+                        "Confirm Schedule",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
               ),
             ),
           ],
@@ -298,13 +324,7 @@ await NotificationService.createNotification(
             color: dark,
           ),
         ),
-        Text(
-          desc,
-          style: TextStyle(
-            fontSize: 13,
-            color: Colors.grey.shade600,
-          ),
-        ),
+        Text(desc, style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
       ],
     );
   }
