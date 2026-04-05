@@ -3,6 +3,7 @@ import '../../widgets/app_bar.dart';
 import '../../widgets/time_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:trade_aid_app/services/notification_service.dart';
 
 // 🌿 Premium Fintech Palette
 const LinearGradient appGradient = LinearGradient(
@@ -160,6 +161,31 @@ class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
       );
       return;
     }
+    // 🔔 FETCH buyer name + product name
+final buyerProfile = await supabase
+    .from('profiles')
+    .select('full_name')
+    .eq('user_id', user.id)
+    .single();
+
+final productDetails = await supabase
+    .from('products')
+    .select('name')
+    .eq('id', widget.productId)
+    .single();
+
+// ⏰ FORMAT TIME (12-hour)
+final formattedTime =
+    TimeOfDay.fromDateTime(scheduledDateTime).format(context);
+
+// 🔔 SEND NOTIFICATION TO SELLER
+await NotificationService.createNotification(
+  userId: sellerId,
+  title: "New Booking",
+  message:
+      "${buyerProfile['full_name']} has booked your product '${productDetails['name']}' at $formattedTime",
+  type: "product_booking",
+);
 
     if (!mounted) return;
 
