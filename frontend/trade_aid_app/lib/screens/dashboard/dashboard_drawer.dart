@@ -25,19 +25,22 @@ const Color dark = Color(0xFF004D40);
 const Color light = Color(0xFFE0F2F1);
 
 class DashboardDrawer extends StatelessWidget {
-  final String communityName;
-  final String inviteLink;
-  final bool isAdmin; 
-  final String communityId;
-  final String adminName;
+final String communityName;
+final String inviteLink;
+final String communityId;
+final String adminName;    
+final bool isAdmin;
+final bool isModerator;    
 
-  const DashboardDrawer({
+const DashboardDrawer({
+  super.key,
   required this.communityName,
   required this.inviteLink,
   required this.communityId,
-  required this.adminName,
-  this.isAdmin = false,
-  });
+  required this.adminName,     
+  required this.isAdmin,
+  required this.isModerator,  
+});
 
   void onCopy(BuildContext context) {
     Clipboard.setData(ClipboardData(text: inviteLink));
@@ -177,6 +180,8 @@ class DashboardDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool canManageRequests = isAdmin || isModerator;
+
     return Drawer(
       backgroundColor: const Color(0xFFF6F9FB),
       child: Column(
@@ -285,6 +290,21 @@ class DashboardDrawer extends StatelessWidget {
                     );
                   },
                 ),
+// ✅ Pending Requests 
+if (canManageRequests)
+  _DrawerTile(
+    icon: Icons.person_add_alt_1_rounded,
+    title: 'Pending Requests',
+    onTap: () {
+      Navigator.pop(context);
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const PendingRequestsScreen(),
+        ),
+      );
+    },
+  ),
                 _DrawerTile(
                   icon: Icons.upload_rounded,
                   title: 'Manage Uploads',
@@ -358,20 +378,24 @@ class DashboardDrawer extends StatelessWidget {
                 ),
                 
                 // 🔹 Admin Only Options
-                if (isAdmin) ...[
-                  _DrawerTile(
-                    icon: Icons.people_alt_outlined,
-                    title: 'Community Members',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const MemberManagementScreen(),
+                _DrawerTile(
+                  icon: Icons.people_alt_outlined,
+                  title: 'Community Members',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => MemberManagementScreen(
+                          communityId: communityId,
+                          isAdmin: isAdmin,
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    );
+                  },
+                ),
+
+                if (isAdmin) ...[
                   _DrawerTile(
                     icon: Icons.report_problem_outlined,
                     title: 'Users Complaints',

@@ -137,6 +137,7 @@ class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
           .select()
           .eq('community_id', community['id'])
           .eq('user_id', userId)
+          .eq('status', 'active')
           .maybeSingle();
 
       if (memberCheck != null) {
@@ -167,27 +168,26 @@ class _SelectCommunityScreenState extends State<SelectCommunityScreen> {
           return;
         }
 
-        // 🔁 Previously rejected → UPDATE instead of INSERT
-        if (status == 'rejected') {
-          final updateRes = await supabase
-              .from('community_join_requests')
-              .update({'status': 'pending'})
-              .eq('id', existingRequest['id'])
-              .select();
+        // 🔁 ✅ FIX: Handle ALL other cases (rejected, removed, old data)
+        final updateRes = await supabase
+            .from('community_join_requests')
+            .update({'status': 'pending'})
+            .eq('id', existingRequest['id'])
+            .select();
 
-          if (updateRes.isNotEmpty) {
-            _showAnimatedCard(
-              'Request sent again to "${community['name']}"',
-              icon: Icons.refresh,
-            );
-          } else {
-            _showAnimatedCard('Failed to resend request', icon: Icons.error);
-          }
-          return;
+        if (updateRes.isNotEmpty) {
+          _showAnimatedCard(
+            'Request sent again to "${community['name']}"',
+            icon: Icons.refresh,
+          );
+        } else {
+          _showAnimatedCard('Failed to resend request', icon: Icons.error);
         }
+
+        return;
       }
 
-      // ✅ Fresh insert
+      // ✅ Fresh insert (only if NO record exists)
       final response = await supabase
           .from('community_join_requests')
           .insert({

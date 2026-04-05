@@ -134,15 +134,16 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
     try {
       setState(() => _processingRequestId = req.id);
 
-      // 1️⃣ Add user to community_members
-      await supabase.from('community_members').insert({
+      // ✅ Upsert into community_members
+      await supabase.from('community_members').upsert({
         'community_id': req.communityId,
         'user_id': req.requesterId,
         'role': 'member',
+        'status': 'active',
         'joined_at': DateTime.now().toIso8601String(),
-      });
+      }, onConflict: 'user_id,community_id');
 
-      // 2️⃣ Update request status
+      // ✅ Update request status
       await supabase
           .from('community_join_requests')
           .update({'status': 'approved'})
@@ -160,6 +161,7 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
       );
     } catch (e) {
       debugPrint('Error approving request: $e');
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Failed to approve request'),
