@@ -180,7 +180,7 @@ class _BookingScreenState extends State<BookingScreen> {
               ),
 
               const SizedBox(height: 24),
-              _buildTermsAndConditions(), // Displaying the terms here
+              _buildTermsAndConditions(),
               const SizedBox(height: 32),
 
               SizedBox(
@@ -400,18 +400,18 @@ class _BookingScreenState extends State<BookingScreen> {
         startTime == null ||
         endTime == null ||
         _selected == null) {
-      _showSnack('Please complete all fields');
+      _showSnack('Please complete all fields', isError: true);
       return;
     }
 
     if (toMinutes(endTime!) <= toMinutes(startTime!)) {
-      _showSnack('End time must be after start time');
+      _showSnack('End time must be after start time', isError: true);
       return;
     }
 
     final today = DateTime.now();
     if (selectedDate!.isAfter(today.add(const Duration(days: 7)))) {
-      _showSnack('You must book within the next 7 days');
+      _showSnack('You must book within the next 7 days', isError: true);
       return;
     }
 
@@ -432,12 +432,12 @@ class _BookingScreenState extends State<BookingScreen> {
           .filter('end_time', 'gt', start);
 
       if ((conflict as List).isNotEmpty) {
-        _showSnack("Already booked for the selected time slot.");
+        _showSnack("Already booked for the selected time slot.", isError: true);
         return;
       }
 
       if (!isWithinAllowedTime()) {
-        _showSnack('Selected time is outside allowed range');
+        _showSnack('Selected time is outside allowed range', isError: true);
         return;
       }
 
@@ -451,22 +451,18 @@ class _BookingScreenState extends State<BookingScreen> {
         'payment_method': _selected!.name,
         'status': 'confirmed',
       });
-      // 🔔 FETCH USER NAME
+
       final userProfile = await supabase
           .from('profiles')
           .select('full_name')
           .eq('user_id', supabase.auth.currentUser!.id)
           .single();
 
-      // ⏰ FORMAT TIME RANGE (12-hour)
       final formattedStart = startTime!.format(context);
       final formattedEnd = endTime!.format(context);
-
-      // 📅 FORMAT DATE
       final formattedDate =
           "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}";
 
-      // 🔔 SEND NOTIFICATION TO OWNER
       await NotificationService.createNotification(
         userId: widget.ownerId,
         title: "Resource Booked",
@@ -479,12 +475,21 @@ class _BookingScreenState extends State<BookingScreen> {
       Navigator.pop(context);
     } catch (e) {
       debugPrint("BOOKING ERROR: $e");
-      _showSnack('Error processing booking');
+      _showSnack('Error processing booking', isError: true);
     }
   }
 
-  void _showSnack(String msg) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  void _showSnack(String msg, {bool isError = false}) {
+    late OverlayEntry overlayEntry;
+    overlayEntry = OverlayEntry(
+      builder: (context) => _AnimatedSnackCard(
+        message: msg,
+        isError: isError,
+        onDismiss: () => overlayEntry.remove(),
+      ),
+    );
+    Overlay.of(context).insert(overlayEntry);
+  }
 
   Future<void> _pickDate() async {
     final today = DateTime.now();
@@ -493,6 +498,25 @@ class _BookingScreenState extends State<BookingScreen> {
       initialDate: selectedDate ?? today,
       firstDate: today,
       lastDate: today.add(const Duration(days: 7)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: _teal, // Header and button color
+              onPrimary: Colors.white, // Header text color
+              surface: Colors.white, // Background of dialog
+              onSurface: dark, // Text color inside picker
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: _teal, // Button text color (OK/Cancel)
+                textStyle: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) setState(() => selectedDate = picked);
   }
@@ -516,4 +540,106 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   int toMinutes(TimeOfDay t) => t.hour * 60 + t.minute;
+}
+
+class _AnimatedSnackCard extends StatefulWidget {
+  final String message;
+  final bool isError;
+  final VoidCallback onDismiss;
+
+  const _AnimatedSnackCard({
+    required this.message,
+    required this.isError,
+    required this.onDismiss,
+  });
+
+  @override
+  State<_AnimatedSnackCard> createState() => _AnimatedSnackCardState();
+}
+
+class _AnimatedSnackCardState extends State<_AnimatedSnackCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+
+    _offsetAnimation = Tween<Offset>(
+      begin: const Offset(0, -1.5),
+      end: const Offset(0, 0.1),
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.elasticOut,
+    ));
+
+    _controller.forward();
+
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        _controller.reverse().then((_) => widget.onDismiss());
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: SlideTransition(
+          position: _offsetAnimation,
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+              decoration: BoxDecoration(
+                color: widget.isError ? const Color(0xFFE57373) : accent,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    widget.isError ? Icons.error_outline : Icons.check_circle_outline,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(width: 12),
+                  Flexible(
+                    child: Text(
+                      widget.message,
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

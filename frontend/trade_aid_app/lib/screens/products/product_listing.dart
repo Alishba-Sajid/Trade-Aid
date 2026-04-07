@@ -62,24 +62,23 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
       if (user == null) throw Exception("User not authenticated");
 
       // ---------------- CATEGORY + WISH FILTER ----------------
-      PostgrestFilterBuilder query = supabase
+     PostgrestFilterBuilder query = supabase
     .from('products')
     .select()
     .eq('community_id', widget.communityId)
     .or(
-      // 👇 AVAILABLE → visible to everyone
       'status.eq.available,'
-
-      // 👇 RESERVED → only buyer or seller
-      'and(status.eq.reserved,or(reserved_for.eq.${user.id},user_id.eq.${user.id})),'
-
-    // 👇 DISPUTED → ONLY buyer or seller (STRICT)
-'and(status.eq.disputed,or(reserved_for.eq.${user.id},user_id.eq.${user.id}))'
+      'and(status.eq.reserved,reserved_for.eq.${user.id}),'
+      'and(status.eq.reserved,user_id.eq.${user.id}),'
+      'and(status.eq.disputed,reserved_for.eq.${user.id}),'
+      'and(status.eq.disputed,user_id.eq.${user.id})',
     );
 
       if (selectedCategory != 'Wish Item') {
         // Essential / Lifestyle: show to all community members.
-        query = query.eq('category', selectedCategory).or(
+        query = query
+            .eq('category', selectedCategory)
+            .or(
               'wish_request_id.is.null,'
               'and(make_public_after_48h.eq.true,expires_at.lt.now())',
             );
@@ -142,8 +141,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
   /* ================= SEARCH FILTER ================= */
   List<Product> _filteredProducts() {
     return products
-        .where((p) =>
-            p.name.toLowerCase().contains(searchQuery.toLowerCase()))
+        .where((p) => p.name.toLowerCase().contains(searchQuery.toLowerCase()))
         .toList();
   }
 
@@ -172,31 +170,32 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
             child: isLoading
                 ? const Center(child: CircularProgressIndicator(color: accent))
                 : filtered.isEmpty
-                    ? _buildNoProductsFound()
-                    : Consumer<CartProvider>(
-                        builder: (context, cart, _) {
-                          return ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount: filtered.length,
-                            itemBuilder: (context, index) {
-                              final product = filtered[index];
-                              final isHeld = cart.isProductHeld(product.id);
-                              final remaining =
-                                  cart.remainingForProduct(product.id);
+                ? _buildNoProductsFound()
+                : Consumer<CartProvider>(
+                    builder: (context, cart, _) {
+                      return ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: filtered.length,
+                        itemBuilder: (context, index) {
+                          final product = filtered[index];
+                          final isHeld = cart.isProductHeld(product.id);
+                          final remaining = cart.remainingForProduct(
+                            product.id,
+                          );
 
-                              return _buildPremiumProductCard(
-                                context,
-                                product,
-                                product.condition ?? 'Available',
-                                product.usedTime ?? 'New',
-                                product.sellerName ?? 'Community Member',
-                                isHeld: isHeld,
-                                remaining: remaining,
-                              );
-                            },
+                          return _buildPremiumProductCard(
+                            context,
+                            product,
+                            product.condition ?? 'Available',
+                            product.usedTime ?? 'New',
+                            product.sellerName ?? 'Community Member',
+                            isHeld: isHeld,
+                            remaining: remaining,
                           );
                         },
-                      ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -330,14 +329,16 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                       if (product.status != 'available') {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                              content: Text("This product is not available")),
+                            content: Text("This product is already reserved"),
+                          ),
                         );
                         return;
                       }
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => ProductDetailsScreen(product: product),
+                          builder: (_) =>
+                              ProductDetailsScreen(product: product),
                         ),
                       );
                     },
@@ -443,17 +444,17 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                         onPressed: (isHeld || product.status != 'available')
                             ? null
                             : () async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => PaymentSelectionScreen(
-          productId: product.id,
-        ),
-      ),
-    );
-    _fetchProducts();
-  },
-                                              
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => PaymentSelectionScreen(
+                                      productId: product.id,
+                                    ),
+                                  ),
+                                );
+                                _fetchProducts();
+                              },
+
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
@@ -461,7 +462,9 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                         child: const Text(
                           "Buy Now",
                           style: TextStyle(
-                              color: Colors.white, fontWeight: FontWeight.bold),
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
@@ -482,14 +485,18 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                               context.read<CartProvider>().addProduct(product);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('${product.name} added to cart'),
+                                  content: Text(
+                                    '${product.name} added to cart',
+                                  ),
                                   behavior: SnackBarBehavior.floating,
                                 ),
                               );
                               Navigator.pushNamed(context, '/cart');
                             },
-                      icon: const Icon(Icons.shopping_cart_outlined,
-                          color: Colors.white),
+                      icon: const Icon(
+                        Icons.shopping_cart_outlined,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ],
@@ -511,11 +518,14 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
           Text(
             "$label: ",
             style: GoogleFonts.poppins(
-                fontSize: 12, fontWeight: FontWeight.w600, color: dark),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: dark,
+            ),
           ),
           Expanded(
-              child:
-                  Text(value, style: GoogleFonts.poppins(fontSize: 12))),
+            child: Text(value, style: GoogleFonts.poppins(fontSize: 12)),
+          ),
         ],
       ),
     );
@@ -532,16 +542,18 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
           Text(
             isWishTab ? "Didn't find what you need?" : "No products available",
             style: GoogleFonts.poppins(
-                fontSize: 16, fontWeight: FontWeight.w600, color: dark),
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: dark,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
-            isWishTab 
-                ? "Create a request and let your community help you" 
+            isWishTab
+                ? "Create a request and let your community help you"
                 : "Can't find what you're looking for?",
             textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(
-                fontSize: 13, color: Colors.black54),
+            style: GoogleFonts.poppins(fontSize: 13, color: Colors.black54),
           ),
           const SizedBox(height: 24),
           GestureDetector(
@@ -549,7 +561,8 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => PostWishRequestScreen(communityId: widget.communityId),
+                  builder: (_) =>
+                      PostWishRequestScreen(communityId: widget.communityId),
                 ),
               );
             },

@@ -62,6 +62,41 @@ class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
     }
   }
 
+  // Helper method for the styled SnackBar
+  void _showStyledSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.white, // White background
+        margin: const EdgeInsets.all(16),
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: Colors.grey.shade300, width: 1), // Grey border
+        ),
+        duration: const Duration(seconds: 3),
+        content: Row(
+          children: [
+            Icon(
+              isError ? Icons.error_outline : Icons.check_circle_outline,
+              color: isError ? Colors.redAccent : accentTeal,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: dark, // Dark text for visibility on white
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _confirmSchedule() async {
     if (selectedDate == null || selectedTime == null) return;
 
@@ -78,11 +113,7 @@ class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
 
     if (selectedDate!.isAfter(maxDate)) {
       setState(() => isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('You must schedule within the next 3 days'),
-        ),
-      );
+      _showStyledSnackBar('You must schedule within the next 3 days', isError: true);
       return;
     }
 
@@ -97,9 +128,7 @@ class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
 
       if (product['status'] != 'available') {
         setState(() => isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Product already reserved")),
-        );
+        _showStyledSnackBar("Product already reserved", isError: true);
         return;
       }
 
@@ -121,9 +150,7 @@ class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
 
       if (updateResponse.isEmpty) {
         setState(() => isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Product already reserved")),
-        );
+        _showStyledSnackBar("Product already reserved", isError: true);
         return;
       }
 
@@ -168,42 +195,12 @@ class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
 
       setState(() => isLoading = false);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: accentTeal,
-          margin: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          duration: const Duration(seconds: 3),
-          content: Row(
-            children: const [
-              Icon(Icons.check_circle, color: Colors.white),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  "Pickup Scheduled Successfully 🎉",
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
+      _showStyledSnackBar("Pickup Scheduled Successfully 🎉");
 
-     // Navigator.pop(context);
     } on PostgrestException catch (e) {
-  setState(() => isLoading = false);
-
-  print("ERROR MESSAGE: ${e.message}");
-  print("ERROR DETAILS: ${e.details}");
-  print("ERROR HINT: ${e.hint}");
-
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text(e.message)),
-  );
-}
+      setState(() => isLoading = false);
+      _showStyledSnackBar(e.message, isError: true);
+    }
   }
 
   @override
@@ -277,8 +274,8 @@ class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
               child: ElevatedButton(
                 onPressed:
                     (selectedDate != null && selectedTime != null && !isLoading)
-                    ? _confirmSchedule
-                    : null,
+                        ? _confirmSchedule
+                        : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: accentTeal,
                   disabledBackgroundColor: accentTeal.withOpacity(0.4),
@@ -339,7 +336,9 @@ class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
         width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -351,23 +350,27 @@ class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
               color: isSelected
                   ? accentTeal.withOpacity(0.25)
                   : Colors.black.withOpacity(0.04),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
+              blurRadius: isSelected ? 20 : 15,
+              offset: isSelected ? const Offset(0, 10) : const Offset(0, 8),
             ),
           ],
         ),
         child: Row(
           children: [
-            Container(
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
               height: 52,
               width: 52,
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: isSelected ? Colors.white.withOpacity(0.2) : Colors.white,
                 shape: BoxShape.circle,
+                border: isSelected 
+                    ? Border.all(color: Colors.white.withOpacity(0.5), width: 1)
+                    : null,
               ),
               child: Icon(
                 icon,
-                color: isSelected ? accentTeal : Colors.grey.shade400,
+                color: isSelected ? Colors.white : Colors.grey.shade400,
                 size: 26,
               ),
             ),
@@ -376,17 +379,18 @@ class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
+                  AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 300),
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.bold,
                       color: isSelected ? Colors.white : dark,
                     ),
+                    child: Text(title),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    subtitle,
+                  AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 300),
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -394,31 +398,25 @@ class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
                           ? Colors.white.withOpacity(0.85)
                           : Colors.grey.shade500,
                     ),
+                    child: Text(subtitle),
                   ),
                 ],
               ),
             ),
-            Container(
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
               height: 24,
               width: 24,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
+                color: isSelected ? Colors.white : Colors.transparent,
                 border: Border.all(
                   color: isSelected ? Colors.white : subtleGrey,
                   width: 2,
                 ),
               ),
               child: isSelected
-                  ? Center(
-                      child: Container(
-                        height: 12,
-                        width: 12,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white,
-                        ),
-                      ),
-                    )
+                  ? const Icon(Icons.check, size: 16, color: accentTeal)
                   : null,
             ),
           ],
