@@ -51,6 +51,36 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
     return null;
   }
 
+  // ✅ Animated card (bottom)
+  void _showAnimatedCard(String message, {bool isError = false}) {
+    final overlay = Overlay.of(context);
+
+    late OverlayEntry overlayEntry;
+
+    overlayEntry = OverlayEntry(
+      builder: (context) {
+        return Positioned(
+          bottom: 50,
+          left: 20,
+          right: 20,
+          child: Material(
+            color: Colors.transparent,
+            child: AnimatedCard(
+              message: message,
+              icon: isError ? Icons.error : Icons.check_circle,
+            ),
+          ),
+        );
+      },
+    );
+
+    overlay.insert(overlayEntry);
+
+    Future.delayed(const Duration(seconds: 2), () {
+      overlayEntry.remove();
+    });
+  }
+
   Future<void> _sendCode() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -61,23 +91,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
         _emailController.text.trim(),
         redirectTo: 'tradeandaid://reset-password',
       );
+
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Check your email to reset your password'),
-        ),
-      );
+
+      _showAnimatedCard('Check your email to reset your password');
       Navigator.pop(context);
     } on AuthException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
+      _showAnimatedCard(e.message, isError: true);
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to send reset email')),
-      );
+      _showAnimatedCard('Failed to send reset email', isError: true);
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -95,7 +119,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
           height: MediaQuery.of(context).size.height,
           child: Stack(
             children: [
-              // 🌈 Small Gradient Header
+              // 🌈 Header
               Container(
                 height: 100,
                 width: double.infinity,
@@ -113,7 +137,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      // 🔙 Back button
                       Positioned(
                         left: 0,
                         child: IconButton(
@@ -124,8 +147,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                           ),
                         ),
                       ),
-
-                      // 🏷 Title
                       const Text(
                         "Forgot Password",
                         style: TextStyle(
@@ -139,7 +160,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                 ),
               ),
 
-              // 📄 Card Content
+              // 📄 Content
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 200, 24, 24),
                 child: FadeTransition(
@@ -164,14 +185,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // 🖼 Image
                             Image.asset(
                               'assets/forgot-password.png',
                               height: 210,
                             ),
-
                             const SizedBox(height: 20),
-
                             const Text(
                               "Enter your email address to receive a verification code.",
                               textAlign: TextAlign.center,
@@ -180,10 +198,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                                 fontSize: 14,
                               ),
                             ),
-
                             const SizedBox(height: 30),
 
-                            // 📧 Email field
                             TextFormField(
                               controller: _emailController,
                               validator: _validateEmail,
@@ -198,7 +214,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
 
                             const SizedBox(height: 30),
 
-                            // 🚀 Send Button
                             SizedBox(
                               width: double.infinity,
                               height: 50,
@@ -242,6 +257,91 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ✅ Animated Card Widget (Bottom style)
+class AnimatedCard extends StatefulWidget {
+  final String message;
+  final IconData? icon;
+
+  const AnimatedCard({super.key, required this.message, this.icon});
+
+  @override
+  State<AnimatedCard> createState() => _AnimatedCardState();
+}
+
+class _AnimatedCardState extends State<AnimatedCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnim;
+  late Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+
+    _offsetAnim = Tween<Offset>(
+      begin: const Offset(0, 1), // from bottom
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SlideTransition(
+      position: _offsetAnim,
+      child: FadeTransition(
+        opacity: _fadeAnim,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color.fromARGB(255, 17, 158, 144),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.icon != null)
+                  Icon(
+                    widget.icon,
+                    color: const Color.fromARGB(255, 17, 158, 144),
+                  ),
+                if (widget.icon != null) const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.message,
+                    style: const TextStyle(color: Colors.black),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

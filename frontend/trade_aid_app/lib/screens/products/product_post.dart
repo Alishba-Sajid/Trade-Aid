@@ -18,6 +18,90 @@ const Color backgroundLight = Color(0xFFF8FAFA);
 const Color accentTeal = Color(0xFF119E90);
 const Color subtleGrey = Color(0xFFF2F2F2);
 
+// ✅ Animated card widget (same style as login/create account)
+class AnimatedCard extends StatefulWidget {
+  final String message;
+  final IconData? icon;
+  const AnimatedCard({super.key, required this.message, this.icon});
+
+  @override
+  State<AnimatedCard> createState() => _AnimatedCardState();
+}
+
+class _AnimatedCardState extends State<AnimatedCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnim;
+  late Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    _offsetAnim = Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SlideTransition(
+      position: _offsetAnim,
+      child: FadeTransition(
+        opacity: _fadeAnim,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color.fromARGB(255, 17, 158, 144),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.icon != null)
+                  Icon(
+                    widget.icon,
+                    color: const Color.fromARGB(255, 17, 158, 144),
+                  ),
+                if (widget.icon != null) const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.message,
+                    style: const TextStyle(color: Colors.black),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class ProductPostScreen extends StatefulWidget {
   final String communityId;
   final String? wishId;
@@ -285,6 +369,23 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
     );
   }
 
+  // ✅ Show animated card
+  void _showAnimatedCard(String message, {IconData? icon}) {
+    final overlay = Overlay.of(context);
+
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: 50,
+        left: 20,
+        right: 20,
+        child: AnimatedCard(message: message, icon: icon),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 2), () => overlayEntry.remove());
+  }
+
   // ---------------- SUBMIT ----------------
 
   Future<void> _submit() async {
@@ -379,21 +480,11 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: darkPrimary,
-          content: Text('Product Published Successfully'),
-        ),
-      );
+      _showAnimatedCard("Product Published Successfully", icon: Icons.check);
 
       Navigator.pop(context, true);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.red,
-          content: Text("Error: ${e.toString()}"),
-        ),
-      );
+      _showAnimatedCard("Error: ${e.toString()}", icon: Icons.error);
     }
 
     if (mounted) setState(() => _isLoading = false);

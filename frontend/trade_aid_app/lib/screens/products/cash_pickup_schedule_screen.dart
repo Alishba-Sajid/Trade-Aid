@@ -18,6 +18,90 @@ const Color surface = Color(0xFFFFFFFF);
 const Color backgroundLight = Color(0xFFF6F7F7);
 const Color subtleGrey = Color(0xFFE3E6E6);
 
+// ✅ Animated card widget (same style as login/create account)
+class AnimatedCard extends StatefulWidget {
+  final String message;
+  final IconData? icon;
+  const AnimatedCard({super.key, required this.message, this.icon});
+
+  @override
+  State<AnimatedCard> createState() => _AnimatedCardState();
+}
+
+class _AnimatedCardState extends State<AnimatedCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnim;
+  late Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    _offsetAnim = Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SlideTransition(
+      position: _offsetAnim,
+      child: FadeTransition(
+        opacity: _fadeAnim,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color.fromARGB(255, 17, 158, 144),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.icon != null)
+                  Icon(
+                    widget.icon,
+                    color: const Color.fromARGB(255, 17, 158, 144),
+                  ),
+                if (widget.icon != null) const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.message,
+                    style: const TextStyle(color: Colors.black),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class CashPickupScheduleScreen extends StatefulWidget {
   final String productId;
 
@@ -62,39 +146,21 @@ class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
     }
   }
 
-  // Helper method for the styled SnackBar
-  void _showStyledSnackBar(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.white, // White background
-        margin: const EdgeInsets.all(16),
-        elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: Colors.grey.shade300, width: 1), // Grey border
-        ),
-        duration: const Duration(seconds: 3),
-        content: Row(
-          children: [
-            Icon(
-              isError ? Icons.error_outline : Icons.check_circle_outline,
-              color: isError ? Colors.redAccent : accentTeal,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(
-                  color: dark, // Dark text for visibility on white
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
+  // Helper method for the animated card
+  void _showAnimatedCard(String message, {IconData? icon}) {
+    final overlay = Overlay.of(context);
+
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: 50,
+        left: 20,
+        right: 20,
+        child: AnimatedCard(message: message, icon: icon),
       ),
     );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 2), () => overlayEntry.remove());
   }
 
   Future<void> _confirmSchedule() async {
@@ -113,7 +179,10 @@ class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
 
     if (selectedDate!.isAfter(maxDate)) {
       setState(() => isLoading = false);
-      _showStyledSnackBar('You must schedule within the next 3 days', isError: true);
+      _showAnimatedCard(
+        'You must schedule within the next 3 days',
+        icon: Icons.warning,
+      );
       return;
     }
 
@@ -128,7 +197,7 @@ class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
 
       if (product['status'] != 'available') {
         setState(() => isLoading = false);
-        _showStyledSnackBar("Product already reserved", isError: true);
+        _showAnimatedCard("Product already reserved", icon: Icons.error);
         return;
       }
 
@@ -150,7 +219,7 @@ class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
 
       if (updateResponse.isEmpty) {
         setState(() => isLoading = false);
-        _showStyledSnackBar("Product already reserved", isError: true);
+        _showAnimatedCard("Product already reserved", icon: Icons.error);
         return;
       }
 
@@ -195,11 +264,10 @@ class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
 
       setState(() => isLoading = false);
 
-      _showStyledSnackBar("Pickup Scheduled Successfully 🎉");
-
+      _showAnimatedCard("Pickup Scheduled Successfully 🎉", icon: Icons.check);
     } on PostgrestException catch (e) {
       setState(() => isLoading = false);
-      _showStyledSnackBar(e.message, isError: true);
+      _showAnimatedCard(e.message, icon: Icons.error);
     }
   }
 
@@ -274,8 +342,8 @@ class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
               child: ElevatedButton(
                 onPressed:
                     (selectedDate != null && selectedTime != null && !isLoading)
-                        ? _confirmSchedule
-                        : null,
+                    ? _confirmSchedule
+                    : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: accentTeal,
                   disabledBackgroundColor: accentTeal.withOpacity(0.4),
@@ -362,9 +430,11 @@ class _CashPickupScheduleScreenState extends State<CashPickupScheduleScreen> {
               height: 52,
               width: 52,
               decoration: BoxDecoration(
-                color: isSelected ? Colors.white.withOpacity(0.2) : Colors.white,
+                color: isSelected
+                    ? Colors.white.withOpacity(0.2)
+                    : Colors.white,
                 shape: BoxShape.circle,
-                border: isSelected 
+                border: isSelected
                     ? Border.all(color: Colors.white.withOpacity(0.5), width: 1)
                     : null,
               ),
