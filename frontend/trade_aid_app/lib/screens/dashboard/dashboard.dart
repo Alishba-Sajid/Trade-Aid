@@ -279,68 +279,68 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-   drawer: DashboardDrawer(
-  communityName: _communityName,
-  inviteLink: _inviteLink,
-  communityId: _communityId ?? '',
-  adminName: _userName,       
-  isAdmin: _isAdmin,          
-  isModerator: _isModerator,   
-),
-    appBar: AppBar(
-  backgroundColor: const Color(0xFFF5F5F5),
-  elevation: 0,
-  centerTitle: true,
-  title: const Text(
-    'Trade&Aid',
-    style: TextStyle(color: dark, fontWeight: FontWeight.w600),
-  ),
-  iconTheme: const IconThemeData(color: dark),
-  actions: [
-    Stack(
-      children: [
-        IconButton(
-          icon: const Icon(Icons.notifications_none),
-          onPressed: () async {
-            final user = Supabase.instance.client.auth.currentUser;
-            if (user != null) {
-              await Supabase.instance.client
-                  .from('profiles')
-                  .update({
-                    'last_notification_seen':
-                        DateTime.now().toIso8601String(),
-                  })
-                  .eq('user_id', user.id);
-            }
-
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const NotificationsScreen(),
-              ),
-            ).then((_) => _checkNotifications());
-          },
+      drawer: DashboardDrawer(
+        communityName: _communityName,
+        inviteLink: _inviteLink,
+        communityId: _communityId ?? '',
+        adminName: _userName,
+        isAdmin: _isAdmin,
+        isModerator: _isModerator,
+      ),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFF5F5F5),
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          'Trade&Aid',
+          style: TextStyle(color: dark, fontWeight: FontWeight.w600),
         ),
+        iconTheme: const IconThemeData(color: dark),
+        actions: [
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_none),
+                onPressed: () async {
+                  final user = Supabase.instance.client.auth.currentUser;
+                  if (user != null) {
+                    await Supabase.instance.client
+                        .from('profiles')
+                        .update({
+                          'last_notification_seen': DateTime.now()
+                              .toIso8601String(),
+                        })
+                        .eq('user_id', user.id);
+                  }
 
-        // ✅ KEEP THIS (friend's feature)
-        if (_hasNotifications)
-          Positioned(
-            right: 10,
-            top: 10,
-            child: Container(
-              height: 10,
-              width: 10,
-              decoration: const BoxDecoration(
-                color: Colors.red,
-                shape: BoxShape.circle,
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const NotificationsScreen(),
+                    ),
+                  ).then((_) => _checkNotifications());
+                },
               ),
-            ),
+
+              // ✅ KEEP THIS (friend's feature)
+              if (_hasNotifications)
+                Positioned(
+                  right: 10,
+                  top: 10,
+                  child: Container(
+                    height: 10,
+                    width: 10,
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+            ],
           ),
-      ],
-    ),
-  ],
-),
-      
+        ],
+      ),
+
       body: DashboardBody(
         userName: _userName,
         communityName: _communityName,

@@ -25,22 +25,22 @@ const Color dark = Color(0xFF004D40);
 const Color light = Color(0xFFE0F2F1);
 
 class DashboardDrawer extends StatelessWidget {
-final String communityName;
-final String inviteLink;
-final String communityId;
-final String adminName;    
-final bool isAdmin;
-final bool isModerator;    
+  final String communityName;
+  final String inviteLink;
+  final String communityId;
+  final String adminName;
+  final bool isAdmin;
+  final bool isModerator;
 
-const DashboardDrawer({
-  super.key,
-  required this.communityName,
-  required this.inviteLink,
-  required this.communityId,
-  required this.adminName,     
-  required this.isAdmin,
-  required this.isModerator,  
-});
+  const DashboardDrawer({
+    super.key,
+    required this.communityName,
+    required this.inviteLink,
+    required this.communityId,
+    required this.adminName,
+    required this.isAdmin,
+    required this.isModerator,
+  });
 
   void onCopy(BuildContext context) {
     Clipboard.setData(ClipboardData(text: inviteLink));
@@ -277,22 +277,22 @@ const DashboardDrawer({
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               children: [
-              
-// ✅ Pending Requests 
-if (canManageRequests)
-  _DrawerTile(
-    icon: Icons.person_add_alt_1_rounded,
-    title: 'Pending Requests',
-    onTap: () {
-      Navigator.pop(context);
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const PendingRequestsScreen(),
-        ),
-      );
-    },
-  ),
+                // ✅ Pending Requests - Fixed
+                if (canManageRequests)
+                  _DrawerTile(
+                    icon: Icons.person_add_alt_1_rounded,
+                    title: 'Pending Requests',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const PendingRequestsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+
                 _DrawerTile(
                   icon: Icons.upload_rounded,
                   title: 'Manage Uploads',
@@ -328,15 +328,16 @@ if (canManageRequests)
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) =>
-                            CommunityRoundtableScreen( isAdmin: isAdmin,
-  communityId: communityId,
-  adminName: adminName, ),
+                        builder: (_) => CommunityRoundtableScreen(
+                          isAdmin: isAdmin,
+                          communityId: communityId,
+                          adminName: adminName,
+                        ),
                       ),
                     );
                   },
                 ),
-                
+
                 // 🔹 Help & Support - Visible to Members only (Hidden for Admin)
                 if (!isAdmin)
                   _DrawerTile(
@@ -364,7 +365,7 @@ if (canManageRequests)
                     );
                   },
                 ),
-                
+
                 // 🔹 Admin Only Options
                 _DrawerTile(
                   icon: Icons.people_alt_outlined,

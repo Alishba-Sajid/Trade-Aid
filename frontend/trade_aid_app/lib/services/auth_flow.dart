@@ -54,7 +54,26 @@ class AuthFlow {
       }
 
       // ================================
-      // ✅ 1. CHECK PENDING FIRST
+      // ✅ 1. CHECK ACTIVE MEMBERSHIP
+      // ================================
+
+      print("Checking membership for user: $userId");
+      final membership = await supabase
+          .from('community_members')
+          .select('community_id')
+          .eq('user_id', userId)
+          .eq('status', 'active')
+          .maybeSingle();
+
+      print("Membership result: $membership");
+
+      if (membership != null) {
+        navigatorKey.currentState?.pushReplacementNamed('/dashboard');
+        return;
+      }
+
+      // ================================
+      // ✅ 2. CHECK PENDING FIRST
       // ================================
       final pendingRequest = await supabase
           .from('community_join_requests')
@@ -78,7 +97,7 @@ class AuthFlow {
       }
 
       // ================================
-      // ✅ 2. CHECK REJECTED
+      // ✅ 3. CHECK REJECTED
       // ================================
       final rejectedRequest = await supabase
           .from('community_join_requests')
@@ -119,11 +138,11 @@ class AuthFlow {
       }
 
       // ================================
-      // ✅ 3. CHECK REMOVED (AFTER REQUESTS)
+      // ✅ 4. CHECK REMOVED (AFTER REQUESTS)
       // ================================
       final removedMember = await supabase
           .from('community_members')
-          .select('community_id, communities(name)')
+          .select('user_id, status, communities(name)')
           .eq('user_id', userId)
           .eq('status', 'removed')
           .maybeSingle();
@@ -158,22 +177,7 @@ class AuthFlow {
       }
 
       // ================================
-      // ✅ 4. CHECK ACTIVE MEMBERSHIP
-      // ================================
-      final membership = await supabase
-          .from('community_members')
-          .select('community_id')
-          .eq('user_id', userId)
-          .eq('status', 'active')
-          .maybeSingle();
-
-      if (membership != null) {
-        navigatorKey.currentState?.pushReplacementNamed('/dashboard');
-        return;
-      }
-
-      // ================================
-      // ✅ DEFAULT FLOW
+      // ✅ 5. NO MEMBERSHIP - GO TO LOCATION PERMISSION
       // ================================
       navigatorKey.currentState?.pushReplacementNamed('/location_permission');
 
