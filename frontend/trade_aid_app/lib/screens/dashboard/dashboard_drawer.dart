@@ -10,6 +10,7 @@ import 'member_management.dart';
 import 'User_complaints.dart';
 import 'roundtable.dart';
 import 'manage_reservations.dart';
+import 'disputed_products.dart';
 
 // 🌿 Color Palette
 const LinearGradient appGradient = LinearGradient(
@@ -394,6 +395,19 @@ class DashboardDrawer extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (_) => const AdminComplaintsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                      _DrawerTile(
+                    icon: Icons.report_outlined,
+                    title: 'Disputed Products',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const DisputedProductsScreen(),
                         ),
                       );
                     },
