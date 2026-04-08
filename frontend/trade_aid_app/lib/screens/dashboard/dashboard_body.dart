@@ -174,7 +174,9 @@ class _DashboardBodyState extends State<DashboardBody> {
           'user_lat': userLat,
           'user_lng': userLng,
           'radius_km': 1.0,
-          'current_community': widget.communityId,
+          'current_community': widget.communityId.isEmpty
+              ? null
+              : widget.communityId,
         },
       );
 
@@ -210,11 +212,16 @@ class _DashboardBodyState extends State<DashboardBody> {
           .eq('user_id', userId)
           .maybeSingle();
 
+      // ✅ If already a member - allow user to access/switch to this community
       if (memberCheck != null) {
-        _showAnimatedCard('You are already a member of this community');
+        _showAnimatedCard(
+          'You are already a member of "${community['name']}" ',
+          icon: Icons.info,
+        );
         return;
       }
 
+      // ✅ Check if there's already a pending request
       final existingRequest = await Supabase.instance.client
           .from('community_join_requests')
           .select()
@@ -223,10 +230,28 @@ class _DashboardBodyState extends State<DashboardBody> {
           .maybeSingle();
 
       if (existingRequest != null) {
-        _showAnimatedCard('You already requested to join this community');
+        if (existingRequest['status'] == 'pending') {
+          _showAnimatedCard(
+            'You already requested to join this community',
+            icon: Icons.info,
+          );
+          return;
+        }
+
+        // 🔁 Handle rejected or old requests - allow to request again
+        await Supabase.instance.client
+            .from('community_join_requests')
+            .update({'status': 'pending'})
+            .eq('id', existingRequest['id']);
+
+        _showAnimatedCard(
+          'Request sent again to "${community['name']}" admin',
+          icon: Icons.refresh,
+        );
         return;
       }
 
+      // ✅ Send join request to admin
       final response = await Supabase.instance.client
           .from('community_join_requests')
           .insert({
@@ -238,7 +263,7 @@ class _DashboardBodyState extends State<DashboardBody> {
           .maybeSingle();
 
       if (response != null) {
-        _showAnimatedCard('Request sent to join "${community['name']}"');
+        _showAnimatedCard('Request sent to "${community['name']}" admin');
       } else {
         _showAnimatedCard('Failed to send join request');
       }
@@ -248,8 +273,8 @@ class _DashboardBodyState extends State<DashboardBody> {
     }
   }
 
-  void _showAnimatedCard(String message) {
-    IconData icon = Icons.check;
+  void _showAnimatedCard(String message, {IconData? icon}) {
+    icon ??= Icons.check;
 
     if (message.contains('already') ||
         message.contains('Failed') ||

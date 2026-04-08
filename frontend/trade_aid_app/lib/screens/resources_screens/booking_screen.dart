@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../widgets/time_picker.dart';
 import '../../widgets/app_bar.dart';
+import '../../services/notification_service.dart';
 
 // Matching colors from ResourceDetailsScreen
 const Color light = Color(0xFFF0F9F8);
@@ -45,7 +46,10 @@ class _BookingScreenState extends State<BookingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F8F8),
-      appBar: AppBarWidget(title: "Reserve", onBack: () => Navigator.pop(context)),
+      appBar: AppBarWidget(
+        title: "Reserve",
+        onBack: () => Navigator.pop(context),
+      ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         child: Padding(
@@ -56,21 +60,35 @@ class _BookingScreenState extends State<BookingScreen> {
               Text(
                 widget.resourceName,
                 style: GoogleFonts.poppins(
-                  fontSize: 22, 
+                  fontSize: 22,
                   fontWeight: FontWeight.w700,
                   color: dark,
                 ),
               ),
               const SizedBox(height: 16),
-              const Text('Select Date', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black54)),
+              const Text(
+                'Select Date',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black54,
+                ),
+              ),
               const SizedBox(height: 8),
               _buildChoiceCard(
                 child: ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14),
                   leading: Container(
-                    width: 44, height: 44,
-                    decoration: BoxDecoration(color: _teal, borderRadius: BorderRadius.circular(8)),
-                    child: const Icon(Icons.calendar_today, color: Colors.white),
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: _teal,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.calendar_today,
+                      color: Colors.white,
+                    ),
                   ),
                   title: Text(
                     selectedDate == null
@@ -79,58 +97,112 @@ class _BookingScreenState extends State<BookingScreen> {
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                   trailing: TextButton(
-                    onPressed: _pickDate, 
-                    child: Text('Pick', style: TextStyle(color: _teal, fontWeight: FontWeight.w700))
+                    onPressed: _pickDate,
+                    child: Text(
+                      'Pick',
+                      style: TextStyle(
+                        color: _teal,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                 ),
               ),
               const SizedBox(height: 18),
-              const Text('Select Time (Start & End)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black54)),
+              const Text(
+                'Select Time (Start & End)',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black54,
+                ),
+              ),
               const SizedBox(height: 8),
               Row(
                 children: [
                   Expanded(
                     child: _buildChoiceCard(
                       child: TextButton(
-                        onPressed: _pickStartTime, 
-                        child: Text(startTime == null ? 'Start Time' : startTime!.format(context), 
-                        style: TextStyle(fontWeight: FontWeight.w600, color: _teal))
-                      )
-                    )
+                        onPressed: _pickStartTime,
+                        child: Text(
+                          startTime == null
+                              ? 'Start Time'
+                              : startTime!.format(context),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: _teal,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: _buildChoiceCard(
                       child: TextButton(
-                        onPressed: _pickEndTime, 
-                        child: Text(endTime == null ? 'End Time' : endTime!.format(context), 
-                        style: TextStyle(fontWeight: FontWeight.w600, color: _teal))
-                      )
-                    )
+                        onPressed: _pickEndTime,
+                        child: Text(
+                          endTime == null
+                              ? 'End Time'
+                              : endTime!.format(context),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: _teal,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 18),
-              const Text('Choose your payment method', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black54)),
+              const Text(
+                'Choose your payment method',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black54,
+                ),
+              ),
               const SizedBox(height: 16),
-              _paymentOption(title: 'JazzCash', subtitle: 'Coming Soon', imagePath: 'assets/jazzcash.png', value: PaymentMethod.jazzCash, enabled: false),
-              _paymentOption(title: 'Cash Payment', subtitle: 'Pay in cash.', imagePath: 'assets/cashondelivery.png', value: PaymentMethod.cashOnDelivery),
-              
+              _paymentOption(
+                title: 'JazzCash',
+                subtitle: 'Coming Soon',
+                imagePath: 'assets/jazzcash.png',
+                value: PaymentMethod.jazzCash,
+                enabled: false,
+              ),
+              _paymentOption(
+                title: 'Cash Payment',
+                subtitle: 'Pay in cash.',
+                imagePath: 'assets/cashondelivery.png',
+                value: PaymentMethod.cashOnDelivery,
+              ),
+
               const SizedBox(height: 24),
-              _buildTermsAndConditions(), // Displaying the terms here
+              _buildTermsAndConditions(),
               const SizedBox(height: 32),
-              
+
               SizedBox(
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton(
                   onPressed: _onBookPressed,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _teal, 
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    backgroundColor: _teal,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     elevation: 2,
                   ),
-                  child: const Text('Confirm Booking', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                  child: const Text(
+                    'Confirm Booking',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -211,7 +283,13 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
-  Widget _paymentOption({required String title, required String subtitle, required String imagePath, required PaymentMethod value, bool enabled = true}) {
+  Widget _paymentOption({
+    required String title,
+    required String subtitle,
+    required String imagePath,
+    required PaymentMethod value,
+    bool enabled = true,
+  }) {
     final bool selected = _selected == value;
     final bool disabled = !enabled;
     return InkWell(
@@ -222,23 +300,63 @@ class _BookingScreenState extends State<BookingScreen> {
         decoration: BoxDecoration(
           color: disabled ? Colors.grey.shade100 : Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: disabled ? Colors.grey.shade400 : (selected ? _teal : Colors.grey.shade300), width: selected ? 2 : 1),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6, offset: const Offset(0, 2))],
+          border: Border.all(
+            color: disabled
+                ? Colors.grey.shade400
+                : (selected ? _teal : Colors.grey.shade300),
+            width: selected ? 2 : 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           children: [
-            ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.asset(imagePath, width: 50, height: 50, fit: BoxFit.contain)),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                imagePath,
+                width: 50,
+                height: 50,
+                fit: BoxFit.contain,
+              ),
+            ),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: disabled ? Colors.black54 : Colors.black)),
-                  Text(subtitle, style: TextStyle(fontSize: 13, color: disabled ? Colors.black45 : Colors.grey.shade600)),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: disabled ? Colors.black54 : Colors.black,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: disabled ? Colors.black45 : Colors.grey.shade600,
+                    ),
+                  ),
                 ],
               ),
             ),
-            if (disabled) Icon(Icons.lock_outline, size: 20, color: Colors.grey.shade400) else Radio<PaymentMethod>(value: value, groupValue: _selected, activeColor: _teal, onChanged: (v) => setState(() => _selected = v)),
+            if (disabled)
+              Icon(Icons.lock_outline, size: 20, color: Colors.grey.shade400)
+            else
+              Radio<PaymentMethod>(
+                value: value,
+                groupValue: _selected,
+                activeColor: _teal,
+                onChanged: (v) => setState(() => _selected = v),
+              ),
           ],
         ),
       ),
@@ -247,7 +365,17 @@ class _BookingScreenState extends State<BookingScreen> {
 
   Widget _buildChoiceCard({required Widget child}) {
     return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(_radius), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 6, offset: const Offset(0, 3))]),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(_radius),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
       child: child,
     );
   }
@@ -256,32 +384,40 @@ class _BookingScreenState extends State<BookingScreen> {
     int timeToMin(TimeOfDay t) => t.hour * 60 + t.minute;
     final startLimitParts = widget.startTimeLimit.split(":");
     final endLimitParts = widget.endTimeLimit.split(":");
-    final startLimitMinutes = int.parse(startLimitParts[0]) * 60 + int.parse(startLimitParts[1]);
-    final endLimitMinutes = int.parse(endLimitParts[0]) * 60 + int.parse(endLimitParts[1]);
+    final startLimitMinutes =
+        int.parse(startLimitParts[0]) * 60 + int.parse(startLimitParts[1]);
+    final endLimitMinutes =
+        int.parse(endLimitParts[0]) * 60 + int.parse(endLimitParts[1]);
     final selectedStart = timeToMin(startTime!);
     final selectedEnd = timeToMin(endTime!);
-    return selectedStart >= startLimitMinutes && selectedEnd <= endLimitMinutes && selectedStart < selectedEnd;
+    return selectedStart >= startLimitMinutes &&
+        selectedEnd <= endLimitMinutes &&
+        selectedStart < selectedEnd;
   }
 
   Future<void> _onBookPressed() async {
-    if (selectedDate == null || startTime == null || endTime == null || _selected == null) {
-      _showSnack('Please complete all fields');
+    if (selectedDate == null ||
+        startTime == null ||
+        endTime == null ||
+        _selected == null) {
+      _showSnack('Please complete all fields', isError: true);
       return;
     }
 
     if (toMinutes(endTime!) <= toMinutes(startTime!)) {
-      _showSnack('End time must be after start time');
+      _showSnack('End time must be after start time', isError: true);
       return;
     }
 
     final today = DateTime.now();
     if (selectedDate!.isAfter(today.add(const Duration(days: 7)))) {
-      _showSnack('You must book within the next 7 days');
+      _showSnack('You must book within the next 7 days', isError: true);
       return;
     }
 
     final supabase = Supabase.instance.client;
-    String formatTime(TimeOfDay t) => "${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:00";
+    String formatTime(TimeOfDay t) =>
+        "${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:00";
     final start = formatTime(startTime!);
     final end = formatTime(endTime!);
 
@@ -296,12 +432,12 @@ class _BookingScreenState extends State<BookingScreen> {
           .filter('end_time', 'gt', start);
 
       if ((conflict as List).isNotEmpty) {
-        _showSnack("Already booked for the selected time slot.");
+        _showSnack("Already booked for the selected time slot.", isError: true);
         return;
       }
 
       if (!isWithinAllowedTime()) {
-        _showSnack('Selected time is outside allowed range');
+        _showSnack('Selected time is outside allowed range', isError: true);
         return;
       }
 
@@ -316,31 +452,194 @@ class _BookingScreenState extends State<BookingScreen> {
         'status': 'confirmed',
       });
 
+      final userProfile = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('user_id', supabase.auth.currentUser!.id)
+          .single();
+
+      final formattedStart = startTime!.format(context);
+      final formattedEnd = endTime!.format(context);
+      final formattedDate =
+          "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}";
+
+      await NotificationService.createNotification(
+        userId: widget.ownerId,
+        title: "Resource Booked",
+        message:
+            "${userProfile['full_name']} booked your resource '${widget.resourceName}' on $formattedDate from $formattedStart to $formattedEnd",
+        type: "resource_booking",
+      );
+
       _showSnack('Booking successful');
       Navigator.pop(context);
     } catch (e) {
       debugPrint("BOOKING ERROR: $e");
-      _showSnack('Error processing booking');
+      _showSnack('Error processing booking', isError: true);
     }
   }
 
-  void _showSnack(String msg) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  void _showSnack(String msg, {bool isError = false}) {
+    late OverlayEntry overlayEntry;
+    overlayEntry = OverlayEntry(
+      builder: (context) => _AnimatedSnackCard(
+        message: msg,
+        isError: isError,
+        onDismiss: () => overlayEntry.remove(),
+      ),
+    );
+    Overlay.of(context).insert(overlayEntry);
+  }
 
   Future<void> _pickDate() async {
     final today = DateTime.now();
-    final picked = await showDatePicker(context: context, initialDate: selectedDate ?? today, firstDate: today, lastDate: today.add(const Duration(days: 7)));
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate ?? today,
+      firstDate: today,
+      lastDate: today.add(const Duration(days: 7)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: _teal, // Header and button color
+              onPrimary: Colors.white, // Header text color
+              surface: Colors.white, // Background of dialog
+              onSurface: dark, // Text color inside picker
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: _teal, // Button text color (OK/Cancel)
+                textStyle: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
     if (picked != null) setState(() => selectedDate = picked);
   }
 
   Future<void> _pickStartTime() async {
-    final picked = await showTealTimePicker(context, initialTime: startTime ?? TimeOfDay.now(), primary: _teal);
+    final picked = await showTealTimePicker(
+      context,
+      initialTime: startTime ?? TimeOfDay.now(),
+      primary: _teal,
+    );
     if (picked != null) setState(() => startTime = picked);
   }
 
   Future<void> _pickEndTime() async {
-    final picked = await showTealTimePicker(context, initialTime: endTime ?? startTime ?? TimeOfDay.now(), primary: _teal);
+    final picked = await showTealTimePicker(
+      context,
+      initialTime: endTime ?? startTime ?? TimeOfDay.now(),
+      primary: _teal,
+    );
     if (picked != null) setState(() => endTime = picked);
   }
 
   int toMinutes(TimeOfDay t) => t.hour * 60 + t.minute;
+}
+
+class _AnimatedSnackCard extends StatefulWidget {
+  final String message;
+  final bool isError;
+  final VoidCallback onDismiss;
+
+  const _AnimatedSnackCard({
+    required this.message,
+    required this.isError,
+    required this.onDismiss,
+  });
+
+  @override
+  State<_AnimatedSnackCard> createState() => _AnimatedSnackCardState();
+}
+
+class _AnimatedSnackCardState extends State<_AnimatedSnackCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+
+    _offsetAnimation = Tween<Offset>(
+      begin: const Offset(0, -1.5),
+      end: const Offset(0, 0.1),
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.elasticOut,
+    ));
+
+    _controller.forward();
+
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        _controller.reverse().then((_) => widget.onDismiss());
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: SlideTransition(
+          position: _offsetAnimation,
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+              decoration: BoxDecoration(
+                color: widget.isError ? const Color(0xFFE57373) : accent,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    widget.isError ? Icons.error_outline : Icons.check_circle_outline,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(width: 12),
+                  Flexible(
+                    child: Text(
+                      widget.message,
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

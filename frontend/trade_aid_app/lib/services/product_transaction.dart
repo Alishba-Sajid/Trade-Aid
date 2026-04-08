@@ -16,7 +16,7 @@ class ProductTransactionService {
 
       final data = await supabase
           .from('transactions')
-          .select('*, product_id(title)')
+          .select('*, products(title)')
           .or('buyer_id.eq.${user.id},seller_id.eq.${user.id}')
           .eq('status', 'pending')
           .lte('confirm_at', now);
@@ -41,7 +41,7 @@ class ProductTransactionService {
           context,
           tx,
           isBuyer,
-          tx['product_id']?['title'] ?? 'Product',
+          tx['products']?['title'] ?? 'Product',
         );
 
         break;

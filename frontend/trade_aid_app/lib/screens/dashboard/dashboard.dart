@@ -283,6 +283,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         communityName: _communityName,
         inviteLink: _inviteLink,
         communityId: _communityId ?? '',
+        adminName: _userName,
         isAdmin: _isAdmin,
         isModerator: _isModerator,
       ),
@@ -320,6 +321,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ).then((_) => _checkNotifications());
                 },
               ),
+
+              // ✅ KEEP THIS (friend's feature)
               if (_hasNotifications)
                 Positioned(
                   right: 10,
@@ -337,6 +340,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
+
       body: DashboardBody(
         userName: _userName,
         communityName: _communityName,

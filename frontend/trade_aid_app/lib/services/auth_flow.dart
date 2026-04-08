@@ -142,7 +142,7 @@ class AuthFlow {
       // ================================
       final removedMember = await supabase
           .from('community_members')
-          .select('community_id, communities(name)')
+          .select('user_id, status, communities(name)')
           .eq('user_id', userId)
           .eq('status', 'removed')
           .maybeSingle();
@@ -177,7 +177,7 @@ class AuthFlow {
       }
 
       // ================================
-      // ✅ DEFAULT FLOW
+      // ✅ 5. NO MEMBERSHIP - GO TO LOCATION PERMISSION
       // ================================
       navigatorKey.currentState?.pushReplacementNamed('/location_permission');
 

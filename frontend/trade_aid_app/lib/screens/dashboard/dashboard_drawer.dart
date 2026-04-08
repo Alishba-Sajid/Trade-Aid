@@ -4,10 +4,10 @@ import 'package:flutter/services.dart';
 import '../manage_upload/manage_uploads_screen.dart';
 import '../welcome_screen.dart';
 import '../pending_request.dart';
-import '../help&support.dart';
+import 'help&support.dart';
 import 'Voting.dart';
 import 'member_management.dart';
-import 'view_complaints.dart';
+import 'User_complaints.dart';
 import 'roundtable.dart';
 import 'manage_reservations.dart';
 
@@ -27,14 +27,17 @@ const Color light = Color(0xFFE0F2F1);
 class DashboardDrawer extends StatelessWidget {
   final String communityName;
   final String inviteLink;
-  final String communityId; // ✅ ADD THIS
+  final String communityId;
+  final String adminName;
   final bool isAdmin;
   final bool isModerator;
 
   const DashboardDrawer({
+    super.key,
     required this.communityName,
     required this.inviteLink,
-    required this.communityId, // ✅ ADD THIS
+    required this.communityId,
+    required this.adminName,
     required this.isAdmin,
     required this.isModerator,
   });
@@ -324,25 +327,32 @@ class DashboardDrawer extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) =>
-                            CommunityRoundtableScreen(isAdmin: isAdmin),
+                        builder: (_) => CommunityRoundtableScreen(
+                          isAdmin: isAdmin,
+                          communityId: communityId,
+                          adminName: adminName,
+                        ),
                       ),
                     );
                   },
                 ),
-                _DrawerTile(
-                  icon: Icons.help_rounded,
-                  title: 'Help & Support',
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const HelpSupportScreen(),
-                      ),
-                    );
-                  },
-                ),
+
+                // 🔹 Help & Support - Visible to Members only (Hidden for Admin)
+                if (!isAdmin)
+                  _DrawerTile(
+                    icon: Icons.help_rounded,
+                    title: 'Help & Support',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const HelpSupportScreen(),
+                        ),
+                      );
+                    },
+                  ),
+
                 _DrawerTile(
                   icon: Icons.how_to_vote_rounded,
                   title: 'Cast Your Vote',
@@ -354,6 +364,7 @@ class DashboardDrawer extends StatelessWidget {
                     );
                   },
                 ),
+
                 // 🔹 Admin Only Options
                 _DrawerTile(
                   icon: Icons.people_alt_outlined,
