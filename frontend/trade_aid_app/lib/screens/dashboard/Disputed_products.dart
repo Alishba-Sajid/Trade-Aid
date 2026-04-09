@@ -104,7 +104,8 @@ class _DisputedProductsScreenState
           DisputedProduct(
             id: item['id'],
             productName: item['title'],
-            productPrice: "\$${item['price']}",
+            // REMOVED $ SIGN HERE
+            productPrice: "${item['price']}",
             sellerName: sellerName,
             buyerName: buyerName,
             imageUrl: (item['images'] != null &&
@@ -317,6 +318,12 @@ class _DisputeCard extends StatelessWidget {
                   width: 80,
                   height: 80,
                   fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    width: 80,
+                    height: 80,
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.image_not_supported),
+                  ),
                 ),
               ),
               const SizedBox(width: 15),
@@ -334,6 +341,8 @@ class _DisputeCard extends StatelessWidget {
                         "Buyer: ", product.buyerName),
                     _infoRow(Icons.store,
                         "Seller: ", product.sellerName),
+                    _infoRow(Icons.payments,
+                        "Price: ", product.productPrice),
                   ],
                 ),
               ),
