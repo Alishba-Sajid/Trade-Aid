@@ -659,15 +659,25 @@ for (var m in members) {
               width: double.infinity,
               height: 48,
               child: ElevatedButton.icon(
-                onPressed: () async {
-                  final Uri url = Uri.parse(meeting.link);
-                  if (!await launchUrl(
-                    url,
-                    mode: LaunchMode.externalApplication,
-                  )) {
-                    _showSnackBar("Error opening link");
-                  }
-                },
+onPressed: () async {
+  try {
+    String formattedLink = meeting.link.startsWith('http')
+        ? meeting.link
+        : 'https://${meeting.link}';
+
+    final Uri url = Uri.parse(formattedLink);
+
+    if (!await launchUrl(
+      url,
+      mode: LaunchMode.externalApplication,
+    )) {
+      _showSnackBar("Could not open meeting link");
+    }
+  } catch (e) {
+    _showSnackBar("Invalid meeting link");
+  }
+},
+
                 icon: const Icon(
                   Icons.video_call_rounded,
                   color: Colors.white,
