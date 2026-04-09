@@ -5,6 +5,90 @@ import '../providers/cart_provider.dart';
 import '../models/cart_item.dart';
 import 'products/payment_option.dart';
 
+// ✅ Animated card widget (same style as login/create account)
+class AnimatedCard extends StatefulWidget {
+  final String message;
+  final IconData? icon;
+  const AnimatedCard({super.key, required this.message, this.icon});
+
+  @override
+  State<AnimatedCard> createState() => _AnimatedCardState();
+}
+
+class _AnimatedCardState extends State<AnimatedCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnim;
+  late Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    _offsetAnim = Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SlideTransition(
+      position: _offsetAnim,
+      child: FadeTransition(
+        opacity: _fadeAnim,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color.fromARGB(255, 17, 158, 144),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.icon != null)
+                  Icon(
+                    widget.icon,
+                    color: const Color.fromARGB(255, 17, 158, 144),
+                  ),
+                if (widget.icon != null) const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.message,
+                    style: const TextStyle(color: Colors.black),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
 
@@ -30,6 +114,23 @@ class _CartScreenState extends State<CartScreen> {
   Set<int> selectedIndexes = {};
   bool get selectionMode => selectedIndexes.isNotEmpty;
 
+  // ✅ Show animated card
+  void _showAnimatedCard(String message, {IconData? icon}) {
+    final overlay = Overlay.of(context);
+
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: 50,
+        left: 20,
+        right: 20,
+        child: AnimatedCard(message: message, icon: icon),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 2), () => overlayEntry.remove());
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<CartProvider>(
@@ -37,10 +138,11 @@ class _CartScreenState extends State<CartScreen> {
         final items = cart.items;
         final totalFromSelection = selectionMode
             ? selectedIndexes.fold<double>(
-                0, (sum, i) => sum + (i < items.length ? items[i].price : 0))
+                0,
+                (sum, i) => sum + (i < items.length ? items[i].price : 0),
+              )
             : null;
-        final currentTotal =
-            totalFromSelection ?? cart.totalPrice;
+        final currentTotal = totalFromSelection ?? cart.totalPrice;
 
         return Scaffold(
           backgroundColor: backgroundLight,
@@ -73,8 +175,9 @@ class _CartScreenState extends State<CartScreen> {
             ],
           ),
           extendBody: true,
-          bottomNavigationBar:
-              items.isEmpty ? null : _buildFloatingCheckout(context, currentTotal, cart),
+          bottomNavigationBar: items.isEmpty
+              ? null
+              : _buildFloatingCheckout(context, currentTotal, cart),
         );
       },
     );
@@ -123,14 +226,7 @@ class _CartScreenState extends State<CartScreen> {
       onDismissed: (_) {
         cart.removeItemAt(index);
         _adjustSelectionAfterRemove(index);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Item removed from cart'),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            backgroundColor: darkPrimary,
-          ),
-        );
+        _showAnimatedCard('Item removed from cart', icon: Icons.delete);
       },
       background: Container(
         alignment: Alignment.centerRight,
@@ -230,8 +326,11 @@ class _CartScreenState extends State<CartScreen> {
                         padding: const EdgeInsets.only(bottom: 4),
                         child: Row(
                           children: [
-                            Icon(Icons.timer_outlined,
-                                size: 14, color: accentTeal),
+                            Icon(
+                              Icons.timer_outlined,
+                              size: 14,
+                              color: accentTeal,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               item.isProduct
@@ -266,14 +365,9 @@ class _CartScreenState extends State<CartScreen> {
                 onPressed: () {
                   cart.removeItemAt(index);
                   _adjustSelectionAfterRemove(index);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Item removed from cart'),
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                      backgroundColor: darkPrimary,
-                    ),
+                  _showAnimatedCard(
+                    'Item removed from cart',
+                    icon: Icons.delete,
                   );
                 },
               ),
@@ -315,7 +409,10 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Widget _buildFloatingCheckout(
-      BuildContext context, double currentTotal, CartProvider cart) {
+    BuildContext context,
+    double currentTotal,
+    CartProvider cart,
+  ) {
     final items = cart.items;
 
     return Container(

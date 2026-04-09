@@ -24,6 +24,90 @@ const Color light = Color(0xFFF0F9F8);
 const Color accent = Color(0xFF119E90);
 const Color surface = Colors.white;
 
+/* ===================== ANIMATED CARD ===================== */
+class AnimatedCard extends StatefulWidget {
+  final String message;
+  final IconData? icon;
+  const AnimatedCard({super.key, required this.message, this.icon});
+
+  @override
+  State<AnimatedCard> createState() => _AnimatedCardState();
+}
+
+class _AnimatedCardState extends State<AnimatedCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnim;
+  late Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    _offsetAnim = Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SlideTransition(
+      position: _offsetAnim,
+      child: FadeTransition(
+        opacity: _fadeAnim,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color.fromARGB(255, 17, 158, 144),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.icon != null)
+                  Icon(
+                    widget.icon,
+                    color: const Color.fromARGB(255, 17, 158, 144),
+                  ),
+                if (widget.icon != null) const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.message,
+                    style: const TextStyle(color: Colors.black),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /* ===================== SELLER CARD ===================== */
 class _SellerCard extends StatefulWidget {
   final Product product;
@@ -68,7 +152,7 @@ class _SellerCardState extends State<_SellerCard> {
   Widget build(BuildContext context) {
     final sellerName = widget.product.sellerName ?? 'Community Member';
     final address =
-     widget.product.sellerAddress ?? 'Sample Address Line, Gulberg Greens';
+        widget.product.sellerAddress ?? 'Sample Address Line, Gulberg Greens';
     final imageUrl = _profileImageUrl?.trim();
 
     return Container(
@@ -130,15 +214,15 @@ class _SellerCardState extends State<_SellerCard> {
                 ),
               ),
               InkWell(
-  onTap: () => Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => ChatScreen(
-        sellerName: sellerName,
-        receiverId: widget.product.sellerUserId,
-      ),
-    ),
-  ),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ChatScreen(
+                      sellerName: sellerName,
+                      receiverId: widget.product.sellerUserId,
+                    ),
+                  ),
+                ),
                 borderRadius: BorderRadius.circular(16),
                 child: Container(
                   padding: const EdgeInsets.all(12),
@@ -150,8 +234,11 @@ class _SellerCardState extends State<_SellerCard> {
                       width: 1.2,
                     ),
                   ),
-                  child: const Icon(Icons.chat_bubble_outline,
-                      color: accent, size: 20),
+                  child: const Icon(
+                    Icons.chat_bubble_outline,
+                    color: accent,
+                    size: 20,
+                  ),
                 ),
               ),
             ],
@@ -179,8 +266,11 @@ class _SellerCardState extends State<_SellerCard> {
                 AnimatedRotation(
                   turns: isExpanded ? .5 : 0,
                   duration: const Duration(milliseconds: 300),
-                  child: const Icon(Icons.expand_more,
-                      color: Colors.black38, size: 20),
+                  child: const Icon(
+                    Icons.expand_more,
+                    color: Colors.black38,
+                    size: 20,
+                  ),
                 ),
               ],
             ),
@@ -201,6 +291,23 @@ class ProductDetailsScreen extends StatefulWidget {
 }
 
 class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
+  // ✅ Show animated card
+  void _showAnimatedCard(String message, {IconData? icon}) {
+    final overlay = Overlay.of(context);
+
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: 50,
+        left: 20,
+        right: 20,
+        child: AnimatedCard(message: message, icon: icon),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 2), () => overlayEntry.remove());
+  }
+
   @override
   Widget build(BuildContext context) {
     final product = widget.product;
@@ -262,8 +369,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             itemBuilder: (_, i) => GestureDetector(
               onTap: () => _openZoomViewer(product.images, i),
               child: ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(bottom: Radius.circular(40)),
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(40),
+                ),
                 child: product.images[i].startsWith('http')
                     ? Image.network(
                         product.images[i],
@@ -443,12 +551,16 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             children: List.generate(
               terms.length,
               (index) => Padding(
-                padding:
-                    EdgeInsets.only(bottom: index < terms.length - 1 ? 12 : 0),
+                padding: EdgeInsets.only(
+                  bottom: index < terms.length - 1 ? 12 : 0,
+                ),
                 child: Row(
                   children: [
-                    Icon(Icons.check_circle,
-                        color: accent.withOpacity(0.85), size: 18),
+                    Icon(
+                      Icons.check_circle,
+                      color: accent.withOpacity(0.85),
+                      size: 18,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -492,10 +604,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             decoration: BoxDecoration(
               color: accent.withOpacity(0.08),
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: accent.withOpacity(0.2),
-                width: 1.2,
-              ),
+              border: Border.all(color: accent.withOpacity(0.2), width: 1.2),
             ),
             child: IconButton(
               icon: const Icon(Icons.shopping_cart_outlined),
@@ -503,11 +612,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               iconSize: 22,
               onPressed: () {
                 context.read<CartProvider>().addProduct(widget.product);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('${widget.product.name} added to cart'),
-                    behavior: SnackBarBehavior.floating,
-                  ),
+                _showAnimatedCard(
+                  '${widget.product.name} added to cart',
+                  icon: Icons.shopping_cart,
                 );
                 Navigator.pushNamed(context, '/cart');
               },
@@ -535,7 +642,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => PaymentSelectionScreen( productId: widget.product.id),
+                      builder: (_) =>
+                          PaymentSelectionScreen(productId: widget.product.id),
                     ),
                   ),
                   child: Center(
@@ -574,8 +682,11 @@ class _InfoCard extends StatelessWidget {
   final String label;
   final String value;
 
-  const _InfoCard(
-      {required this.icon, required this.label, required this.value});
+  const _InfoCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -606,17 +717,23 @@ class _InfoCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label,
-                  style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: Colors.black38,
-                      fontWeight: FontWeight.w500)),
+              Text(
+                label,
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: Colors.black38,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
               const SizedBox(height: 4),
-              Text(value,
-                  style: GoogleFonts.poppins(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: dark)),
+              Text(
+                value,
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: dark,
+                ),
+              ),
             ],
           ),
         ],
@@ -694,7 +811,10 @@ class _ZoomImageViewerState extends State<_ZoomImageViewer> {
           if (_showHint)
             Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(0.6),
                   borderRadius: BorderRadius.circular(30),

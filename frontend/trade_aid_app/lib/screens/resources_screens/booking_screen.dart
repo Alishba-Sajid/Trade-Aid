@@ -571,12 +571,9 @@ class _AnimatedSnackCardState extends State<_AnimatedSnackCard>
     );
 
     _offsetAnimation = Tween<Offset>(
-      begin: const Offset(0, -1.5),
-      end: const Offset(0, 0.1),
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.elasticOut,
-    ));
+      begin: const Offset(0, 1.0),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
 
     _controller.forward();
 
@@ -597,22 +594,28 @@ class _AnimatedSnackCardState extends State<_AnimatedSnackCard>
   Widget build(BuildContext context) {
     return SafeArea(
       child: Align(
-        alignment: Alignment.topCenter,
+        alignment: Alignment.bottomCenter,
         child: SlideTransition(
           position: _offsetAnimation,
           child: Material(
             color: Colors.transparent,
             child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
               decoration: BoxDecoration(
-                color: widget.isError ? const Color(0xFFE57373) : accent,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: widget.isError
+                      ? const Color(0xFFE57373)
+                      : const Color.fromARGB(255, 17, 158, 144),
+                  width: 1.2,
+                ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
+                    color: Colors.black.withOpacity(0.12),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
                   ),
                 ],
               ),
@@ -620,15 +623,19 @@ class _AnimatedSnackCardState extends State<_AnimatedSnackCard>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    widget.isError ? Icons.error_outline : Icons.check_circle_outline,
-                    color: Colors.white,
+                    widget.isError
+                        ? Icons.error_outline
+                        : Icons.check_circle_outline,
+                    color: widget.isError
+                        ? const Color(0xFFE57373)
+                        : const Color.fromARGB(255, 17, 158, 144),
                   ),
                   const SizedBox(width: 12),
                   Flexible(
                     child: Text(
                       widget.message,
                       style: GoogleFonts.poppins(
-                        color: Colors.white,
+                        color: Colors.black,
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                       ),

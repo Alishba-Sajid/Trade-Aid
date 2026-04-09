@@ -14,6 +14,81 @@ const LinearGradient appGradient = LinearGradient(
   end: Alignment.bottomRight,
 );
 
+// ✅ Animated Card (same as Create Profile)
+class AnimatedCard extends StatefulWidget {
+  final String message;
+  final IconData? icon;
+  const AnimatedCard({super.key, required this.message, this.icon});
+
+  @override
+  State<AnimatedCard> createState() => _AnimatedCardState();
+}
+
+class _AnimatedCardState extends State<AnimatedCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnim;
+  late Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    _offsetAnim = Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SlideTransition(
+      position: _offsetAnim,
+      child: FadeTransition(
+        opacity: _fadeAnim,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: accentTeal, width: 1),
+            ),
+            child: Row(
+              children: [
+                if (widget.icon != null) Icon(widget.icon, color: accentTeal),
+                if (widget.icon != null) const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.message,
+                    style: const TextStyle(color: Colors.black),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class PostWishRequestScreen extends StatefulWidget {
   final String communityId;
   const PostWishRequestScreen({super.key, required this.communityId});
@@ -28,12 +103,29 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
   final TextEditingController _itemController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
 
+  // ✅ Show Animated Card
+  void _showAnimatedCard(String message, {IconData? icon}) {
+    final overlay = Overlay.of(context);
+
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: 50,
+        left: 20,
+        right: 20,
+        child: AnimatedCard(message: message, icon: icon),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 2), () {
+      overlayEntry.remove();
+    });
+  }
+
   /// CONFIRMATION DIALOG
   void _showConfirmDialog() {
     if (_itemController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter the item name")),
-      );
+      _showAnimatedCard("Please enter the item name", icon: Icons.error);
       return;
     }
 
@@ -140,15 +232,12 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
       final user = supabase.auth.currentUser;
 
       if (user == null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("User not logged in")));
+        _showAnimatedCard("User not logged in", icon: Icons.error);
         return;
       }
 
       final userId = user.id;
 
-      /// FETCH COMMUNITY
       final member = await supabase
           .from('community_members')
           .select('community_id')
@@ -156,15 +245,12 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
           .maybeSingle();
 
       if (member == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("You are not in any community")),
-        );
+        _showAnimatedCard("You are not in any community", icon: Icons.error);
         return;
       }
 
       communityId = member['community_id'] as String;
 
-      /// INSERT WISH REQUEST
       await supabase.from('wish_requests').insert({
         'community_id': communityId,
         'user_id': userId,
@@ -173,8 +259,6 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
         'urgent': urgent,
       });
 
-      /// FETCH USER NAME FROM PROFILE
-      /// FETCH USER NAME FROM PROFILE
       final profile = await supabase
           .from('profiles')
           .select('full_name')
@@ -183,30 +267,22 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
 
       final userName = profile['full_name'];
 
-      debugPrint("USER ID: ${user.id}");
-
-      /// INSERT COMMUNITY NOTIFICATION
-      /// 🔥 FETCH ALL COMMUNITY MEMBERS
       final members = await supabase
           .from('community_members')
           .select('user_id')
           .eq('community_id', communityId);
 
-      /// 🔥 SEND NOTIFICATION TO EACH MEMBER
       for (var m in members) {
         await supabase.from('notifications').insert({
-          'user_id': m['user_id'], // ✅ REQUIRED
+          'user_id': m['user_id'],
           'community_id': communityId,
           'title': 'New Wish Request',
           'message': '$userName requested $itemName',
           'type': 'wish_request',
         });
-        print("Inserted notifications for ${members.length} users");
       }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Wish posted successfully")));
+      _showAnimatedCard("Wish posted successfully 🎉", icon: Icons.check);
 
       _itemController.clear();
       _descController.clear();
@@ -215,12 +291,7 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
         isHighUrgency = false;
       });
     } catch (e) {
-      debugPrint("POST ERROR: $e");
-      debugPrint("Community ID: $communityId");
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error : $e")));
+      _showAnimatedCard("Error: $e", icon: Icons.error);
     }
   }
 
@@ -270,45 +341,21 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
                     decoration: BoxDecoration(
                       color: backgroundLight,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: isHighUrgency
-                            ? Colors.orangeAccent
-                            : Colors.transparent,
-                      ),
                     ),
                     child: Row(
                       children: [
-                        Icon(
-                          Icons.bolt_rounded,
-                          color: isHighUrgency
-                              ? Colors.orangeAccent
-                              : accentTeal,
-                        ),
+                        Icon(Icons.bolt_rounded, color: accentTeal),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Mark as Urgent",
-                                style: GoogleFonts.poppins(
-                                  fontWeight: FontWeight.w600,
-                                  color: darkPrimary,
-                                ),
-                              ),
-                              Text(
-                                "Use this if you need the item immediately",
-                                style: GoogleFonts.poppins(
-                                  fontSize: 11,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ],
+                          child: Text(
+                            "Mark as Urgent",
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                         Switch(
                           value: isHighUrgency,
-                          activeColor: Colors.orangeAccent,
                           onChanged: (val) =>
                               setState(() => isHighUrgency = val),
                         ),
@@ -352,14 +399,7 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: GoogleFonts.poppins(
-            fontSize: 13,
-            color: Colors.grey[600],
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        Text(label, style: GoogleFonts.poppins()),
         const SizedBox(height: 8),
         TextField(
           controller: controller,
@@ -367,14 +407,7 @@ class _PostWishRequestScreenState extends State<PostWishRequestScreen> {
           maxLength: maxLength,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: GoogleFonts.poppins(color: Colors.grey[400]),
-            filled: true,
-            fillColor: backgroundLight.withOpacity(0.5),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(15),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding: const EdgeInsets.all(16),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
           ),
         ),
       ],

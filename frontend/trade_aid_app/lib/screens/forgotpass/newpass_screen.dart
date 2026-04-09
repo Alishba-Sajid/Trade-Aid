@@ -49,6 +49,36 @@ class _NewPasswordScreenState extends State<NewPasswordScreen>
     super.dispose();
   }
 
+  // ✅ Animated card (bottom)
+  void _showAnimatedCard(String message, {bool isError = false}) {
+    final overlay = Overlay.of(context);
+
+    late OverlayEntry overlayEntry;
+
+    overlayEntry = OverlayEntry(
+      builder: (context) {
+        return Positioned(
+          bottom: 50,
+          left: 20,
+          right: 20,
+          child: Material(
+            color: Colors.transparent,
+            child: AnimatedCard(
+              message: message,
+              icon: isError ? Icons.error : Icons.check_circle,
+            ),
+          ),
+        );
+      },
+    );
+
+    overlay.insert(overlayEntry);
+
+    Future.delayed(const Duration(seconds: 2), () {
+      overlayEntry.remove();
+    });
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -61,15 +91,12 @@ class _NewPasswordScreenState extends State<NewPasswordScreen>
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Password updated successfully")),
-      );
+      _showAnimatedCard("Password updated successfully");
 
       Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to update password")),
-      );
+      if (!mounted) return;
+      _showAnimatedCard("Failed to update password", isError: true);
     }
 
     setState(() => _loading = false);
@@ -85,7 +112,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen>
           height: MediaQuery.of(context).size.height,
           child: Stack(
             children: [
-              // 🌈 Small Gradient Header
+              // 🌈 Header
               Container(
                 height: 100,
                 width: double.infinity,
@@ -151,7 +178,6 @@ class _NewPasswordScreenState extends State<NewPasswordScreen>
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // 🖼 Image (you will add your own)
                             Image.asset('assets/reset_pass.png', height: 180),
 
                             const SizedBox(height: 20),
@@ -225,7 +251,6 @@ class _NewPasswordScreenState extends State<NewPasswordScreen>
 
                             const SizedBox(height: 40),
 
-                            // 💾 Save button
                             SizedBox(
                               width: double.infinity,
                               height: 50,
@@ -269,6 +294,90 @@ class _NewPasswordScreenState extends State<NewPasswordScreen>
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ✅ Animated Card Widget (same as other screens)
+class AnimatedCard extends StatefulWidget {
+  final String message;
+  final IconData? icon;
+
+  const AnimatedCard({super.key, required this.message, this.icon});
+
+  @override
+  State<AnimatedCard> createState() => _AnimatedCardState();
+}
+
+class _AnimatedCardState extends State<AnimatedCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnim;
+  late Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+
+    _offsetAnim = Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SlideTransition(
+      position: _offsetAnim,
+      child: FadeTransition(
+        opacity: _fadeAnim,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color.fromARGB(255, 17, 158, 144),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                if (widget.icon != null)
+                  Icon(
+                    widget.icon,
+                    color: const Color.fromARGB(255, 17, 158, 144),
+                  ),
+                if (widget.icon != null) const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.message,
+                    style: const TextStyle(color: Colors.black),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

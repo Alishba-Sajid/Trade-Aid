@@ -21,6 +21,90 @@ const Color dark = Color(0xFF004D40);
 const Color light = Color(0xFFF0F9F8);
 const Color accent = Color(0xFF119E90);
 
+// ✅ Animated card widget (same style as other screens)
+class AnimatedCard extends StatefulWidget {
+  final String message;
+  final IconData? icon;
+  const AnimatedCard({super.key, required this.message, this.icon});
+
+  @override
+  State<AnimatedCard> createState() => _AnimatedCardState();
+}
+
+class _AnimatedCardState extends State<AnimatedCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnim;
+  late Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    _offsetAnim = Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SlideTransition(
+      position: _offsetAnim,
+      child: FadeTransition(
+        opacity: _fadeAnim,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color.fromARGB(255, 17, 158, 144),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.icon != null)
+                  Icon(
+                    widget.icon,
+                    color: const Color.fromARGB(255, 17, 158, 144),
+                  ),
+                if (widget.icon != null) const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.message,
+                    style: const TextStyle(color: Colors.black),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class ResourceListingScreen extends StatefulWidget {
   final String communityId;
 
@@ -35,7 +119,6 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
   List<Resource> resources = [];
   bool isLoading = true;
 
- 
   String formatTo12Hour(String time) {
     final parts = time.split(":");
     int hour = int.parse(parts[0]);
@@ -48,6 +131,24 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
 
     return "$hour:$minute $period";
   }
+
+  // ✅ Show animated card
+  void _showAnimatedCard(String message, {IconData? icon}) {
+    final overlay = Overlay.of(context);
+
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: 50,
+        left: 20,
+        right: 20,
+        child: AnimatedCard(message: message, icon: icon),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 2), () => overlayEntry.remove());
+  }
+
   // ✅ Add your toggleResource method here
   Future<void> toggleResource(String resourceId, bool enable) async {
     final supabase = Supabase.instance.client;
@@ -387,11 +488,11 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
                   "Days",
                   r.availableDays.join(', '),
                 ),
-               _infoRow(
-  Icons.access_time,
-  "Time",
-  "${formatTo12Hour(r.availableTime.split(' - ')[0])} - ${formatTo12Hour(r.availableTime.split(' - ')[1])}",
-),
+                _infoRow(
+                  Icons.access_time,
+                  "Time",
+                  "${formatTo12Hour(r.availableTime.split(' - ')[0])} - ${formatTo12Hour(r.availableTime.split(' - ')[1])}",
+                ),
                 _infoRow(Icons.person_outline, "Owner", r.ownerName),
 
                 const SizedBox(height: 12),
@@ -410,13 +511,15 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                              builder: (context) => BookingScreen(
-  resourceId: r.id,
-  resourceName: r.name,
-  ownerId: r.ownerUserId,
-  startTimeLimit: r.availableTime.split(' - ')[0],
-  endTimeLimit: r.availableTime.split(' - ')[1],
-),
+                                builder: (context) => BookingScreen(
+                                  resourceId: r.id,
+                                  resourceName: r.name,
+                                  ownerId: r.ownerUserId,
+                                  startTimeLimit: r.availableTime.split(
+                                    ' - ',
+                                  )[0],
+                                  endTimeLimit: r.availableTime.split(' - ')[1],
+                                ),
                               ),
                             );
                           },
@@ -445,11 +548,9 @@ class _ResourceListingScreenState extends State<ResourceListingScreen> {
                       child: IconButton(
                         onPressed: () {
                           context.read<CartProvider>().addResource(r);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('${r.name} added to cart'),
-                              behavior: SnackBarBehavior.floating,
-                            ),
+                          _showAnimatedCard(
+                            '${r.name} added to cart',
+                            icon: Icons.shopping_cart,
                           );
                           Navigator.pushNamed(context, '/cart');
                         },

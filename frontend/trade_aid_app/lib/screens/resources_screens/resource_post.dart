@@ -17,13 +17,94 @@ const Color darkPrimary = Color(0xFF004D40);
 const Color backgroundLight = Color(0xFFF8FAFA);
 const Color accentTeal = Color(0xFF119E90);
 
+// ✅ Animated card widget (same style as login/create account)
+class AnimatedCard extends StatefulWidget {
+  final String message;
+  final IconData? icon;
+  const AnimatedCard({super.key, required this.message, this.icon});
+
+  @override
+  State<AnimatedCard> createState() => _AnimatedCardState();
+}
+
+class _AnimatedCardState extends State<AnimatedCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnim;
+  late Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    _offsetAnim = Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SlideTransition(
+      position: _offsetAnim,
+      child: FadeTransition(
+        opacity: _fadeAnim,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color.fromARGB(255, 17, 158, 144),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.icon != null)
+                  Icon(
+                    widget.icon,
+                    color: const Color.fromARGB(255, 17, 158, 144),
+                  ),
+                if (widget.icon != null) const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.message,
+                    style: const TextStyle(color: Colors.black),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class ResourcePostScreen extends StatefulWidget {
   final String communityId;
 
-  const ResourcePostScreen({
-    super.key,
-    required this.communityId,
-  });
+  const ResourcePostScreen({super.key, required this.communityId});
 
   @override
   State<ResourcePostScreen> createState() => _ResourcePostScreenState();
@@ -50,7 +131,7 @@ class _ResourcePostScreenState extends State<ResourcePostScreen> {
   TimeOfDay? _endTime;
   String? _description;
   String? _rate;
-  String? _name; 
+  String? _name;
   // ---------------- IMAGE HANDLING ----------------
   Future<void> _pickImage(int slot) async {
     FocusScope.of(context).unfocus();
@@ -82,8 +163,10 @@ class _ResourcePostScreenState extends State<ResourcePostScreen> {
               },
             ),
             ListTile(
-              leading:
-                  const Icon(Icons.delete_outline, color: Colors.redAccent),
+              leading: const Icon(
+                Icons.delete_outline,
+                color: Colors.redAccent,
+              ),
               title: const Text("Remove Photo"),
               onTap: () {
                 Navigator.pop(context);
@@ -118,8 +201,11 @@ class _ResourcePostScreenState extends State<ResourcePostScreen> {
             ? Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.photo_camera_outlined,
-                      size: 28, color: accentTeal.withOpacity(0.6)),
+                  Icon(
+                    Icons.photo_camera_outlined,
+                    size: 28,
+                    color: accentTeal.withOpacity(0.6),
+                  ),
                   const SizedBox(height: 6),
                   const Text(
                     "UPLOAD",
@@ -167,18 +253,21 @@ class _ResourcePostScreenState extends State<ResourcePostScreen> {
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide:
-            BorderSide(color: Colors.blueGrey.withOpacity(0.2), width: 1),
+        borderSide: BorderSide(
+          color: Colors.blueGrey.withOpacity(0.2),
+          width: 1,
+        ),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide:
-            BorderSide(color: Colors.blueGrey.withOpacity(0.2), width: 1),
+        borderSide: BorderSide(
+          color: Colors.blueGrey.withOpacity(0.2),
+          width: 1,
+        ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide:
-            BorderSide(color: accentTeal.withOpacity(0.6), width: 1.5),
+        borderSide: BorderSide(color: accentTeal.withOpacity(0.6), width: 1.5),
       ),
     );
   }
@@ -242,8 +331,9 @@ class _ResourcePostScreenState extends State<ResourcePostScreen> {
 
   // ---------------- TIME PICKER ----------------
   Future<void> _pickTime(bool isStart) async {
-    final initial =
-        isStart ? _startTime ?? TimeOfDay.now() : _endTime ?? TimeOfDay.now();
+    final initial = isStart
+        ? _startTime ?? TimeOfDay.now()
+        : _endTime ?? TimeOfDay.now();
     final picked = await showTealTimePicker(
       context,
       initialTime: initial,
@@ -269,8 +359,10 @@ class _ResourcePostScreenState extends State<ResourcePostScreen> {
       ),
       child: Column(
         children: [
-          Text(label,
-              style: const TextStyle(fontSize: 12, color: Colors.blueGrey)),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12, color: Colors.blueGrey),
+          ),
           const SizedBox(height: 4),
           Text(
             time?.format(context) ?? "--:--",
@@ -281,91 +373,104 @@ class _ResourcePostScreenState extends State<ResourcePostScreen> {
     );
   }
 
-  // ---------------- SUBMIT ----------------
-Future<void> _submit() async {
-  FocusScope.of(context).unfocus();
+  // ✅ Show animated card
+  void _showAnimatedCard(String message, {IconData? icon}) {
+    final overlay = Overlay.of(context);
 
-  if (!_formKey.currentState!.validate()) return;
-
-  if (!_images.any((e) => e != null)) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text("Upload at least one image")));
-    return;
-  }
-
-  if (!_availableDays.containsValue(true)) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text("Select at least one available day")));
-    return;
-  }
-
-  if (_startTime == null || _endTime == null) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text("Select start and end time")));
-    return;
-  }
-
-  _formKey.currentState!.save();
-  setState(() => _isLoading = true);
-
-  try {
-    final supabase = Supabase.instance.client;
-    final user = supabase.auth.currentUser;
-    if (user == null) throw Exception("User not authenticated");
-
-    // ---------------- CONVERT TIME ----------------
-    String _timeToString(TimeOfDay time) =>
-        '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-
-    // ---------------- UPLOAD IMAGES ----------------
-    List<String> imageUrls = [];
-
-    for (var image in _images.whereType<XFile>()) {
-      final file = File(image.path);
-      final filePath =
-          "${widget.communityId}/${user.id}/${DateTime.now().millisecondsSinceEpoch}.jpg";
-
-      await supabase.storage.from('resource-images').upload(filePath, file);
-      final imageUrl = supabase.storage.from('resource-images').getPublicUrl(filePath);
-      imageUrls.add(imageUrl);
-    }
-
-    final selectedDays = _availableDays.entries
-        .where((entry) => entry.value)
-        .map((entry) => entry.key)
-        .toList();
-
-    // ---------------- INSERT RESOURCE ----------------
-    await supabase.from('resources').insert({
-      'community_id': widget.communityId,
-      'user_id': user.id,
-      'description': _description!.trim(),
-      'name': _name!.trim(),
-      'rate': double.parse(_rate!.trim()),
-      'available_days': selectedDays,
-      'start_time': _timeToString(_startTime!),
-      'end_time': _timeToString(_endTime!),
-      'images': imageUrls,
-      'is_enabled': true, // default enabled
-    });
-
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        backgroundColor: darkPrimary,
-        content: Text("Resource Posted Successfully"),
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: 50,
+        left: 20,
+        right: 20,
+        child: AnimatedCard(message: message, icon: icon),
       ),
     );
 
-    Navigator.pop(context, true);
-  } catch (e) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(e.toString())));
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 2), () => overlayEntry.remove());
   }
 
-  if (mounted) setState(() => _isLoading = false);
-}
+  // ---------------- SUBMIT ----------------
+  Future<void> _submit() async {
+    FocusScope.of(context).unfocus();
+
+    if (!_formKey.currentState!.validate()) return;
+
+    if (!_images.any((e) => e != null)) {
+      _showAnimatedCard("Upload at least one image", icon: Icons.warning);
+      return;
+    }
+
+    if (!_availableDays.containsValue(true)) {
+      _showAnimatedCard(
+        "Select at least one available day",
+        icon: Icons.warning,
+      );
+      return;
+    }
+
+    if (_startTime == null || _endTime == null) {
+      _showAnimatedCard("Select start and end time", icon: Icons.warning);
+      return;
+    }
+
+    _formKey.currentState!.save();
+    setState(() => _isLoading = true);
+
+    try {
+      final supabase = Supabase.instance.client;
+      final user = supabase.auth.currentUser;
+      if (user == null) throw Exception("User not authenticated");
+
+      // ---------------- CONVERT TIME ----------------
+      String _timeToString(TimeOfDay time) =>
+          '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+
+      // ---------------- UPLOAD IMAGES ----------------
+      List<String> imageUrls = [];
+
+      for (var image in _images.whereType<XFile>()) {
+        final file = File(image.path);
+        final filePath =
+            "${widget.communityId}/${user.id}/${DateTime.now().millisecondsSinceEpoch}.jpg";
+
+        await supabase.storage.from('resource-images').upload(filePath, file);
+        final imageUrl = supabase.storage
+            .from('resource-images')
+            .getPublicUrl(filePath);
+        imageUrls.add(imageUrl);
+      }
+
+      final selectedDays = _availableDays.entries
+          .where((entry) => entry.value)
+          .map((entry) => entry.key)
+          .toList();
+
+      // ---------------- INSERT RESOURCE ----------------
+      await supabase.from('resources').insert({
+        'community_id': widget.communityId,
+        'user_id': user.id,
+        'description': _description!.trim(),
+        'name': _name!.trim(),
+        'rate': double.parse(_rate!.trim()),
+        'available_days': selectedDays,
+        'start_time': _timeToString(_startTime!),
+        'end_time': _timeToString(_endTime!),
+        'images': imageUrls,
+        'is_enabled': true, // default enabled
+      });
+
+      if (!mounted) return;
+
+      _showAnimatedCard("Resource Posted Successfully", icon: Icons.check);
+
+      Navigator.pop(context, true);
+    } catch (e) {
+      _showAnimatedCard(e.toString(), icon: Icons.error);
+    }
+
+    if (mounted) setState(() => _isLoading = false);
+  }
 
   // ---------------- UI ----------------
   @override
@@ -380,7 +485,13 @@ Future<void> _submit() async {
             height: 100,
             decoration: const BoxDecoration(
               gradient: appGradient,
-              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 4,
+                  offset: Offset(0, 2),
+                ),
+              ],
             ),
             child: SafeArea(
               child: Padding(
@@ -388,8 +499,18 @@ Future<void> _submit() async {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.arrow_back, color: Colors.white)),
-                    const Text("Post Resource", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600)),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    ),
+                    const Text(
+                      "Post Resource",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     const SizedBox(width: 48),
                   ],
                 ),
@@ -419,16 +540,17 @@ Future<void> _submit() async {
                     ),
                   ),
                   const SizedBox(height: 20),
-                 _sectionHeading("RESOURCE NAME"),
+                  _sectionHeading("RESOURCE NAME"),
                   const SizedBox(height: 8),
                   TextFormField(
                     maxLines: 1,
                     decoration: _modernInput("Enter Resource Name"),
-                    validator: (v) => v == null || v.isEmpty ? "Required" : null,
+                    validator: (v) =>
+                        v == null || v.isEmpty ? "Required" : null,
                     onSaved: (v) => _name = v,
                   ),
                   const SizedBox(height: 1),
-                 
+
                   const SizedBox(height: 20),
                   _sectionHeading("DETAILS"),
                   const SizedBox(height: 8),
@@ -436,7 +558,8 @@ Future<void> _submit() async {
                     maxLines: 3,
                     maxLength: 250,
                     decoration: _modernInput("Enter Resource Details"),
-                    validator: (v) => v == null || v.isEmpty ? "Required" : null,
+                    validator: (v) =>
+                        v == null || v.isEmpty ? "Required" : null,
                     onSaved: (v) => _description = v,
                   ),
                   const SizedBox(height: 20),
@@ -447,9 +570,19 @@ Future<void> _submit() async {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Expanded(child: InkWell(onTap: () => _pickTime(true), child: _timeBox("Start Time", _startTime))),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => _pickTime(true),
+                          child: _timeBox("Start Time", _startTime),
+                        ),
+                      ),
                       const SizedBox(width: 12),
-                      Expanded(child: InkWell(onTap: () => _pickTime(false), child: _timeBox("End Time", _endTime))),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => _pickTime(false),
+                          child: _timeBox("End Time", _endTime),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -459,7 +592,8 @@ Future<void> _submit() async {
                   TextFormField(
                     keyboardType: TextInputType.number,
                     decoration: _modernInput("Hourly Rate (PKR)"),
-                    validator: (v) => v == null || v.isEmpty ? "Required" : null,
+                    validator: (v) =>
+                        v == null || v.isEmpty ? "Required" : null,
                     onSaved: (v) => _rate = v,
                   ),
                   const SizedBox(height: 30),
@@ -471,14 +605,35 @@ Future<void> _submit() async {
                       decoration: BoxDecoration(
                         gradient: appGradient,
                         borderRadius: BorderRadius.circular(16),
-                        boxShadow: [BoxShadow(color: accentTeal.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10))],
+                        boxShadow: [
+                          BoxShadow(
+                            color: accentTeal.withOpacity(0.3),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
                       ),
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _submit,
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                        ),
                         child: _isLoading
-                            ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white))
-                            : const Text("Post Resource", style: TextStyle(letterSpacing: 2, fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                            ? const CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                "Post Resource",
+                                style: TextStyle(
+                                  letterSpacing: 2,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
                       ),
                     ),
                   ),

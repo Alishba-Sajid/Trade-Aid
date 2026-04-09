@@ -37,57 +37,61 @@ class _WishRequestsScreenState extends State<WishRequestsScreen> {
     super.initState();
     _fetchCommunityWishRequests();
   }
-Future<void> _fetchCommunityWishRequests() async {
-  setState(() => loading = true);
 
-  try {
-    final supabase = Supabase.instance.client;
+  Future<void> _fetchCommunityWishRequests() async {
+    setState(() => loading = true);
 
-    final data = await supabase
-        .from('wish_requests')
-        .select('id,item_name,description,urgent,user_id,created_at')
-        .eq('community_id', widget.communityId)
-        .gte(
-          'created_at',
-          DateTime.now().subtract(const Duration(days: 7)).toIso8601String(),
-        )
-        .order('created_at', ascending: false);
+    try {
+      final supabase = Supabase.instance.client;
 
-    final List<Map<String, dynamic>> dataList =
-        List<Map<String, dynamic>>.from(data);
+      final data = await supabase
+          .from('wish_requests')
+          .select('id,item_name,description,urgent,user_id,created_at')
+          .eq('community_id', widget.communityId)
+          .gte(
+            'created_at',
+            DateTime.now().subtract(const Duration(days: 7)).toIso8601String(),
+          )
+          .order('created_at', ascending: false);
 
-    debugPrint("Fetched wish requests: ${dataList.length}");
+      final List<Map<String, dynamic>> dataList =
+          List<Map<String, dynamic>>.from(data);
 
-    final mapped = await Future.wait(dataList.map((r) async {
-      final profile = await supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('user_id', r['user_id'])
-          .maybeSingle();
+      debugPrint("Fetched wish requests: ${dataList.length}");
 
-      return {
-        'id': r['id'],
-        'requester': profile?['full_name'] ?? 'Unknown',
-        'requesterId': r['user_id'],
-        'item': r['item_name'],
-        'description': r['description'],
-        'urgency': r['urgent'] == true ? 'High' : 'Normal',
-        'timeAgo': _formatTimeAgo(DateTime.parse(r['created_at'])),
-      };
-    }).toList());
+      final mapped = await Future.wait(
+        dataList.map((r) async {
+          final profile = await supabase
+              .from('profiles')
+              .select('full_name')
+              .eq('user_id', r['user_id'])
+              .maybeSingle();
 
-    setState(() {
-      requests = mapped;
-      loading = false;
-    });
-  } catch (e) {
-    debugPrint("Error fetching requests: $e");
-    setState(() {
-      requests = [];
-      loading = false;
-    });
+          return {
+            'id': r['id'],
+            'requester': profile?['full_name'] ?? 'Unknown',
+            'requesterId': r['user_id'],
+            'item': r['item_name'],
+            'description': r['description'],
+            'urgency': r['urgent'] == true ? 'High' : 'Normal',
+            'timeAgo': _formatTimeAgo(DateTime.parse(r['created_at'])),
+          };
+        }).toList(),
+      );
+
+      setState(() {
+        requests = mapped;
+        loading = false;
+      });
+    } catch (e) {
+      debugPrint("Error fetching requests: $e");
+      setState(() {
+        requests = [];
+        loading = false;
+      });
+    }
   }
-}
+
   String _formatTimeAgo(DateTime createdAt) {
     final diff = DateTime.now().difference(createdAt);
 
@@ -112,13 +116,13 @@ Future<void> _fetchCommunityWishRequests() async {
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : requests.isEmpty
-              ? const Center(child: Text("No requests in your community"))
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(20, 30, 20, 100),
-                  itemCount: requests.length,
-                  itemBuilder: (context, index) =>
-                      _buildRequestCard(requests[index]),
-                ),
+          ? const Center(child: Text("No requests in your community"))
+          : ListView.builder(
+              padding: const EdgeInsets.fromLTRB(20, 30, 20, 100),
+              itemCount: requests.length,
+              itemBuilder: (context, index) =>
+                  _buildRequestCard(requests[index]),
+            ),
 
       floatingActionButton: Container(
         decoration: BoxDecoration(
@@ -139,9 +143,8 @@ Future<void> _fetchCommunityWishRequests() async {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => PostWishRequestScreen(
-                    communityId: widget.communityId,
-                  ),
+                  builder: (_) =>
+                      PostWishRequestScreen(communityId: widget.communityId),
                 ),
               ).then((_) => _fetchCommunityWishRequests());
             },
@@ -201,7 +204,6 @@ Future<void> _fetchCommunityWishRequests() async {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-
                       /// Requester row
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -272,89 +274,190 @@ Future<void> _fetchCommunityWishRequests() async {
                           Expanded(
                             child: ElevatedButton(
                               onPressed: () async {
-
                                 showDialog<bool>(
                                   context: context,
                                   builder: (context) => Dialog(
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(18),
+                                    backgroundColor: Colors.transparent,
+                                    insetPadding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
                                     ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(20),
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Text(
-                                            "Make Product Public?",
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.w700,
-                                              color: darkPrimary,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(2),
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          colors: [
+                                            Color.fromARGB(255, 15, 119, 124),
+                                            Color.fromARGB(255, 17, 158, 144),
+                                          ],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
+                                        borderRadius: BorderRadius.circular(24),
+                                      ),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(20),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(
+                                            20,
+                                          ),
+                                        ),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            /// 🔥 Icon
+                                            Container(
+                                              height: 60,
+                                              width: 60,
+                                              decoration: BoxDecoration(
+                                                gradient: appGradient,
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: const Icon(
+                                                Icons.public,
+                                                color: Colors.white,
+                                                size: 28,
+                                              ),
                                             ),
-                                          ),
-                                          const SizedBox(height: 10),
-                                          const Text(
-                                            "Do you want to make this product public after 48 hours?",
-                                            textAlign: TextAlign.center,
-                                          ),
-                                          const SizedBox(height: 24),
 
-                                          Row(
-                                            children: [
-                                              Expanded(
-                                                child: OutlinedButton(
-                                                  onPressed: () {
-                                                    Navigator.pop(context);
-                                                    Navigator.pushNamed(
-                                                      context,
-                                                      '/product_post',
-                                                      arguments: {
-                                                        'wishId': request['id'],
-                                                        'makePublicAfter48Hours': false,
-                                                        'communityId': widget.communityId,
-                                                        'requesterId': request['requesterId'],
-                                                      },
-                                                    );
-                                                  },
-                                                  child: const Text("No"),
-                                                ),
+                                            const SizedBox(height: 16),
+
+                                            /// 📝 Title
+                                            const Text(
+                                              "Make Product Public?",
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.w700,
+                                                color: darkPrimary,
                                               ),
+                                            ),
 
-                                              const SizedBox(width: 12),
+                                            const SizedBox(height: 10),
 
-                                              Expanded(
-                                                child: Container(
-                                                  decoration: BoxDecoration(
-                                                    gradient: appGradient,
-                                                    borderRadius:
-                                                        BorderRadius.circular(10),
-                                                  ),
-                                                  child: ElevatedButton(
-                                                    onPressed: () {
-                                                      Navigator.pop(context);
-                                                      Navigator.pushNamed(
-                                                        context,
-                                                        '/product_post',
-                                                        arguments: {
-                                                          'wishId': request['id'],
-                                                          'makePublicAfter48Hours': true,
-                                                          'communityId': widget.communityId,
-                                                          'requesterId': request['requesterId'],
-                                                        },
-                                                      );
-                                                    },
-                                                    style: ElevatedButton.styleFrom(
-                                                      backgroundColor:
-                                                          Colors.transparent,
-                                                      shadowColor: Colors.transparent,
+                                            /// 📄 Description
+                                            Text(
+                                              "Do you want to make this product public after 48 hours?",
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: Colors.grey[600],
+                                                height: 1.4,
+                                              ),
+                                            ),
+
+                                            const SizedBox(height: 24),
+
+                                            /// 🎯 Buttons
+                                            Row(
+                                              children: [
+                                                /// ❌ NO BUTTON
+                                                Expanded(
+                                                  child: Container(
+                                                    height: 45,
+                                                    decoration: BoxDecoration(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            12,
+                                                          ),
+                                                      border: Border.all(
+                                                        color: accentTeal,
+                                                      ),
                                                     ),
-                                                    child: const Text("Yes"),
+                                                    child: InkWell(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            12,
+                                                          ),
+                                                      onTap: () {
+                                                        Navigator.pop(context);
+                                                        Navigator.pushNamed(
+                                                          context,
+                                                          '/product_post',
+                                                          arguments: {
+                                                            'wishId':
+                                                                request['id'],
+                                                            'makePublicAfter48Hours':
+                                                                false,
+                                                            'communityId': widget
+                                                                .communityId,
+                                                            'requesterId':
+                                                                request['requesterId'],
+                                                          },
+                                                        );
+                                                      },
+                                                      child: const Center(
+                                                        child: Text(
+                                                          "No",
+                                                          style: TextStyle(
+                                                            color: accentTeal,
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
+
+                                                const SizedBox(width: 12),
+
+                                                /// ✅ YES BUTTON
+                                                Expanded(
+                                                  child: Container(
+                                                    height: 45,
+                                                    decoration: BoxDecoration(
+                                                      gradient: appGradient,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            12,
+                                                          ),
+                                                    ),
+                                                    child: ElevatedButton(
+                                                      onPressed: () {
+                                                        Navigator.pop(context);
+                                                        Navigator.pushNamed(
+                                                          context,
+                                                          '/product_post',
+                                                          arguments: {
+                                                            'wishId':
+                                                                request['id'],
+                                                            'makePublicAfter48Hours':
+                                                                true,
+                                                            'communityId': widget
+                                                                .communityId,
+                                                            'requesterId':
+                                                                request['requesterId'],
+                                                          },
+                                                        );
+                                                      },
+                                                      style: ElevatedButton.styleFrom(
+                                                        backgroundColor:
+                                                            Colors.transparent,
+                                                        shadowColor:
+                                                            Colors.transparent,
+                                                        shape: RoundedRectangleBorder(
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                12,
+                                                              ),
+                                                        ),
+                                                      ),
+                                                      child: const Text(
+                                                        "Yes",
+                                                        style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -367,8 +470,9 @@ Future<void> _fetchCommunityWishRequests() async {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
                               ),
                               child: Text(
                                 "Upload Product",
@@ -382,20 +486,17 @@ Future<void> _fetchCommunityWishRequests() async {
 
                           const SizedBox(width: 12),
 
-                          _buildSmallIconButton(
-                            Icons.chat_bubble_outline,
-                            () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => ChatScreen(
-                                         sellerName: request['requester'],
-      receiverId: request['requesterId'],
-                                  ),
+                          _buildSmallIconButton(Icons.chat_bubble_outline, () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ChatScreen(
+                                  sellerName: request['requester'],
+                                  receiverId: request['requesterId'],
                                 ),
-                              );
-                            },
-                          ),
+                              ),
+                            );
+                          }),
                         ],
                       ),
                     ],
