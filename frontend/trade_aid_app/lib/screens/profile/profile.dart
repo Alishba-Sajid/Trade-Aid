@@ -2,6 +2,102 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/profile_service.dart';
 
+// Consistent Gradient used across the app
+const LinearGradient appGradient = LinearGradient(
+  colors: [
+    Color.fromARGB(255, 15, 119, 124),
+    Color.fromARGB(255, 17, 158, 144),
+  ],
+  begin: Alignment.bottomLeft,
+  end: Alignment.topRight,
+);
+
+// ✅ Reusable Animated Card Widget (Same UI as Personal Details)
+class AnimatedCard extends StatefulWidget {
+  final String message;
+  final IconData? icon;
+  const AnimatedCard({super.key, required this.message, this.icon});
+
+  @override
+  State<AnimatedCard> createState() => _AnimatedCardState();
+}
+
+class _AnimatedCardState extends State<AnimatedCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnim;
+  late Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    _offsetAnim = Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SlideTransition(
+      position: _offsetAnim,
+      child: FadeTransition(
+        opacity: _fadeAnim,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color.fromARGB(255, 17, 158, 144),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.icon != null)
+                  Icon(
+                    widget.icon,
+                    color: const Color.fromARGB(255, 17, 158, 144),
+                  ),
+                if (widget.icon != null) const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.message,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -10,7 +106,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   bool _notificationsEnabled = true;
 
   late AnimationController _starController;
@@ -44,6 +140,22 @@ class _ProfileScreenState extends State<ProfileScreen>
   void dispose() {
     _starController.dispose();
     super.dispose();
+  }
+
+  // ✅ Function to show the animated card
+  void _showAnimatedCard(String message, {IconData? icon}) {
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: 50,
+        left: 20,
+        right: 20,
+        child: AnimatedCard(message: message, icon: icon),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 2), () => overlayEntry.remove());
   }
 
   Future<void> _fetchUserName() async {
@@ -87,7 +199,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Buyer rating
         Row(
           children: [
             const Text(
@@ -103,23 +214,11 @@ class _ProfileScreenState extends State<ProfileScreen>
               child: Row(
                 children: List.generate(5, (index) {
                   if (buyerRating >= index + 1) {
-                    return const Icon(
-                      Icons.star,
-                      color: Colors.amber,
-                      size: 16,
-                    );
+                    return const Icon(Icons.star, color: Colors.amber, size: 16);
                   } else if (buyerRating > index && buyerRating < index + 1) {
-                    return const Icon(
-                      Icons.star_half,
-                      color: Colors.amber,
-                      size: 16,
-                    );
+                    return const Icon(Icons.star_half, color: Colors.amber, size: 16);
                   } else {
-                    return const Icon(
-                      Icons.star_outline,
-                      color: Colors.amber,
-                      size: 16,
-                    );
+                    return const Icon(Icons.star_outline, color: Colors.amber, size: 16);
                   }
                 }),
               ),
@@ -135,10 +234,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
           ],
         ),
-
         const SizedBox(height: 4),
-
-        // Seller rating
         Row(
           children: [
             const Text(
@@ -154,23 +250,11 @@ class _ProfileScreenState extends State<ProfileScreen>
               child: Row(
                 children: List.generate(5, (index) {
                   if (sellerRating >= index + 1) {
-                    return const Icon(
-                      Icons.star,
-                      color: Colors.amber,
-                      size: 16,
-                    );
+                    return const Icon(Icons.star, color: Colors.amber, size: 16);
                   } else if (sellerRating > index && sellerRating < index + 1) {
-                    return const Icon(
-                      Icons.star_half,
-                      color: Colors.amber,
-                      size: 16,
-                    );
+                    return const Icon(Icons.star_half, color: Colors.amber, size: 16);
                   } else {
-                    return const Icon(
-                      Icons.star_outline,
-                      color: Colors.amber,
-                      size: 16,
-                    );
+                    return const Icon(Icons.star_outline, color: Colors.amber, size: 16);
                   }
                 }),
               ),
@@ -193,116 +277,102 @@ class _ProfileScreenState extends State<ProfileScreen>
   void _showChangeLocationDialog() {
     showDialog(
       context: context,
-      barrierDismissible: false, // user must choose an option
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Icon at top
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.teal.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.location_on,
-                  color: Colors.teal,
-                  size: 50,
-                ),
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: const Color.fromARGB(255, 15, 119, 124),
+                width: 2,
               ),
-
-              const SizedBox(height: 20),
-
-              // Title
-              const Text(
-                "Change Location",
-                style: TextStyle(
-                  color: Colors.teal,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // Description
-              const Text(
-                "If your new location is more than 2 km away from your previous location, "
-                "access to your previous communities may be denied.",
-                style: TextStyle(color: Colors.black87, fontSize: 15),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 25),
-
-              // Buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  // Cancel button
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.grey),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text(
-                        "Cancel",
-                        style: TextStyle(color: Colors.grey, fontSize: 16),
-                      ),
-                    ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.teal.withOpacity(0.1),
+                    shape: BoxShape.circle,
                   ),
-
-                  const SizedBox(width: 15),
-
-                  // Yes button
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        Navigator.pushNamed(
-                          context,
-                          '/location_permission',
-                          arguments: {'fromChangeLocation': true},
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromARGB(
-                          255,
-                          30,
-                          149,
-                          125,
+                  child: const Icon(Icons.location_on_rounded, color: Colors.teal, size: 32),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  "Change Location",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.black87),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  "If your new location is more than 2 km away from your previous location, access to your previous communities may be denied.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey, fontSize: 14, height: 1.4),
+                ),
+                const SizedBox(height: 30),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          side: const BorderSide(color: Colors.teal, width: 1.5),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text(
-                        "Yes",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                        child: ShaderMask(
+                          shaderCallback: (bounds) => appGradient.createShader(
+                            Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+                          ),
+                          child: const Text(
+                            "Cancel",
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: appGradient,
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            Navigator.pushNamed(
+                              context,
+                              '/location_permission',
+                              arguments: {'fromChangeLocation': true},
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            padding: const EdgeInsets.symmetric(vertical: 15),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                          ),
+                          child: const Text(
+                            "Yes",
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -312,19 +382,12 @@ class _ProfileScreenState extends State<ProfileScreen>
       backgroundColor: Colors.grey.shade100,
       body: Stack(
         children: [
-          // Header
           Container(
             height: 260,
             decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color.fromARGB(255, 15, 119, 124),
-                  Color.fromARGB(255, 17, 158, 144),
-                ],
-              ),
+              gradient: appGradient,
             ),
           ),
-
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -338,10 +401,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-
                   const SizedBox(height: 20),
-
-                  // Profile Card
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
@@ -361,42 +421,40 @@ class _ProfileScreenState extends State<ProfileScreen>
                           backgroundColor: const Color(0xFF009688),
                           backgroundImage:
                               profileImageUrl != null &&
-                                  profileImageUrl!.isNotEmpty
-                              ? NetworkImage(profileImageUrl!)
-                              : null,
+                                      profileImageUrl!.isNotEmpty
+                                  ? NetworkImage(profileImageUrl!)
+                                  : null,
                           child:
                               (profileImageUrl == null ||
-                                  profileImageUrl!.isEmpty)
-                              ? const Icon(
-                                  Icons.person,
-                                  size: 40,
-                                  color: Colors.white,
-                                )
-                              : null,
+                                      profileImageUrl!.isEmpty)
+                                  ? const Icon(
+                                      Icons.person,
+                                      size: 40,
+                                      color: Colors.white,
+                                    )
+                                  : null,
                         ),
                         const SizedBox(width: 16),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              userName ?? "User",
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                userName ?? "User",
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            _dualRatings(),
-                            const SizedBox(height: 4),
-                          ],
+                              const SizedBox(height: 4),
+                              _dualRatings(),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 53),
-
-                  // Menu Section
                   Container(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -436,13 +494,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                                     .eq('user_id', user.id);
                               }
 
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(val
-                                      ? 'Notifications Enabled'
-                                      : 'Notifications Disabled'),
-                                  duration: const Duration(seconds: 2),
-                                ),
+                              // ✅ Replaced SnackBar with Animated Card
+                              _showAnimatedCard(
+                                val ? 'Notifications Enabled' : 'Notifications Disabled',
+                                icon: val ? Icons.notifications_active : Icons.notifications_off,
                               );
                             },
                           ),
@@ -459,7 +514,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                           title: "Change Location",
                           onTap: _showChangeLocationDialog,
                         ),
-
                         _menuTile(
                           context,
                           icon: Icons.description_outlined,
