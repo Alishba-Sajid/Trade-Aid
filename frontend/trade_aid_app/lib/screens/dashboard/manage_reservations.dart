@@ -60,46 +60,55 @@ class _ManageReservationsScreenState extends State<ManageReservationsScreen>
       productBookings = List<Map<String, dynamic>>.from(response);
     });
   }
+Future<void> _fetchResourceBookings() async {
+  final user = supabase.auth.currentUser;
+  if (user == null) return;
 
-  Future<void> _fetchResourceBookings() async {
-    final user = supabase.auth.currentUser;
-    if (user == null) return;
+  final now = DateTime.now();
 
-    final response = await supabase
-        .from('resource_bookings')
-        .select('*, resources(name, rate, user_id, images)')
-        .eq('user_id', user.id);
+  final todayDate =
+      "${now.year.toString().padLeft(4, '0')}-"
+      "${now.month.toString().padLeft(2, '0')}-"
+      "${now.day.toString().padLeft(2, '0')}";
 
-    final allBookings = List<Map<String, dynamic>>.from(response);
-    final now = DateTime.now();
+  final response = await supabase
+      .from('resource_bookings')
+      .select('*, resources(name, rate, user_id, images)')
+      .eq('user_id', user.id)
+      .gte('booking_date', todayDate);
 
-    final deletable = allBookings.where((booking) {
-      try {
-        final date = DateTime.parse(booking['booking_date']);
-        final parts = booking['start_time'].toString().split(':');
-        final bookingStart = DateTime(
-          date.year,
-          date.month,
-          date.day,
-          int.parse(parts[0]),
-          int.parse(parts[1]),
-        );
-        return bookingStart.isAfter(now);
-      } catch (_) {
-        return false;
-      }
-    }).toList();
+  final allBookings = List<Map<String, dynamic>>.from(response);
 
-    setState(() {
-      resourceBookings = deletable;
-    });
-  }
+  final validBookings = allBookings.where((booking) {
+    try {
+      final date = DateTime.parse(booking['booking_date']);
 
+      final startParts = booking['start_time'].toString().split(':');
+
+      final bookingStart = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        int.parse(startParts[0]),
+        int.parse(startParts[1]),
+      );
+
+      // ✅ Allow ALL future + TODAY future times
+      return bookingStart.isAfter(now);
+    } catch (_) {
+      return false;
+    }
+  }).toList();
+
+  setState(() {
+    resourceBookings = validBookings;
+  });
+}
   // ================= DELETE LOGIC =================
   Future<void> _deleteProductBooking(Map booking) async {
     final scheduledAt = DateTime.parse(booking['scheduled_at']);
     if (DateTime.now().isAfter(scheduledAt)) {
-      _showMessage("Cannot delete after scheduled time");
+      _showErrorMessage("Cannot delete after scheduled time");
       return;
     }
 
@@ -114,17 +123,17 @@ class _ManageReservationsScreenState extends State<ManageReservationsScreen>
 
   Future<void> _deleteResourceBooking(Map booking) async {
     final bookingDate = DateTime.parse(booking['booking_date']);
-    final parts = booking['start_time'].split(':');
+    final startParts = booking['start_time'].toString().split(':');
     final startDateTime = DateTime(
       bookingDate.year,
       bookingDate.month,
       bookingDate.day,
-      int.parse(parts[0]),
-      int.parse(parts[1]),
+      int.parse(startParts[0]),
+      int.parse(startParts[1]),
     );
 
     if (DateTime.now().isAfter(startDateTime)) {
-      _showMessage("Cannot delete after start time");
+      _showErrorMessage("Cannot delete after start time");
       return;
     }
 
@@ -132,8 +141,51 @@ class _ManageReservationsScreenState extends State<ManageReservationsScreen>
     _fetchResourceBookings();
   }
 
-  void _showMessage(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  // 🔥 UPDATED: Animated Card with FULL RED BORDER
+  void _showErrorMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        behavior: SnackBarBehavior.floating,
+        content: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            // Border is now applied to all sides
+            border: Border.all(color: Colors.redAccent, width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.error_outline_rounded,
+                color: Colors.redAccent,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   String formatTime(String time24) {
@@ -174,7 +226,7 @@ class _ManageReservationsScreenState extends State<ManageReservationsScreen>
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(width: 48), 
+                    const SizedBox(width: 48),
                   ],
                 ),
               ),
@@ -235,8 +287,8 @@ class _ManageReservationsScreenState extends State<ManageReservationsScreen>
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 2,
-      color: Colors.white, // Explicit white background
-      surfaceTintColor: Colors.transparent, // Prevents Material 3 tinting
+      color: Colors.white,
+      surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
         contentPadding: const EdgeInsets.all(12),
@@ -278,8 +330,8 @@ class _ManageReservationsScreenState extends State<ManageReservationsScreen>
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 2,
-      color: Colors.white, // Explicit white background
-      surfaceTintColor: Colors.transparent, // Prevents Material 3 tinting
+      color: Colors.white,
+      surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
         contentPadding: const EdgeInsets.all(12),
