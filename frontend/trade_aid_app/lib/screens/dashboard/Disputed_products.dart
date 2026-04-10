@@ -126,14 +126,57 @@ class _DisputedProductsScreenState extends State<DisputedProductsScreen> {
 
       _showSnackBar(
         "${product.productName} marked as $newStatus",
-        newStatus == 'sold' ? Colors.green : Colors.teal,
+        newStatus == 'sold' ? Colors.green : const Color.fromARGB(255, 15, 119, 124),
       );
     } catch (e) {
       debugPrint("Update Error: $e");
     }
   }
 
-  // ================= UPDATED BORDER DIALOG =================
+  // ================= UPDATED SNACKBAR (MODERN CARD STYLE) =================
+  void _showSnackBar(String msg, Color accentColor) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        behavior: SnackBarBehavior.floating,
+        content: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            border: Border(
+              left: BorderSide(color: accentColor, width: 6), // The Green/Teal border
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.check_circle_rounded, color: accentColor, size: 24),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  msg,
+                  style: const TextStyle(
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _handleResolve(DisputedProduct product) {
     showDialog(
       context: context,
@@ -148,7 +191,6 @@ class _DisputedProductsScreenState extends State<DisputedProductsScreen> {
             decoration: BoxDecoration(
               color: surface,
               borderRadius: BorderRadius.circular(28),
-              // THE CHEST/BORDER AT THE EDGE
               border: Border.all(
                 color: const Color.fromARGB(255, 15, 119, 124),
                 width: 2,
@@ -157,7 +199,6 @@ class _DisputedProductsScreenState extends State<DisputedProductsScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Icon Header
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -187,7 +228,6 @@ class _DisputedProductsScreenState extends State<DisputedProductsScreen> {
                   ),
                 ),
                 const SizedBox(height: 30),
-                // Action Buttons
                 _dialogButton(
                   label: "Resolve as Available",
                   isGradient: false,
@@ -210,16 +250,6 @@ class _DisputedProductsScreenState extends State<DisputedProductsScreen> {
           ),
         );
       },
-    );
-  }
-
-  void _showSnackBar(String msg, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-      ),
     );
   }
 

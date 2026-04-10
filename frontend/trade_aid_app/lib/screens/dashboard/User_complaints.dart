@@ -95,7 +95,48 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
     }
   }
 
-  /// ================= UPDATED DIALOG WITH WRAP-AROUND BORDER =================
+  /// ================= SNACKBAR THEMED AS ANIMATED CARD =================
+  void _showSnackBar(String msg, Color themeColor) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        elevation: 0,
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.transparent, // Transparent to show container
+        content: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: themeColor, width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.info_outline, color: themeColor, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  msg,
+                  style: TextStyle(
+                    color: themeColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _resolveComplaint(ComplaintModel complaint) async {
     final result = await showDialog<bool>(
       context: context,
@@ -110,16 +151,14 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
             decoration: BoxDecoration(
               color: surface,
               borderRadius: BorderRadius.circular(28),
-              // ADDED THE BORDER HERE TO WRAP AROUND THE DIALOG
               border: Border.all(
-                color: const Color.fromARGB(255, 15, 119, 124), 
+                color: const Color.fromARGB(255, 15, 119, 124),
                 width: 2,
               ),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Icon Header
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -142,7 +181,6 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
                 const SizedBox(height: 30),
                 Row(
                   children: [
-                    // Invalid Button
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => Navigator.pop(context, false),
@@ -163,7 +201,6 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    // Valid Button
                     Expanded(
                       child: Container(
                         decoration: BoxDecoration(
@@ -196,7 +233,7 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
 
     if (result == null) return;
 
-    _showSnackBar("Complaint reviewed", Colors.green);
+    _showSnackBar("Complaint reviewed successfully", const Color.fromARGB(255, 17, 158, 144));
 
     await Supabase.instance.client
         .from('complaints')
@@ -225,7 +262,7 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
       message: "Complaints have been filed against you.",
       type: "warning",
     );
-    _showSnackBar("User notified", Colors.orange);
+    _showSnackBar("User notified of warning", Colors.orange);
   }
 
   void _removeUser(ComplaintModel complaint) async {
@@ -236,16 +273,6 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
         .eq('community_id', complaint.communityId);
 
     _showSnackBar("User removed from community", Colors.red);
-  }
-
-  void _showSnackBar(String msg, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
   }
 
   void _showComplaintDetails(ComplaintModel complaint, int count) {

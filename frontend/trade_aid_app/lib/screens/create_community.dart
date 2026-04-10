@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -16,6 +17,18 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
   final supabase = Supabase.instance.client;
 
   bool _isLoading = false;
+
+  // 🌿 Premium Theme Constants for consistency
+  final LinearGradient appGradient = const LinearGradient(
+    colors: [
+      Color.fromARGB(255, 15, 119, 124),
+      Color.fromARGB(255, 17, 158, 144),
+    ],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+  final Color darkTeal = const Color(0xFF004D40);
+  final Color lightTeal = const Color(0xFFE0F2F1);
 
   Future<void> _createCommunity() async {
     final name = _nameController.text.trim();
@@ -46,7 +59,6 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
         return;
       }
 
-      // 🔹 Ensure profile exists
       final profile = await supabase
           .from('profiles')
           .select()
@@ -63,12 +75,10 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
         return;
       }
 
-      // 🔹 Get user location
       Position userLocation = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
 
-      // 🔹 Mirror user location to profile
       await supabase
           .from('profiles')
           .update({
@@ -77,7 +87,6 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
           })
           .eq('user_id', user.id);
 
-      // 🔹 Insert community
       final response = await supabase
           .from('communities')
           .insert({
@@ -92,159 +101,146 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
           .single();
 
       final communityId = response['id'];
-      // 🔹 Generate invite link
       final inviteLink = "https://tradeaid.app/community/$communityId";
 
-      // 🔹 Save invite link in database
       await supabase
           .from('communities')
           .update({'invite_link': inviteLink})
           .eq('id', communityId);
 
-   
-      // 🔹 Show success dialog
+      // 🔹 Success Dialog updated to match the application theme
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.teal.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.check_circle_outline,
-                    color: Colors.teal,
-                    size: 50,
-                  ),
+        builder: (context) => BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: const Color.fromARGB(255, 15, 119, 124),
+                  width: 2,
                 ),
-                const SizedBox(height: 20),
-                const Text(
-                  "Community Created!",
-                  style: TextStyle(
-                    color: Colors.teal,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: lightTeal,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.check_circle_outline_rounded,
+                      color: darkTeal,
+                      size: 40,
+                    ),
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  "Your community has been created successfully.",
-                  style: TextStyle(fontSize: 16, color: Colors.black87),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
+                  const SizedBox(height: 20),
+                  Text(
+                    "Community Created!",
+                    style: TextStyle(
+                      color: darkTeal,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  decoration: BoxDecoration(
-                    color: Colors.teal.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
+                  const SizedBox(height: 12),
+                  const Text(
+                    "Your community has been created successfully.",
+                    style: TextStyle(fontSize: 14, color: Colors.black54),
+                    textAlign: TextAlign.center,
                   ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: SelectableText(
-                          inviteLink,
-                          style: const TextStyle(
-                            color: Colors.teal,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15,
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: lightTeal.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: SelectableText(
+                            inviteLink,
+                            style: TextStyle(
+                              color: darkTeal,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
                           ),
                         ),
-                      ),
-                      IconButton(
-                        onPressed: () {
-                          Clipboard.setData(ClipboardData(text: inviteLink));
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Row(
-                                children: const [
-                                  Icon(Icons.copy, color: Colors.white),
-                                  SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      "Link copied to clipboard",
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              backgroundColor: Colors.teal,
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.copy, color: Colors.teal),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 25),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.pushReplacementNamed(
-                        context,
-                        '/dashboard',
-                        arguments: {'communityName': name},
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.teal,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                        IconButton(
+                          onPressed: () {
+                            Clipboard.setData(ClipboardData(text: inviteLink));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Link copied!")),
+                            );
+                          },
+                          icon: Icon(Icons.copy, color: darkTeal, size: 20),
+                        ),
+                      ],
                     ),
-                    child: const Text(
-                      "Go to Dashboard",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                  ),
+                  const SizedBox(height: 30),
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: appGradient,
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.pushReplacementNamed(
+                          context,
+                          '/dashboard',
+                          arguments: {'communityName': name},
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                      ),
+                      child: const Text(
+                        "Go to Dashboard",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
       );
-    }  catch (e) {
-     
-  String message = 'Something went wrong';
-
-  if (e.toString().contains('1 km')) {
-    message = 'A community already exists within 1 km of your location';
-  }
-
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(message),
-      backgroundColor: Colors.red,
-    ),
-  );
-
+    } catch (e) {
+      String message = 'Something went wrong';
+      if (e.toString().contains('1 km')) {
+        message = 'A community already exists within 1 km of your location';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+        ),
+      );
     } finally {
       setState(() => _isLoading = false);
     }
@@ -302,11 +298,10 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
                 width: 260,
                 child: ElevatedButton(
                   onPressed: _isLoading
-    ? null
-    : () {
-        setState(() => _isLoading = true);
-        _createCommunity();
-      },
+                      ? null
+                      : () {
+                          _createCommunity();
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.teal,
                     foregroundColor: Colors.white,

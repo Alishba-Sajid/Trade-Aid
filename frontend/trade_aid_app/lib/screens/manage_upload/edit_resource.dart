@@ -46,12 +46,12 @@ class _EditUploadResourceScreenState extends State<EditUploadResourceScreen> {
   String? _rate;
   String? _name;
 
-String? _timeTo24Format(TimeOfDay? t) {
-  if (t == null) return null;
-  final hour = t.hour.toString().padLeft(2, '0');
-  final minute = t.minute.toString().padLeft(2, '0');
-  return "$hour:$minute";
-}
+  String? _timeTo24Format(TimeOfDay? t) {
+    if (t == null) return null;
+    final hour = t.hour.toString().padLeft(2, '0');
+    final minute = t.minute.toString().padLeft(2, '0');
+    return "$hour:$minute";
+  }
 
   @override
   void initState() {
@@ -62,26 +62,40 @@ String? _timeTo24Format(TimeOfDay? t) {
     _startTime = widget.resource['startTime'];
     _endTime = widget.resource['endTime'];
 
-final List selectedDays =
-    (widget.resource['availableDays'] as List?) ?? [];
+    final List selectedDays = (widget.resource['availableDays'] as List?) ?? [];
 
-_availableDays = {
-  'MON': selectedDays.contains('MON'),
-  'TUE': selectedDays.contains('TUE'),
-  'WED': selectedDays.contains('WED'),
-  'THU': selectedDays.contains('THU'),
-  'FRI': selectedDays.contains('FRI'),
-  'SAT': selectedDays.contains('SAT'),
-  'SUN': selectedDays.contains('SUN'),
-};
+    _availableDays = {
+      'MON': selectedDays.contains('MON'),
+      'TUE': selectedDays.contains('TUE'),
+      'WED': selectedDays.contains('WED'),
+      'THU': selectedDays.contains('THU'),
+      'FRI': selectedDays.contains('FRI'),
+      'SAT': selectedDays.contains('SAT'),
+      'SUN': selectedDays.contains('SUN'),
+    };
 
-   if (widget.resource['images'] != null) {
-  final List imagesFromDb = widget.resource['images'];
-
-  for (int i = 0; i < imagesFromDb.length && i < 3; i++) {
-    _images[i] = XFile(imagesFromDb[i]); // Works for URL too
+    if (widget.resource['images'] != null) {
+      final List imagesFromDb = widget.resource['images'];
+      for (int i = 0; i < imagesFromDb.length && i < 3; i++) {
+        _images[i] = XFile(imagesFromDb[i]);
+      }
+    }
   }
-}
+
+  // ---------------- ANIMATED NOTIFICATION ----------------
+  void _showNotification(String message, {bool isError = false}) {
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder: (context) => _AnimatedNotificationCard(
+        message: message,
+        isError: isError,
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 3), () {
+      overlayEntry.remove();
+    });
   }
 
   // ---------------- IMAGE HANDLING ----------------
@@ -214,18 +228,18 @@ _availableDays = {
                 child: Stack(
                   children: [
                     img.path.startsWith('http')
-    ? Image.network(
-        img.path,
-        fit: BoxFit.cover,
-        height: 150,
-        width: double.infinity,
-      )
-    : Image.file(
-        File(img.path),
-        fit: BoxFit.cover,
-        height: 150,
-        width: double.infinity,
-      ),
+                        ? Image.network(
+                            img.path,
+                            fit: BoxFit.cover,
+                            height: 150,
+                            width: double.infinity,
+                          )
+                        : Image.file(
+                            File(img.path),
+                            fit: BoxFit.cover,
+                            height: 150,
+                            width: double.infinity,
+                          ),
                     Positioned.fill(
                       child: Material(
                         color: Colors.transparent,
@@ -263,10 +277,9 @@ _availableDays = {
 
   // ---------------- DAY PICKER ----------------
   Widget _buildDayPicker() {
-    // Calculate width for each day to fit in one line
     final double screenWidth = MediaQuery.of(context).size.width;
-    final double horizontalPadding = 20 * 2; // left + right padding
-    final double spacing = 6 * 6; // 6px spacing between 7 items = 6 gaps
+    final double horizontalPadding = 20 * 2;
+    final double spacing = 6 * 6;
     final double dayWidth = (screenWidth - horizontalPadding - spacing) / 7;
 
     return Row(
@@ -322,64 +335,54 @@ _availableDays = {
   }
 
   // ---------------- SUBMIT ----------------
- void _submit() async {
-  FocusScope.of(context).unfocus();
+  void _submit() async {
+    FocusScope.of(context).unfocus();
 
-  if (!_formKey.currentState!.validate()) return;
-  _formKey.currentState!.save();
+    if (!_formKey.currentState!.validate()) return;
+    _formKey.currentState!.save();
 
-  setState(() => _isLoading = true);
+    setState(() => _isLoading = true);
 
-  try {
-    final supabase = Supabase.instance.client;
+    try {
+      final supabase = Supabase.instance.client;
 
-    await supabase.from('resources').update({
-      'name': _name,
-      'description': _description,
-      'rate': double.tryParse(_rate ?? "0"),
-      'available_days': _availableDays.entries
-    .where((e) => e.value)
-    .map((e) => e.key)
-    .toList(),
-      'start_time': _timeTo24Format(_startTime),
-'end_time': _timeTo24Format(_endTime),
-      'images': _images
-          .whereType<XFile>()
-          .map((e) => e.path)
-          .toList(),
-    }).eq('id', widget.resource['id']);
+      await supabase.from('resources').update({
+        'name': _name,
+        'description': _description,
+        'rate': double.tryParse(_rate ?? "0"),
+        'available_days': _availableDays.entries
+            .where((e) => e.value)
+            .map((e) => e.key)
+            .toList(),
+        'start_time': _timeTo24Format(_startTime),
+        'end_time': _timeTo24Format(_endTime),
+        'images': _images
+            .whereType<XFile>()
+            .map((e) => e.path)
+            .toList(),
+      }).eq('id', widget.resource['id']);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        backgroundColor: darkPrimary,
-        content: Text('Resource updated successfully'),
-      ),
-    );
+      _showNotification('Resource updated successfully');
 
-    Navigator.pop(context, {
-  ...widget.resource,
-  'title': _name,
-  'description': _description,
-  'pricePerHour': double.tryParse(_rate ?? "0"),
-  'availableDays': _availableDays.entries
-      .where((e) => e.value)
-      .map((e) => e.key)
-      .toList(),
-  'startTime': _startTime,
-  'endTime': _endTime,
-  'images': _images.whereType<XFile>().map((e) => e.path).toList(),
-});
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: Colors.red,
-        content: Text('Update failed: $e'),
-      ),
-    );
+      Navigator.pop(context, {
+        ...widget.resource,
+        'title': _name,
+        'description': _description,
+        'pricePerHour': double.tryParse(_rate ?? "0"),
+        'availableDays': _availableDays.entries
+            .where((e) => e.value)
+            .map((e) => e.key)
+            .toList(),
+        'startTime': _startTime,
+        'endTime': _endTime,
+        'images': _images.whereType<XFile>().map((e) => e.path).toList(),
+      });
+    } catch (e) {
+      _showNotification('Update failed: $e', isError: true);
+    }
+
+    setState(() => _isLoading = false);
   }
-
-  setState(() => _isLoading = false);
-}
 
   @override
   Widget build(BuildContext context) {
@@ -435,199 +438,297 @@ _availableDays = {
           ),
         ),
         body: SafeArea(
-         child: Form(
-  key: _formKey,
-  child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _sectionHeading("RESOURCE IMAGES"),
-                const SizedBox(height: 8),
-                Row(
-                  children: List.generate(
-                    3,
-                    (index) => Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.only(right: index < 2 ? 8.0 : 0),
-                        child: _buildImageSlot(index),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-_sectionHeading("RESOURCE NAME"),
-                const SizedBox(height: 8),
-                TextFormField(
-                  initialValue: _name,
-                  maxLines: 1,
-                  decoration: _modernInput("Enter Resource Name"),
-                  validator: (v) => v == null || v.isEmpty ? "Required" : null,
-                  onSaved: (v) => _name = v,
-                ),
-                const SizedBox(height: 16),                            
-
-                _sectionHeading("DETAILS"),
-                const SizedBox(height: 8),
-                TextFormField(
-                  initialValue: _description,
-                  maxLines: 3,
-                  maxLength: 250,
-                  buildCounter:
-                      (
-                        context, {
-                        required currentLength,
-                        required isFocused,
-                        maxLength,
-                      }) {
-                        return Align(
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            "$currentLength/$maxLength",
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.blueGrey[400],
-                            ),
-                          ),
-                        );
-                      },
-                  decoration: _modernInput("Enter Resource Details"),
-                  validator: (v) => v == null || v.isEmpty ? "Required" : null,
-                  onSaved: (v) => _description = v,
-                ),
-                const SizedBox(height: 16),
-                _sectionHeading("OPERATIONAL WINDOW"),
-                const SizedBox(height: 8),
-                _buildDayPicker(),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: () => _pickTime(true),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Colors.blueGrey.withOpacity(0.3),
-                            ),
-                          ),
-                          child: Column(
-                            children: [
-                              const Text(
-                                "Start Time",
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.blueGrey,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _startTime?.format(context) ?? "--:--",
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
+          child: Form(
+            key: _formKey,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _sectionHeading("RESOURCE IMAGES"),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: List.generate(
+                      3,
+                      (index) => Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.only(right: index < 2 ? 8.0 : 0),
+                          child: _buildImageSlot(index),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: InkWell(
-                        onTap: () => _pickTime(false),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Colors.blueGrey.withOpacity(0.3),
+                  ),
+                  const SizedBox(height: 16),
+                  _sectionHeading("RESOURCE NAME"),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    initialValue: _name,
+                    maxLines: 1,
+                    decoration: _modernInput("Enter Resource Name"),
+                    validator: (v) =>
+                        v == null || v.isEmpty ? "Required" : null,
+                    onSaved: (v) => _name = v,
+                  ),
+                  const SizedBox(height: 16),
+                  _sectionHeading("DETAILS"),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    initialValue: _description,
+                    maxLines: 3,
+                    maxLength: 250,
+                    buildCounter: (
+                      context, {
+                      required currentLength,
+                      required isFocused,
+                      maxLength,
+                    }) {
+                      return Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          "$currentLength/$maxLength",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.blueGrey[400],
+                          ),
+                        ),
+                      );
+                    },
+                    decoration: _modernInput("Enter Resource Details"),
+                    validator: (v) =>
+                        v == null || v.isEmpty ? "Required" : null,
+                    onSaved: (v) => _description = v,
+                  ),
+                  const SizedBox(height: 16),
+                  _sectionHeading("OPERATIONAL WINDOW"),
+                  const SizedBox(height: 8),
+                  _buildDayPicker(),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => _pickTime(true),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.blueGrey.withOpacity(0.3),
+                              ),
+                            ),
+                            child: Column(
+                              children: [
+                                const Text(
+                                  "Start Time",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.blueGrey,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _startTime?.format(context) ?? "--:--",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          child: Column(
-                            children: [
-                              const Text(
-                                "End Time",
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.blueGrey,
-                                ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => _pickTime(false),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.blueGrey.withOpacity(0.3),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _endTime?.format(context) ?? "--:--",
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
+                            ),
+                            child: Column(
+                              children: [
+                                const Text(
+                                  "End Time",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.blueGrey,
+                                  ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 4),
+                                Text(
+                                  _endTime?.format(context) ?? "--:--",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _sectionHeading("PRICING"),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    initialValue: _rate,
+                    keyboardType: TextInputType.number,
+                    decoration: _modernInput("Hourly Rate (PKR)"),
+                    validator: (v) =>
+                        v == null || v.isEmpty ? "Required" : null,
+                    onSaved: (v) => _rate = v,
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 55,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: appGradient,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: accentTeal.withOpacity(0.3),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _submit,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                        ),
+                        child: _isLoading
+                            ? const CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                "Update Resource",
+                                style: TextStyle(
+                                  letterSpacing: 2,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------- CUSTOM ANIMATED NOTIFICATION COMPONENT ----------------
+class _AnimatedNotificationCard extends StatefulWidget {
+  final String message;
+  final bool isError;
+
+  const _AnimatedNotificationCard({required this.message, this.isError = false});
+
+  @override
+  State<_AnimatedNotificationCard> createState() =>
+      __AnimatedNotificationCardState();
+}
+
+class __AnimatedNotificationCardState extends State<_AnimatedNotificationCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+
+    _offsetAnimation = Tween<Offset>(
+      begin: const Offset(0, -1.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
+
+    _controller.forward();
+
+    Future.delayed(const Duration(seconds: 2, milliseconds: 500), () {
+      if (mounted) _controller.reverse();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: SlideTransition(
+          position: _offsetAnimation,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 20),
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: widget.isError ? Colors.redAccent : darkPrimary,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 15,
+                      offset: const Offset(0, 8),
+                    )
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      widget.isError ? Icons.error_outline : Icons.check_circle_outline,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(width: 12),
+                    Flexible(
+                      child: Text(
+                        widget.message,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                _sectionHeading("PRICING"),
-                const SizedBox(height: 8),
-                TextFormField(
-                  initialValue: _rate,
-                  keyboardType: TextInputType.number,
-                  decoration: _modernInput("Hourly Rate (PKR)"),
-                  validator: (v) => v == null || v.isEmpty ? "Required" : null,
-                  onSaved: (v) => _rate = v,
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 55,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: appGradient,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: accentTeal.withOpacity(0.3),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _submit,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                      ),
-                      child: _isLoading
-                          ? const CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
-                            )
-                          : const Text(
-                              "Update Resource",
-                              style: TextStyle(
-                                letterSpacing: 2,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ],
+              ),
             ),
           ),
         ),
       ),
-    ));
+    );
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui'; // Added for BackdropFilter
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -38,6 +39,50 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
   String? _selectedUserId;
   final List<String> _categories = ['Products', 'Resources', 'Others'];
 
+  // Custom Animated Error SnackBar
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        behavior: SnackBarBehavior.floating,
+        content: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            border: const Border(
+              left: BorderSide(color: Colors.redAccent, width: 6),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 24),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> fetchMembers() async {
     final supabase = Supabase.instance.client;
     final user = supabase.auth.currentUser;
@@ -74,13 +119,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
         description.isEmpty ||
         _selectedUserId == null ||
         _selectedCategory == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please fill in all fields"),
-          backgroundColor: Colors.redAccent,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      _showErrorSnackBar("Please fill in all fields");
       return;
     }
 
@@ -95,7 +134,6 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
 
     if (user == null) return;
 
-    // 1. Get community ID
     final member = await supabase
         .from('community_members')
         .select('community_id')
@@ -104,38 +142,28 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
 
     final communityId = member['community_id'];
 
-    // 2. Insert complaint
     String? imageUrl;
-
-    // ✅ STEP 1: Upload image if exists
     if (_attachedImage != null) {
       final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
-
       final path = 'complaints/$fileName';
-
       await supabase.storage.from('complaints').upload(path, _attachedImage!);
-
-      // ✅ STEP 2: Get public URL
       imageUrl = supabase.storage.from('complaints').getPublicUrl(path);
     }
 
-    // ✅ STEP 3: Insert complaint with image URL
     await supabase.from('complaints').insert({
       'community_id': communityId,
       'complainant_id': user.id,
       'accused_user_id': _selectedUserId,
       'subject': subject,
       'description': description,
-      'attachment_url': imageUrl, // 🔥 NEW FIELD
+      'attachment_url': imageUrl,
     });
 
-    // 3. Send notification
-    // 🔥 Notify Admins
     final admins = await supabase
         .from('community_members')
         .select('user_id')
         .eq('community_id', communityId)
-        .eq('role', 'admin'); // ⚠️ make sure column exists
+        .eq('role', 'admin');
 
     for (var admin in admins) {
       await NotificationService.createNotification(
@@ -146,57 +174,99 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
       );
     }
 
-    bool success = true;
-
     Navigator.pop(context); // remove loading
 
-    if (success) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          backgroundColor: backgroundLight,
-          title: const Row(
-            children: [
-              Icon(Icons.check_circle, color: accentTeal),
-              SizedBox(width: 10),
-              Text(
-                "Submitted",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: darkPrimary,
-                ),
+    // Branded Success Dialog with Teal Border & Blur
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: accentTeal,
+                width: 2,
               ),
-            ],
-          ),
-          content: const Text(
-            "Your issue has been sent to the admin. They will respond soon.",
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.white,
-                backgroundColor: accentTeal,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: const Text("Close"),
             ),
-          ],
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: accentTeal.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check_circle_outline_rounded,
+                    color: accentTeal,
+                    size: 40,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  "Report Submitted",
+                  style: TextStyle(
+                    color: darkPrimary,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  "Your issue has been sent to the admin. They will respond soon.",
+                  style: TextStyle(fontSize: 14, color: Colors.black54),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 30),
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    gradient: appGradient,
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                    ),
+                    child: const Text(
+                      "Close",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-      );
+      ),
+    );
 
-      _subjectController.clear();
-      _descriptionController.clear();
-      setState(() {
-        _selectedCategory = null;
-        _attachedImage = null;
-      });
-    }
+    _subjectController.clear();
+    _descriptionController.clear();
+    setState(() {
+      _selectedCategory = null;
+      _attachedImage = null;
+    });
   }
 
   // ================== Pick Image ==================
@@ -271,12 +341,10 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
       backgroundColor: backgroundLight,
       body: Column(
         children: [
-          // ================== Custom App Bar ==================
           AppBarWidget(
             title: 'Help & Support',
             onBack: () => Navigator.pop(context),
           ),
-
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -301,12 +369,10 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
     );
   }
 
-  // ================== Form Content ==================
   Widget _buildFormContent() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Informational Card
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(20),
@@ -347,7 +413,6 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
           ),
         ),
         const SizedBox(height: 15),
-
         _buildSectionLabel("SUBJECT"),
         const SizedBox(height: 5),
         _buildTextField(
@@ -357,7 +422,6 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
           maxLength: 50,
         ),
         const SizedBox(height: 15),
-
         _buildSectionLabel("DESCRIPTION"),
         const SizedBox(height: 5),
         _buildDescriptionField(
@@ -367,17 +431,14 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
           maxLength: 250,
         ),
         const SizedBox(height: 0),
-
         _buildSectionLabel("COMPLAINT ABOUT"),
         const SizedBox(height: 5),
         _buildAutocompleteField(),
         const SizedBox(height: 15),
-
         _buildSectionLabel("CATEGORY"),
         const SizedBox(height: 5),
         _buildDropdown(),
         const SizedBox(height: 15),
-
         TextButton.icon(
           onPressed: _pickImage,
           icon: const Icon(Icons.attach_file, color: accentTeal),
@@ -414,8 +475,6 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                     ),
                   ),
                 ),
-
-                // ❌ REMOVE BUTTON
                 Positioned(
                   top: 8,
                   right: 8,
@@ -443,7 +502,6 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
             ),
           ),
         const SizedBox(height: 45),
-
         SizedBox(
           width: double.infinity,
           height: 75,
@@ -482,7 +540,6 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
     );
   }
 
-  // ================== Section Label ==================
   Widget _buildAutocompleteField() {
     return Autocomplete<Map<String, dynamic>>(
       optionsBuilder: (TextEditingValue textEditingValue) {
@@ -509,7 +566,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
           focusNode: focusNode,
           onChanged: (value) {
             _complaintaboutController.text = value;
-            _selectedUserId = null; // reset if user types manually
+            _selectedUserId = null;
           },
           decoration: InputDecoration(
             hintText: "Search member name...",
@@ -531,7 +588,6 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
     ),
   );
 
-  // ================== Text Field ==================
   Widget _buildTextField({
     required TextEditingController controller,
     required String hintText,
@@ -578,7 +634,6 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
     ),
   );
 
-  // ================== Dropdown ==================
   Widget _buildDropdown() => Container(
     padding: const EdgeInsets.symmetric(horizontal: 16),
     decoration: BoxDecoration(
@@ -616,7 +671,6 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
     ),
   );
 
-  // ================== Description Field ==================
   Widget _buildDescriptionField({
     required TextEditingController controller,
     required String hintText,
