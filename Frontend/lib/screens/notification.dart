@@ -1,5 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -11,70 +13,138 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
+
+  final supabase = Supabase.instance.client;
+
+  List<Map<String, dynamic>> notifications = [];
+  bool isLoading = true;
+
   String selectedTab = 'All';
 
-  final List<Map<String, dynamic>> notifications = [
-    {
-      'icon': Icons.person_add_alt_1_outlined,
-      'title': 'New member request from Sarah Miller',
-      'time': '2 hours ago',
-      'type': 'Member Requests'
-    },
-    {
-      'icon': Icons.warning_amber_rounded,
-      'title': 'Fraudulent transaction detected for user David Lee',
-      'time': '1 day ago',
-      'type': 'Fraud'
-    },
-    {
-      'icon': Icons.report_gmailerrorred_outlined,
-      'title': 'Dispute filed by user Emily Chen',
-      'time': '2 days ago',
-      'type': 'Disputes'
-    },
-    {
-      'icon': Icons.system_update_alt_rounded,
-      'title': 'System update: New features available',
-      'time': '3 days ago',
-      'type': 'System Updates'
-    },
-    {
-      'icon': Icons.person_add_alt_1_outlined,
-      'title': 'New member request from Michael Brown',
-      'time': '4 days ago',
-      'type': 'Member Requests'
-    },
-    {
-      'icon': Icons.warning_amber_rounded,
-      'title': 'Fraudulent transaction detected for user Jessica Wilson',
-      'time': '5 days ago',
-      'type': 'Fraud'
-    },
-    {
-      'icon': Icons.report_gmailerrorred_outlined,
-      'title': 'Dispute filed by user Christopher Garcia',
-      'time': '6 days ago',
-      'type': 'Disputes'
-    },
-    {
-      'icon': Icons.security_update_good_outlined,
-      'title': 'System update: Security enhancements',
-      'time': '7 days ago',
-      'type': 'System Updates'
-    },
-  ];
+  late RealtimeChannel requestChannel;
+  late RealtimeChannel complaintChannel;
+
+  // ✅ FETCH DATA (NO FILTER BUG)
+  Future<void> fetchAllNotifications() async {
+  final requests =
+      await supabase.from('community_join_requests').select();
+
+  final complaints =
+      await supabase.from('complaints').select();
+
+  // ✅ FORMAT MEMBER REQUESTS
+  final formattedRequests = (requests as List)
+      .where((item) => item['status'] == 'pending')
+      .map((item) {
+    return {
+      'title': item['requester_id'] != null
+          ? 'New member request from ${item['requester_id']}'
+          : 'New member request',
+      'type': 'Member Requests', // ✅ IMPORTANT
+      'created_at': item['created_at'] ?? '',
+    };
+  }).toList();
+
+  // ✅ FORMAT DISPUTES
+  final formattedComplaints = (complaints as List)
+      .where((item) => item['status'] == 'pending')
+      .map((item) {
+    return {
+      'title': item['subject'] != null
+          ? 'Dispute: ${item['subject']}'
+          : 'Dispute reported',
+      'type': 'Disputes', // ✅ IMPORTANT
+      'created_at': item['created_at'] ?? '',
+    };
+  }).toList();
+
+  // ✅ MERGE BOTH
+  final all = [...formattedRequests, ...formattedComplaints];
+
+  // ✅ SAFE SORT
+  all.sort((a, b) {
+    final aTime = DateTime.tryParse(a['created_at'] ?? '');
+    final bTime = DateTime.tryParse(b['created_at'] ?? '');
+
+    return (bTime ?? DateTime.now())
+        .compareTo(aTime ?? DateTime.now());
+  });
+
+  setState(() {
+    notifications = all;
+    isLoading = false;
+  });
+}
+
+  // ✅ REALTIME REQUESTS
+  void setupRequestRealtime() {
+    requestChannel = supabase
+        .channel('request-channel')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'community_join_requests',
+          callback: (payload) {
+            final data = payload.newRecord;
+
+            if (data['status'] == 'pending') {
+              setState(() {
+                notifications.insert(0, {
+                  'title':
+                      'New member request from ${data['requester_id']}',
+                  'type': 'Member Requests',
+                  'created_at': data['created_at'],
+                });
+              });
+            }
+          },
+        )
+        .subscribe();
+  }
+
+  // ✅ REALTIME COMPLAINTS
+  void setupComplaintRealtime() {
+    complaintChannel = supabase
+        .channel('complaint-channel')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'complaints',
+          callback: (payload) {
+            final data = payload.newRecord;
+
+            if (data['status'] == 'pending') {
+              setState(() {
+                notifications.insert(0, {
+                  'title': 'Dispute: ${data['subject']}',
+                  'type': 'Disputes',
+                  'created_at': data['created_at'],
+                });
+              });
+            }
+          },
+        )
+        .subscribe();
+  }
 
   @override
   void initState() {
     super.initState();
+
     _controller =
         AnimationController(vsync: this, duration: const Duration(seconds: 12))
           ..repeat();
+
+    fetchAllNotifications();
+    setupRequestRealtime();
+    setupComplaintRealtime();
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    supabase.removeChannel(requestChannel);
+    supabase.removeChannel(complaintChannel);
     super.dispose();
   }
 
@@ -90,12 +160,10 @@ class _NotificationsScreenState extends State<NotificationsScreen>
         builder: (context, _) {
           return Stack(
             children: [
-              // 🌊 INDUSTRIAL GRADIENT BACKGROUND
+              // BACKGROUND
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
                     colors: [
                       Colors.teal.shade700,
                       Colors.teal.shade400,
@@ -110,26 +178,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                 ),
               ),
 
-              // ✨ FLOATING CIRCLES
-              ...List.generate(6, (i) {
-                final size = 80.0 + i * 20;
-                return Positioned(
-                  left: (i * 150) % MediaQuery.of(context).size.width,
-                  top: 120 +
-                      60 *
-                          sin((_controller.value * 2 * pi) + i.toDouble()),
-                  child: Container(
-                    width: size,
-                    height: size,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: 0.08),
-                    ),
-                  ),
-                );
-              }),
-
-              // 🧊 MAIN GLASS CARD
+              // MAIN CARD
               Padding(
                 padding: const EdgeInsets.all(30),
                 child: Container(
@@ -137,108 +186,94 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.95),
                     borderRadius: BorderRadius.circular(20),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 14,
-                        offset: Offset(0, 8),
-                      ),
-                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 🔹 TITLE
                       const Text(
                         "Notifications Inbox",
                         style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
+                            fontSize: 24, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 20),
 
-                      // 🔹 INDUSTRIAL TABS
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            for (final tab in [
-                              'All',
-                              'Fraud',
-                              'Disputes',
-                              'Member Requests',
-                              'System Updates'
-                            ])
-                              Padding(
-                                padding: const EdgeInsets.only(right: 12),
-                                child: GestureDetector(
-                                  onTap: () =>
-                                      setState(() => selectedTab = tab),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 8),
-                                    decoration: BoxDecoration(
+                      // TABS
+                      Row(
+                        children: [
+                          for (final tab in [
+                            'All',
+                            'Member Requests',
+                            'Disputes'
+                          ])
+                            Padding(
+                              padding: const EdgeInsets.only(right: 10),
+                              child: GestureDetector(
+                                onTap: () =>
+                                    setState(() => selectedTab = tab),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: selectedTab == tab
+                                        ? Colors.teal
+                                        : Colors.grey.shade300,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    tab,
+                                    style: TextStyle(
                                       color: selectedTab == tab
-                                          ? Colors.teal.shade600
-                                          : Colors.grey.shade200,
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Text(
-                                      tab,
-                                      style: TextStyle(
-                                        color: selectedTab == tab
-                                            ? Colors.white
-                                            : Colors.black87,
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                          ? Colors.white
+                                          : Colors.black,
                                     ),
                                   ),
                                 ),
                               ),
-                          ],
-                        ),
+                            ),
+                        ],
                       ),
 
                       const SizedBox(height: 20),
-                      const Divider(),
 
-                      // 🔔 NOTIFICATION LIST
+                      // LIST
                       Expanded(
-                        child: ListView.separated(
-                          itemCount: filtered.length,
-                          separatorBuilder: (_, __) =>
-                              const Divider(height: 1),
-                          itemBuilder: (context, index) {
-                            final item = filtered[index];
-                            return ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor:
-                                    Colors.teal.shade100,
-                                child: Icon(
-                                  item['icon'],
-                                  color: Colors.teal.shade700,
-                                ),
-                              ),
-                              title: Text(
-                                item['title'],
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              subtitle: Text(
-                                item['time'],
-                                style: TextStyle(
-                                    color: Colors.grey.shade600),
-                              ),
-                              trailing: const Icon(
-                                Icons.chevron_right,
-                                color: Colors.grey,
-                              ),
-                            );
-                          },
-                        ),
+                        child: isLoading
+                            ? const Center(
+                                child: CircularProgressIndicator())
+                            : filtered.isEmpty
+                                ? const Center(
+                                    child: Text("No notifications found"))
+                                : ListView.builder(
+                                    itemCount: filtered.length,
+                                    itemBuilder: (context, index) {
+                                      final item = filtered[index];
+
+                                      IconData icon =
+                                          Icons.notifications;
+
+                                      if (item['type'] ==
+                                          'Member Requests') {
+                                        icon = Icons.person_add;
+                                      } else if (item['type'] ==
+                                          'Disputes') {
+                                        icon = Icons.report;
+                                      }
+
+                                      return ListTile(
+  leading: Icon(icon),
+
+  title: Text(
+    item['title']?.toString() ?? 'No Title',
+  ),
+
+  subtitle: Text(
+    item['created_at'] != null
+        ? item['created_at'].toString()
+        : 'No Date',
+  ),
+);
+                                    },
+                                  ),
                       ),
                     ],
                   ),

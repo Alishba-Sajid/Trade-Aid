@@ -147,70 +147,62 @@ class _UserManagementScreenState extends State<UserManagementScreen>
 Expanded(
   child: users.isEmpty
       ? const Center(child: CircularProgressIndicator())
-      : Scrollbar(
-          thumbVisibility: true,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal, // ✅ horizontal scroll
-            child: SizedBox(
-              width: 1400,
-              child: ListView.builder(
-                itemCount: filteredUsers.length + 1, // +1 for header
-                itemBuilder: (context, index) {
-                  // 🔹 HEADER ROW
-                  if (index == 0) {
-                    return Container(
-                      color: subtleGrey,
-                      padding: const EdgeInsets.all(14),
-                      child: const Row(
-                        children: [
-                          Expanded(child: Text("Full Name", style: TextStyle(fontWeight: FontWeight.bold))),
-                          Expanded(child: Text("Gender", style: TextStyle(fontWeight: FontWeight.bold))),
-                          Expanded(child: Text("Phone", style: TextStyle(fontWeight: FontWeight.bold))),
-                          Expanded(child: Text("Address", style: TextStyle(fontWeight: FontWeight.bold))),
-                          Expanded(child: Text("Action", style: TextStyle(fontWeight: FontWeight.bold))),
-                        ],
-                      ),
-                    );
-                  }
-
-                  final user = filteredUsers[index - 1];
-
-                  // 🔹 DATA ROW
-                  return Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: const BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(color: Colors.grey),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(child: Text(user["full_name"] ?? "")),
-                        Expanded(child: Text(user["gender"] ?? "")),
-                        Expanded(child: Text(user["phone"] ?? "")),
-                        Expanded(child: Text(user["address"] ?? "")),
-                        Expanded(
-                          child: TextButton(
-                            onPressed: () {
-                              final userId = user['user_id'];
-                              if (userId == null) return;
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      UserProfile(userId: userId.toString()),
-                                ),
-                              );
-                            },
-                            child: const Text("View"),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+      : SingleChildScrollView(
+          child: Column(
+            children: [
+              /// HEADER
+              Container(
+                color: subtleGrey,
+                padding: const EdgeInsets.all(14),
+                child: const Row(
+                  children: [
+                    Expanded(child: Text("Full Name", style: TextStyle(fontWeight: FontWeight.bold))),
+                    Expanded(child: Text("Gender", style: TextStyle(fontWeight: FontWeight.bold))),
+                    Expanded(child: Text("Phone", style: TextStyle(fontWeight: FontWeight.bold))),
+                    Expanded(child: Text("Address", style: TextStyle(fontWeight: FontWeight.bold))),
+                    Expanded(child: Text("Action", style: TextStyle(fontWeight: FontWeight.bold))),
+                  ],
+                ),
               ),
-            ),
+
+              /// DATA
+              ...filteredUsers.map((user) {
+                return Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: const BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: Colors.grey),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(child: Text(user["full_name"] ?? "")),
+                      Expanded(child: Text(user["gender"] ?? "")),
+                      Expanded(child: Text(user["phone"] ?? "")),
+                      Expanded(child: Text(user["address"] ?? "")),
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () {
+                            final userId = user['user_id'];
+                            if (userId == null) return;
+
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => UserProfile(
+                                  userId: userId.toString(),
+                                ),
+                              ),
+                            );
+                          },
+                          child: const Text("View"),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
           ),
         ),
 )

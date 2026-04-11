@@ -2,18 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:developer' as developer;
 
-/// 🌿 Premium Industrial Palette
-const LinearGradient appGradient = LinearGradient(
-  colors: [
-    Color.fromARGB(255, 15, 119, 124),
-    Color.fromARGB(255, 17, 158, 144),
-  ],
-  begin: Alignment.bottomLeft,
-  end: Alignment.topRight,
-);
-
+/// 🌿 Colors
 const Color dark = Color(0xFF0B2F2A);
-const Color light = Color(0xFFF4FAF9);
 const Color accent = Color(0xFF119E90);
 const Color surface = Color(0xFFFFFFFF);
 const Color darkPrimary = Color(0xFF004D40);
@@ -43,77 +33,73 @@ class _UserProfileState extends State<UserProfile> {
   }
 
   Future<void> fetchUserData() async {
-  setState(() => isLoading = true);
+    setState(() => isLoading = true);
 
-  try {
-    // Fetch profile
-    final profileResponse = await supabase
-        .from('user_profile_view')
-        .select()
-        .eq('user_id', widget.userId)
-        .maybeSingle();
-
-    if (profileResponse == null) {
-      setState(() {
-        profile = null;
-        activityLogs = [];
-        fraudLogs = [];
-        isLoading = false;
-      });
-      return;
-    }
-
-    profile = Map<String, dynamic>.from(profileResponse);
-
-    // Fetch activity logs
-    // 🔽🔽🔽 ONLY THIS PART UPDATED 🔽🔽🔽
-
-// Fetch activity logs (SAFE + CORRECT)
-final activityResponse = await supabase
-    .from('user_activity_logs')
+    try {
+      // 1️⃣ Fetch profile
+      final profileResponse = await supabase
+    .from('user_profile_view')
     .select()
     .eq('user_id', widget.userId)
-    .order('date', ascending: false);
+    .maybeSingle();
 
-// ✅ FIXED HERE
-List<Map<String, dynamic>> logs =
-    (activityResponse as List)
-        .map((e) => Map<String, dynamic>.from(e))
-        .toList();
 
-activityLogs = logs.map((log) {
-  return {
-    'date': log['date']?.toString() ?? '',
-    'profile status': log['profile_status'] ?? '',
-    'transaction status': log['transaction_status'] ?? '',
-    'product posted': log['product_posted'] ?? '',
-    'resource posted': log['resource_posted'] ?? '',
-  };
-}).toList();
-
-// 🔼🔼🔼 ONLY THIS PART UPDATED 🔼🔼🔼
-    // Dummy fraud logs
-    fraudLogs = [
-      {
-        "date": "2024-08-01",
-        "issue": "Multiple failed logins",
-        "severity": "Medium",
-        "status": "Resolved"
-      },
-      {
-        "date": "2024-07-15",
-        "issue": "Suspicious transaction",
-        "severity": "High",
-        "status": "Flagged"
+      if (profileResponse == null) {
+        setState(() {
+          profile = null;
+          activityLogs = [];
+          fraudLogs = [];
+          isLoading = false;
+        });
+        return;
       }
-    ];
 
-    setState(() => isLoading = false);
-  } catch (e, st) {
-    developer.log('ERROR fetching user: $e', name: 'UserProfile', error: e, stackTrace: st);
-    setState(() => isLoading = false);
+      profile = Map<String, dynamic>.from(profileResponse);
+
+      // 2️⃣ Fetch role + community
+      
+
+      // 3️⃣ Fetch activity logs
+      final activityResponse = await supabase
+          .from('user_activity_logs')
+          .select()
+          .eq('user_id', widget.userId)
+          .order('date', ascending: false);
+
+      activityLogs = (activityResponse as List)
+          .map((e) => Map<String, dynamic>.from(e))
+          .map((log) => {
+                'date': log['date']?.toString() ?? '',
+                'profile status': log['profile_status'] ?? '',
+                'transaction status': log['transaction_status'] ?? '',
+                'product posted': log['product_posted']?.toString() ?? '0',
+                'resource posted': log['resource_posted']?.toString() ?? '0',
+              })
+          .toList();
+
+      // 4️⃣ Dummy fraud logs
+      fraudLogs = [
+        {
+          "date": "2024-08-01",
+          "issue": "Multiple failed logins",
+          "severity": "Medium",
+          "status": "Resolved"
+        },
+        {
+          "date": "2024-07-15",
+          "issue": "Suspicious transaction",
+          "severity": "High",
+          "status": "Flagged"
+        }
+      ];
+
+      setState(() => isLoading = false);
+    } catch (e, st) {
+      developer.log('ERROR fetching user: $e', name: 'UserProfile', error: e, stackTrace: st);
+      setState(() => isLoading = false);
+    }
   }
-}
+
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
@@ -139,7 +125,7 @@ activityLogs = logs.map((log) {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 🔹 PROFILE CARD
+            // PROFILE CARD
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
@@ -157,12 +143,11 @@ activityLogs = logs.map((log) {
                 children: [
                   CircleAvatar(
                     radius: 60,
-                    backgroundImage:
-                        profile!['profile_image_url'] != null &&
-                                profile!['profile_image_url'] != ''
-                            ? NetworkImage(profile!['profile_image_url'])
-                            : const AssetImage('assets/default.png')
-                                as ImageProvider,
+                    backgroundImage: profile!['profile_image_url'] != null &&
+                            profile!['profile_image_url'] != ''
+                        ? NetworkImage(profile!['profile_image_url'])
+                        : const AssetImage('assets/default.png')
+                            as ImageProvider,
                   ),
                   const SizedBox(width: 32),
                   Column(
@@ -187,7 +172,7 @@ activityLogs = logs.map((log) {
 
             const SizedBox(height: 32),
 
-            // 🔹 USER INFORMATION
+            // USER INFORMATION
             sectionTitle("User Information"),
             const SizedBox(height: 12),
             buildTable(
@@ -204,25 +189,25 @@ activityLogs = logs.map((log) {
 
             const SizedBox(height: 32),
 
-            // 🔹 ACTIVITY LOG
+            // ACTIVITY LOG
             sectionTitle("Activity Log"),
             const SizedBox(height: 12),
             buildTable(
-              ["Date", "Profile Status",  "Transaction status", "Product posted","Resource posted"],
+              ["Date", "Profile Status",  "Transaction Status", "Product Posted", "Resource Posted"],
               activityLogs.map((log) {
                 return [
                   log['date']?.toString() ?? '',
                   log['profile status']?.toString() ?? '',
                   log['transaction status']?.toString() ?? '',
-                  log['product posted']?.toString() ?? '',
-                  log['resource posted']?.toString() ?? '',
+                  log['product posted']?.toString() ?? '0',
+                  log['resource posted']?.toString() ?? '0',
                 ];
               }).toList(),
             ),
 
             const SizedBox(height: 32),
 
-            // 🔹 DUMMY FRAUD LOG
+            // FRAUD HISTORY
             sectionTitle("Fraud History"),
             const SizedBox(height: 12),
             buildTable(
@@ -236,56 +221,12 @@ activityLogs = logs.map((log) {
                 ];
               }).toList(),
             ),
-
-            const SizedBox(height: 32),
-
-            // 🔹 ADMIN ACTIONS
-            sectionTitle("Admin Actions"),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: accent,
-                    padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-                  ),
-                  onPressed: () {
-                    // Add your suspend logic here
-                  },
-                  child: const Text(
-                    "Suspend User",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                const SizedBox(width: 20),
-                OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-                    side: const BorderSide(color: darkPrimary),
-                  ),
-                  onPressed: () {
-                    // Add your ban logic here
-                  },
-                  child: const Text(
-                    "Ban User",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: darkPrimary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 32),
           ],
         ),
       ),
     );
   }
 
-  // 🔹 SECTION TITLE
   static Widget sectionTitle(String title) {
     return Text(
       title,
@@ -297,7 +238,6 @@ activityLogs = logs.map((log) {
     );
   }
 
-  // 🔹 TABLE WIDGET
   Widget buildTable(List<String> headers, List<List<String>> rows) {
     return Container(
       decoration: BoxDecoration(

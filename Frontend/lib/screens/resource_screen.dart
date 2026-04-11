@@ -1,6 +1,8 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'resources_detailed.dart';
+
 
 class ResourceSharing extends StatefulWidget {
   const ResourceSharing({super.key});
@@ -203,7 +205,7 @@ class _ResourceSharingState extends State<ResourceSharing>
                                   controller: _scrollController,
                                   scrollDirection: Axis.horizontal,
                                   child: ConstrainedBox(
-                                    constraints: const BoxConstraints(minWidth: 1200),
+                                    constraints: const BoxConstraints(minWidth: 1400),
                                     child: DataTable(
                                       columnSpacing: 60,
                                       headingRowColor: WidgetStateProperty.resolveWith(
@@ -268,12 +270,21 @@ final adminName = res['admin_name'] ?? 'N/A';
   DataCell(_statusBadge(status)),
 
   // 7. Actions
-  DataCell(
-    TextButton(
-      onPressed: () {},
-      child: const Text("View"),
-    ),
+ DataCell(
+  TextButton(
+    onPressed: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ResourceDetailScreen(
+            resourceId: res['id'], // ✅ FIXED
+          ),
+        ),
+      );
+    },
+    child: const Text("View"),
   ),
+),
 ]);
                                       }).toList(),
                                     ),

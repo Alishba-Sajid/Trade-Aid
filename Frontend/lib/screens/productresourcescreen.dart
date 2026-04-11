@@ -1,6 +1,10 @@
 import 'dart:math';
+import 'productdetailed.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+/// 👉 NEW: import resource detail screen
+ 
 
 class ProductResource extends StatefulWidget {
   const ProductResource({super.key});
@@ -14,30 +18,43 @@ class _ProductResourceState extends State<ProductResource>
   late AnimationController _controller;
 
   final supabase = Supabase.instance.client;
-
   final ScrollController _scrollController = ScrollController();
 
   String selectedCommunity = "All";
 
   List<String> communities = ["All"];
   List<Map<String, dynamic>> products = [];
+
+  /// ✅ NEW: resources
+  List<Map<String, dynamic>> resources = [];
+
   bool isLoading = true;
+
+  /// ✅ NEW: resource loading
+  bool isResourceLoading = true;
+
+  /// ✅ NEW: toggle
+  bool isProductTab = true;
 
   @override
   void initState() {
     super.initState();
+
     _controller =
-        AnimationController(vsync: this, duration: const Duration(seconds: 12))
+        AnimationController(vsync: this, duration: const Duration(seconds: 5))
           ..repeat();
 
     fetchProducts();
     fetchCommunities();
+
+    /// ✅ NEW
+    fetchResources();
   }
 
   Future<void> fetchProducts() async {
     try {
       final response =
-    await supabase.from('product_dashboard').select();
+          await supabase.from('product_dashboard').select();
 
       setState(() {
         products = List<Map<String, dynamic>>.from(response);
@@ -48,6 +65,22 @@ class _ProductResourceState extends State<ProductResource>
       setState(() => isLoading = false);
     }
   }
+
+  /// ✅ NEW FUNCTION
+  Future<void> fetchResources() async {
+  try {
+    final response = await supabase
+    .from('resources')
+    .select('id, name, rate, description, available_days, images');
+    setState(() {
+      resources = List<Map<String, dynamic>>.from(response);
+      isResourceLoading = false;
+    });
+  } catch (e) {
+    debugPrint("RESOURCE ERROR: $e");
+    setState(() => isResourceLoading = false);
+  }
+}
 
   Future<void> fetchCommunities() async {
     try {
@@ -81,12 +114,10 @@ class _ProductResourceState extends State<ProductResource>
         builder: (context, _) {
           return Stack(
             children: [
-              // 🌊 BACKGROUND
+              /// BACKGROUND
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
                     colors: [
                       Colors.teal.shade600,
                       Colors.teal.shade300,
@@ -101,40 +132,14 @@ class _ProductResourceState extends State<ProductResource>
                 ),
               ),
 
-              // ✨ FLOATING CIRCLES
-              ...List.generate(6, (i) {
-                final size = 80.0 + i * 20;
-                return Positioned(
-                  left: (i * 140) % MediaQuery.of(context).size.width,
-                  top: 120 +
-                      60 *
-                          sin((_controller.value * 2 * pi) + i.toDouble()),
-                  child: Container(
-                    width: size,
-                    height: size,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha:0.08),
-                    ),
-                  ),
-                );
-              }),
-
-              // 📦 MAIN CARD
+              /// MAIN CARD
               Padding(
                 padding: const EdgeInsets.all(24),
                 child: Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha:0.95),
+                    color: Colors.white.withValues(alpha: 0.95),
                     borderRadius: BorderRadius.circular(18),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 12,
-                        offset: Offset(0, 6),
-                      ),
-                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -146,9 +151,15 @@ class _ProductResourceState extends State<ProductResource>
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+
                       const SizedBox(height: 16),
 
-                      // 🔍 SEARCH + FILTER
+                      /// 🔥 NEW TOGGLE (Products / Resources)
+                      
+
+                      const SizedBox(height: 20),
+
+                      /// EXISTING SEARCH + FILTER (UNCHANGED)
                       Row(
                         children: [
                           Expanded(
@@ -157,7 +168,8 @@ class _ProductResourceState extends State<ProductResource>
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 12),
                               decoration: BoxDecoration(
-                                color: const Color.fromARGB(255, 238, 235, 235),
+                                color:
+                                    const Color.fromARGB(255, 238, 235, 235),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: const Row(
@@ -183,57 +195,58 @@ class _ProductResourceState extends State<ProductResource>
 
                       const SizedBox(height: 20),
 
-                      // 📊 TABLE
-                      Expanded(
-                        child: isLoading
-                            ? const Center(child: CircularProgressIndicator())
-                            : Scrollbar(
-                                controller: _scrollController,
-                                thumbVisibility: true,
-                                child: SingleChildScrollView(
-                                  controller: _scrollController,
-                                  scrollDirection: Axis.horizontal,
-                                  child: ConstrainedBox(
-                                    constraints:
-                                        const BoxConstraints(minWidth: 1300),
-                                    child: DataTable(
-                                      columnSpacing: 70,
-                                      headingRowColor: WidgetStateProperty.resolveWith(
-  (_) => Colors.grey.shade100,
-),
-                                      columns: const [
-                                        DataColumn(label: Text("Item Name",style: TextStyle(fontWeight: FontWeight.bold))),
-                                        DataColumn(label: Text("Community",style: TextStyle(fontWeight: FontWeight.bold))),
-                                        DataColumn(label: Text("Posted By",style: TextStyle(fontWeight: FontWeight.bold))),
-                                        DataColumn(label: Text("Price",style: TextStyle(fontWeight: FontWeight.bold))),
-                                        DataColumn(label: Text("Status",style: TextStyle(fontWeight: FontWeight.bold))),
-                                        DataColumn(label: Text("Actions",style: TextStyle(fontWeight: FontWeight.bold))),
-                                      ],
-                                      rows: products.map((item) {
-                                        // 🔍 DEBUG
-                                        debugPrint("STATUS FROM DB: ${item['status']}");
-
-                                        return DataRow(
-                                          cells: [
-                                            DataCell(Text(item['title'] ?? '')),
-                                            DataCell(Text(item['community'] ?? '')),
-                                            DataCell(Text(item['posted_by'] ?? '')),
-                                            DataCell(Text(item['price']?.toString() ?? '0')),
-                                            DataCell(_statusBadge(item['status']?.toString() ?? '')),
-                                            DataCell(
-                                              TextButton(
-                                                onPressed: () {},
-                                                child: const Text("View"),
-                                              ),
-                                            ),
-                                          ],
-                                        );
-                                      }).toList(),
-                                    ),
-                                  ),
-                                ),
+                      /// TABLE
+                   Expanded(
+  child: isLoading
+      ? const Center(child: CircularProgressIndicator())
+      : SingleChildScrollView(
+          controller: _scrollController,
+          scrollDirection: Axis.horizontal,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 1400), // ✅ KEEP
+            child: DataTable(
+              columnSpacing: 70,
+              headingRowColor: WidgetStateProperty.resolveWith(
+                (_) => Colors.grey.shade100,
+              ),
+              columns: const [
+                DataColumn(label: Text("Item Name")),
+                DataColumn(label: Text("Community")),
+                DataColumn(label: Text("Posted By")),
+                DataColumn(label: Text("Price")),
+                DataColumn(label: Text("Status")),
+                DataColumn(label: Text("Actions")),
+              ],
+              rows: products.map((item) {
+                return DataRow(
+                  cells: [
+                    DataCell(Text(item['title'] ?? '')),
+                    DataCell(Text(item['community'] ?? '')),
+                    DataCell(Text(item['posted_by'] ?? '')),
+                    DataCell(Text(item['price']?.toString() ?? '0')),
+                    DataCell(_statusBadge(item['status'] ?? '')),
+                    DataCell(
+                      TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ProductDetailScreen(
+                                productId: item['id'],
                               ),
+                            ),
+                          );
+                        },
+                        child: const Text("View"),
                       ),
+                    ),
+                  ],
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+)
                     ],
                   ),
                 ),
@@ -245,7 +258,7 @@ class _ProductResourceState extends State<ProductResource>
     );
   }
 
-  // 🔽 DROPDOWN
+  /// DROPDOWN (UNCHANGED)
   Widget _communityDropdown() {
     return Container(
       height: 45,
@@ -269,7 +282,6 @@ class _ProductResourceState extends State<ProductResource>
     );
   }
 
-  // ✅ FIXED STATUS BADGE
   Widget _statusBadge(String status) {
     final s = status.toLowerCase().trim();
 
