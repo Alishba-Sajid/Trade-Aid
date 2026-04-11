@@ -192,18 +192,18 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
         uploadedImageUrl = supabase.storage.from(bucket).getPublicUrl(filePath);
       }
 
-     final response = await supabase.from('profiles').upsert({
-  'user_id': user.id,
-  'full_name': _nameController.text.trim(),
-  'gender': _selectedGender,
-  'phone': _phoneController.text.trim(),
-  'address': _addressController.text.trim(),
-  'profile_image_url': uploadedImageUrl ?? '',
-}).select();
+      final response = await supabase.from('profiles').upsert({
+        'user_id': user.id,
+        'full_name': _nameController.text.trim(),
+        'gender': _selectedGender,
+        'phone': _phoneController.text.trim(),
+        'address': _addressController.text.trim(),
+        'profile_image_url': uploadedImageUrl ?? '',
+      }).select();
 
-if (response.isEmpty) {
-  throw "Profile not saved!";
-}
+      if (response.isEmpty) {
+        throw "Profile not saved!";
+      }
 
       _showAnimatedCard("Profile created successfully 🎉", icon: Icons.check);
       Navigator.pushNamed(context, '/location_permission');

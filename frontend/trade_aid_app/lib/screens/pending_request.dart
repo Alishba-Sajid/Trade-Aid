@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -48,11 +49,34 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
   List<UserRequest> requests = [];
   bool loading = true;
   String? _processingRequestId;
+  String? _notificationMessage;
+  Color _notificationColor = Colors.green;
+  bool _notificationVisible = false;
+  Timer? _notificationTimer;
 
   @override
   void initState() {
     super.initState();
     fetchRequests();
+  }
+
+  @override
+  void dispose() {
+    _notificationTimer?.cancel();
+    super.dispose();
+  }
+
+  void _showAnimatedNotification(String message, Color backgroundColor) {
+    _notificationTimer?.cancel();
+    setState(() {
+      _notificationMessage = message;
+      _notificationColor = backgroundColor;
+      _notificationVisible = true;
+    });
+
+    _notificationTimer = Timer(const Duration(milliseconds: 2500), () {
+      setState(() => _notificationVisible = false);
+    });
   }
 
   Future<void> fetchRequests() async {
@@ -153,20 +177,16 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
         requests.removeWhere((r) => r.id == req.id);
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('User added to community!'),
-          backgroundColor: Colors.green,
-        ),
+      _showAnimatedNotification(
+        'User added to community!',
+        Colors.green,
       );
     } catch (e) {
       debugPrint('Error approving request: $e');
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to approve request'),
-          backgroundColor: Colors.redAccent,
-        ),
+      _showAnimatedNotification(
+        'Failed to approve request',
+        Colors.redAccent,
       );
     } finally {
       setState(() => _processingRequestId = null);
@@ -189,20 +209,16 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
         requests.removeWhere((r) => r.id == req.id);
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Request rejected'),
-          backgroundColor: Colors.redAccent,
-        ),
+      _showAnimatedNotification(
+        'Request rejected',
+        Colors.redAccent,
       );
     } catch (e) {
       debugPrint('Error rejecting request: $e');
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('You are not allowed to reject this request'),
-          backgroundColor: Colors.redAccent,
-        ),
+      _showAnimatedNotification(
+        'You are not allowed to reject this request',
+        Colors.redAccent,
       );
     }
   }
@@ -211,35 +227,54 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
-      body: Column(
+      body: Stack(
         children: [
-          _buildHeader(context),
-          loading
-              ? const Expanded(
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              : Expanded(
-                  child: requests.isEmpty
-                      ? const Center(child: Text('No pending requests'))
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 20,
-                          ),
-                          itemCount: requests.length,
-                          itemBuilder: (context, index) {
-                            final req = requests[index];
-                            return _RequestCard(
-                              data: req,
-                              onAccept: () => approveRequest(req),
-                              onReject: () => rejectRequest(req),
-                              onProfileTap: () =>
-                                  _showProfileDialog(context, req),
-                              processingRequestId: _processingRequestId,
-                            );
-                          },
-                        ),
-                ),
+          Column(
+            children: [
+              _buildHeader(context),
+              loading
+                  ? const Expanded(
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  : Expanded(
+                      child: requests.isEmpty
+                          ? const Center(child: Text('No pending requests'))
+                          : ListView.builder(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 20,
+                              ),
+                              itemCount: requests.length,
+                              itemBuilder: (context, index) {
+                                final req = requests[index];
+                                return _RequestCard(
+                                  data: req,
+                                  onAccept: () => approveRequest(req),
+                                  onReject: () => rejectRequest(req),
+                                  onProfileTap: () =>
+                                      _showProfileDialog(context, req),
+                                  processingRequestId: _processingRequestId,
+                                );
+                              },
+                            ),
+                    ),
+            ],
+          ),
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 24,
+            child: AnimatedSlide(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOut,
+              offset: _notificationVisible ? Offset.zero : const Offset(0, 1),
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 250),
+                opacity: _notificationVisible ? 1 : 0,
+                child: _buildNotificationCard(),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -269,6 +304,29 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
               const SizedBox(width: 48),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNotificationCard() {
+    if (_notificationMessage == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Material(
+      elevation: 6,
+      borderRadius: BorderRadius.circular(16),
+      color: _notificationColor,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        child: Text(
+          _notificationMessage!,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+          textAlign: TextAlign.center,
         ),
       ),
     );
