@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'community_dialog.dart';
 import '../wish_request/wish_request.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../services/rating_service.dart';
 
 // 🌿 Premium Color Constants
 const LinearGradient appGradient = LinearGradient(
@@ -23,6 +24,7 @@ class DashboardBody extends StatefulWidget {
   final String communityId;
   final bool isAdmin;
 
+
   const DashboardBody({
     super.key,
     required this.userName,
@@ -39,12 +41,16 @@ class _DashboardBodyState extends State<DashboardBody> {
   RealtimeChannel? wishChannel;
   RealtimeChannel? communityChannel;
 
+  final RatingService _ratingService = RatingService();
+
   int activeWishCount = 0;
   List<Map<String, dynamic>> nearbyCommunities = [];
 
   bool locationPermissionGranted = false;
   bool locationDeniedForever = false;
   bool loadingNearby = true;
+  bool _isActive = true;
+  
 
   void _subscribeWishRequests() {
     wishChannel?.unsubscribe();
@@ -331,6 +337,19 @@ class _DashboardBodyState extends State<DashboardBody> {
   void initState() {
     super.initState();
     _initializeDashboard();
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+    _ratingService.checkAndShowRatingDialog(context);
+  });
+
+    // 🔁 Auto check every 2 minutes
+Future.doWhile(() async {
+  await Future.delayed(const Duration(minutes: 2));
+  if (!mounted || !_isActive) return false;
+
+  await _ratingService.checkAndShowRatingDialog(context);
+  return true;
+});
   }
 
   @override
@@ -344,12 +363,15 @@ class _DashboardBodyState extends State<DashboardBody> {
     }
   }
 
-  @override
-  void dispose() {
-    wishChannel?.unsubscribe();
-    communityChannel?.unsubscribe();
-    super.dispose();
-  }
+@override
+void dispose() {
+  _isActive = false;
+
+  wishChannel?.unsubscribe();
+  communityChannel?.unsubscribe();
+
+  super.dispose();
+}
 
   @override
   Widget build(BuildContext context) {
