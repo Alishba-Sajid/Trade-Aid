@@ -1,6 +1,21 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../screens/dashboard/dashboard.dart';
+
+// 🎨 COLORS
+const LinearGradient appGradient = LinearGradient(
+  colors: [
+    Color.fromARGB(255, 15, 119, 124),
+    Color.fromARGB(255, 17, 158, 144),
+  ],
+  begin: Alignment.bottomLeft,
+  end: Alignment.topRight,
+);
+
+const Color backgroundLight = Color(0xFFF4F6F9);
+const Color darkPrimary = Color(0xFF0F777C);
+const Color accentTeal = Color(0xFF119E90);
 
 /// ================= PRODUCT =================
 
@@ -56,27 +71,83 @@ class ProductTransactionService {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Transaction Confirmation"),
-        content: Text(
-          isBuyer
-              ? "Have you paid for \"$productName\"?"
-              : "Have you received payment for \"$productName\"?",
+      builder: (ctx) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: accentTeal, width: 2),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: accentTeal.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.shopping_bag_outlined, color: accentTeal, size: 32),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  "Transaction Confirmation",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: darkPrimary),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  isBuyer
+                      ? "Have you paid for \"$productName\"?"
+                      : "Have you received payment for \"$productName\"?",
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 15, color: Colors.black87),
+                ),
+                const SizedBox(height: 25),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () async => await _submitResponse(ctx, tx, isBuyer, false),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.grey),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text("No", style: TextStyle(color: Colors.black54)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: appGradient,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: ElevatedButton(
+                          onPressed: () async => await _submitResponse(ctx, tx, isBuyer, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: const Text("Yes", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              await _submitResponse(ctx, tx, isBuyer, true);
-            },
-            child: const Text("Yes"),
-          ),
-          TextButton(
-            onPressed: () async {
-              await _submitResponse(ctx, tx, isBuyer, false);
-            },
-            child: const Text("No"),
-          ),
-        ],
       ),
     );
   }
@@ -137,7 +208,6 @@ class ProductTransactionService {
       'reserved_for': prodStatus == 'available' ? null : tx['buyer_id'],
     }).eq('id', tx['product_id']);
   }
-  
 }
 
 /// ================= RESOURCE =================
@@ -157,7 +227,6 @@ class ResourceTransactionWatcher {
           .select('*, resources(name)')
           .or('user_id.eq.${user.id},owner_id.eq.${user.id}')
           .inFilter('status', ['confirmed']);
-          
 
       for (final booking in bookings) {
         final isBuyer = booking['user_id'].toString() == user.id;
@@ -172,7 +241,6 @@ class ResourceTransactionWatcher {
 
         if (hasResponded) continue;
 
-        /// ⏱ TIME LOGIC (FIXED CLEAN)
         final bookingDate = DateTime.parse(booking['booking_date']);
         final endTime = booking['end_time'].toString().split(':');
 
@@ -184,7 +252,6 @@ class ResourceTransactionWatcher {
           int.parse(endTime[1]),
         );
 
-        /// ✅ Trigger AFTER 30 mins
         if (now.isAfter(endDateTime.add(const Duration(minutes: 30)))) {
           GlobalDialogManager.isDialogOpen = true;
           GlobalDialogManager.shownIds.add(uniqueKey);
@@ -205,27 +272,83 @@ class ResourceTransactionWatcher {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Payment Confirmation"),
-        content: Text(
-          isBuyer
-              ? "Have you paid for $resourceName?"
-              : "Have you received payment for $resourceName?",
+      builder: (ctx) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: accentTeal, width: 2),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: accentTeal.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.payments_outlined, color: accentTeal, size: 32),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  "Payment Confirmation",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: darkPrimary),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  isBuyer
+                      ? "Have you paid for $resourceName?"
+                      : "Have you received payment for $resourceName?",
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 15, color: Colors.black87),
+                ),
+                const SizedBox(height: 25),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () async => await _submitResponse(ctx, booking, isBuyer, false),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.grey),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text("No", style: TextStyle(color: Colors.black54)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: appGradient,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: ElevatedButton(
+                          onPressed: () async => await _submitResponse(ctx, booking, isBuyer, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: const Text("Yes", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              await _submitResponse(ctx, booking, isBuyer, true);
-            },
-            child: const Text("Yes"),
-          ),
-          TextButton(
-            onPressed: () async {
-              await _submitResponse(ctx, booking, isBuyer, false);
-            },
-            child: const Text("No"),
-          ),
-        ],
       ),
     );
   }
@@ -262,7 +385,6 @@ class ResourceTransactionWatcher {
 
     if (bConf == null || oConf == null) return;
 
-    /// ✅ KEEP YOUR STATUS SYSTEM (IMPORTANT FOR HISTORY)
     String status;
 
     if (bConf == true && oConf == true) {

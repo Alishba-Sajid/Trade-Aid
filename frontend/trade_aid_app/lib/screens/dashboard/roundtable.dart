@@ -6,7 +6,8 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '/services/notification_service.dart';
-
+import '../../models/roundtable.dart';
+// Consistent Gradient used across the app
 const LinearGradient appGradient = LinearGradient(
   colors: [
     Color.fromARGB(255, 15, 119, 124),
@@ -15,11 +16,99 @@ const LinearGradient appGradient = LinearGradient(
   begin: Alignment.bottomLeft,
   end: Alignment.topRight,
 );
+
 const Color dark = Color(0xFF00382E);
 const Color light = Color(0xFFF8FAF9);
 const Color accent = Color(0xFF119E90);
 const Color surface = Colors.white;
 const Color borderStroke = Color(0xFFE0E7E6);
+
+// ✅ Reusable Animated Card Widget
+class AnimatedCard extends StatefulWidget {
+  final String message;
+  final IconData? icon;
+  const AnimatedCard({super.key, required this.message, this.icon});
+
+  @override
+  State<AnimatedCard> createState() => _AnimatedCardState();
+}
+
+class _AnimatedCardState extends State<AnimatedCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnim;
+  late Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    _offsetAnim = Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SlideTransition(
+      position: _offsetAnim,
+      child: FadeTransition(
+        opacity: _fadeAnim,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color.fromARGB(255, 17, 158, 144),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.icon != null)
+                  Icon(
+                    widget.icon,
+                    color: const Color.fromARGB(255, 17, 158, 144),
+                  ),
+                if (widget.icon != null) const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.message,
+                    style: GoogleFonts.poppins(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class CommunityRoundtableScreen extends StatefulWidget {
   final bool isAdmin;
@@ -62,23 +151,27 @@ class _CommunityRoundtableScreenState extends State<CommunityRoundtableScreen> {
         .subscribe();
   }
 
+  // ✅ Function to show the animated card (Replacing SnackBar)
+  void _showAnimatedCard(String message, {IconData? icon}) {
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: 50,
+        left: 20,
+        right: 20,
+        child: AnimatedCard(message: message, icon: icon),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 2), () => overlayEntry.remove());
+  }
+
   Future<void> _launchGoogleMeet() async {
     final Uri url = Uri.parse('https://meet.google.com/new');
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      if (mounted) _showSnackBar("Could not open Google Meet");
+      if (mounted) _showAnimatedCard("Could not open Google Meet", icon: Icons.error_outline);
     }
-  }
-
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: GoogleFonts.poppins(fontSize: 14)),
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        backgroundColor: dark,
-      ),
-    );
   }
 
   Future<void> fetchMeeting() async {
@@ -111,7 +204,7 @@ class _CommunityRoundtableScreenState extends State<CommunityRoundtableScreen> {
 
         setState(() {
           currentMeeting = Meeting(
-            id: data['id'], // ✅ ADD THIS
+            id: data['id'],
             title: data['title'],
             link: data['meeting_link'],
             date: meetingTime,
@@ -134,15 +227,15 @@ class _CommunityRoundtableScreenState extends State<CommunityRoundtableScreen> {
       await supabase
           .from('community_meetings')
           .delete()
-          .eq('id', currentMeeting!.id); // ✅ FIX HERE
+          .eq('id', currentMeeting!.id);
 
       setState(() {
         currentMeeting = null;
       });
 
-      _showSnackBar("Meeting deleted");
+      _showAnimatedCard("Meeting deleted", icon: Icons.delete_sweep_rounded);
     } catch (e) {
-      _showSnackBar("Error deleting meeting");
+      _showAnimatedCard("Error deleting meeting", icon: Icons.error_outline);
     }
   }
 
@@ -196,7 +289,7 @@ class _CommunityRoundtableScreenState extends State<CommunityRoundtableScreen> {
     if (_titleController.text.isEmpty ||
         _linkController.text.isEmpty ||
         selectedDate == null) {
-      _showSnackBar("Please complete all session details");
+      _showAnimatedCard("Please complete all session details", icon: Icons.info_outline);
       return;
     }
 
@@ -209,22 +302,21 @@ class _CommunityRoundtableScreenState extends State<CommunityRoundtableScreen> {
         'created_by': supabase.auth.currentUser!.id,
       });
 
-     // 🔥 Send to ALL members (loop)
-final members = await supabase
-    .from('community_members')
-    .select('user_id')
-    .eq('community_id', widget.communityId);
+      final members = await supabase
+          .from('community_members')
+          .select('user_id')
+          .eq('community_id', widget.communityId);
 
-for (var m in members) {
-  await NotificationService.createNotification(
-    userId: m['user_id'], // ✅ REQUIRED FIX
-    communityId: widget.communityId,
-    title: "📢 New Community Meeting",
-    message:
-        "${widget.adminName} scheduled a meeting on ${DateFormat('EEE, MMM dd • hh:mm a').format(selectedDate!)}",
-    type: "meeting",
-  );
-}
+      for (var m in members) {
+        await NotificationService.createNotification(
+          userId: m['user_id'],
+          communityId: widget.communityId,
+          title: "📢 New Community Meeting",
+          message:
+              "${widget.adminName} scheduled a meeting on ${DateFormat('EEE, MMM dd • hh:mm a').format(selectedDate!)}",
+          type: "meeting",
+        );
+      }
 
       _titleController.clear();
       _linkController.clear();
@@ -233,9 +325,9 @@ for (var m in members) {
       });
 
       fetchMeeting();
-      _showSnackBar("Roundtable is now live for members");
+      _showAnimatedCard("Roundtable is now live for members", icon: Icons.check_circle_outline);
     } catch (e) {
-      _showSnackBar("Error publishing meeting");
+      _showAnimatedCard("Error publishing meeting", icon: Icons.error_outline);
     }
   }
 
@@ -660,12 +752,21 @@ for (var m in members) {
               height: 48,
               child: ElevatedButton.icon(
                 onPressed: () async {
-                  final Uri url = Uri.parse(meeting.link);
-                  if (!await launchUrl(
-                    url,
-                    mode: LaunchMode.externalApplication,
-                  )) {
-                    _showSnackBar("Error opening link");
+                  try {
+                    String formattedLink = meeting.link.startsWith('http')
+                        ? meeting.link
+                        : 'https://${meeting.link}';
+
+                    final Uri url = Uri.parse(formattedLink);
+
+                    if (!await launchUrl(
+                      url,
+                      mode: LaunchMode.externalApplication,
+                    )) {
+                      _showAnimatedCard("Could not open meeting link", icon: Icons.error_outline);
+                    }
+                  } catch (e) {
+                    _showAnimatedCard("Invalid meeting link", icon: Icons.link_off_rounded);
                   }
                 },
                 icon: const Icon(
@@ -692,18 +793,4 @@ for (var m in members) {
       ),
     );
   }
-}
-
-class Meeting {
-  final String id;
-  final String title;
-  final String link;
-  final DateTime date;
-
-  Meeting({
-    required this.id,
-    required this.title,
-    required this.link,
-    required this.date,
-  });
 }

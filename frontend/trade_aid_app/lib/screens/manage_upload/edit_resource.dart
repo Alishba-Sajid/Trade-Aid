@@ -76,11 +76,24 @@ class _EditUploadResourceScreenState extends State<EditUploadResourceScreen> {
 
     if (widget.resource['images'] != null) {
       final List imagesFromDb = widget.resource['images'];
-
       for (int i = 0; i < imagesFromDb.length && i < 3; i++) {
-        _images[i] = XFile(imagesFromDb[i]); // Works for URL too
+        _images[i] = XFile(imagesFromDb[i]);
       }
     }
+  }
+
+  // ---------------- ANIMATED NOTIFICATION ----------------
+  void _showNotification(String message, {bool isError = false}) {
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder: (context) =>
+          _AnimatedNotificationCard(message: message, isError: isError),
+    );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 3), () {
+      overlayEntry.remove();
+    });
   }
 
   // ---------------- IMAGE HANDLING ----------------
@@ -262,10 +275,9 @@ class _EditUploadResourceScreenState extends State<EditUploadResourceScreen> {
 
   // ---------------- DAY PICKER ----------------
   Widget _buildDayPicker() {
-    // Calculate width for each day to fit in one line
     final double screenWidth = MediaQuery.of(context).size.width;
-    final double horizontalPadding = 20 * 2; // left + right padding
-    final double spacing = 6 * 6; // 6px spacing between 7 items = 6 gaps
+    final double horizontalPadding = 20 * 2;
+    final double spacing = 6 * 6;
     final double dayWidth = (screenWidth - horizontalPadding - spacing) / 7;
 
     return Row(
@@ -348,12 +360,7 @@ class _EditUploadResourceScreenState extends State<EditUploadResourceScreen> {
           })
           .eq('id', widget.resource['id']);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: darkPrimary,
-          content: Text('Resource updated successfully'),
-        ),
-      );
+      _showNotification('Resource updated successfully');
 
       Navigator.pop(context, {
         ...widget.resource,
@@ -369,12 +376,7 @@ class _EditUploadResourceScreenState extends State<EditUploadResourceScreen> {
         'images': _images.whereType<XFile>().map((e) => e.path).toList(),
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.red,
-          content: Text('Update failed: $e'),
-        ),
-      );
+      _showNotification('Update failed: $e', isError: true);
     }
 
     setState(() => _isLoading = false);
@@ -455,7 +457,6 @@ class _EditUploadResourceScreenState extends State<EditUploadResourceScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
                   _sectionHeading("RESOURCE NAME"),
                   const SizedBox(height: 8),
                   TextFormField(
@@ -467,7 +468,6 @@ class _EditUploadResourceScreenState extends State<EditUploadResourceScreen> {
                     onSaved: (v) => _name = v,
                   ),
                   const SizedBox(height: 16),
-
                   _sectionHeading("DETAILS"),
                   const SizedBox(height: 8),
                   TextFormField(
@@ -626,6 +626,111 @@ class _EditUploadResourceScreenState extends State<EditUploadResourceScreen> {
                   ),
                   const SizedBox(height: 20),
                 ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------- CUSTOM ANIMATED NOTIFICATION COMPONENT ----------------
+class _AnimatedNotificationCard extends StatefulWidget {
+  final String message;
+  final bool isError;
+
+  const _AnimatedNotificationCard({
+    required this.message,
+    this.isError = false,
+  });
+
+  @override
+  State<_AnimatedNotificationCard> createState() =>
+      __AnimatedNotificationCardState();
+}
+
+class __AnimatedNotificationCardState extends State<_AnimatedNotificationCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+
+    _offsetAnimation = Tween<Offset>(
+      begin: const Offset(0, -1.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
+
+    _controller.forward();
+
+    Future.delayed(const Duration(seconds: 2, milliseconds: 500), () {
+      if (mounted) _controller.reverse();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: SlideTransition(
+          position: _offsetAnimation,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 20),
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: widget.isError ? Colors.redAccent : darkPrimary,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 15,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      widget.isError
+                          ? Icons.error_outline
+                          : Icons.check_circle_outline,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(width: 12),
+                    Flexible(
+                      child: Text(
+                        widget.message,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

@@ -56,6 +56,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       final data = await supabase
           .from('notifications')
           .select('*')
+          .eq('user_id', user.id) 
           .order('created_at', ascending: false);
 
       print("Fetched notifications: $data");

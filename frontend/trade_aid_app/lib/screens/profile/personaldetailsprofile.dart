@@ -3,6 +3,92 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../services/profile_service.dart';
 
+// ✅ Reusable Animated Card Widget
+class AnimatedCard extends StatefulWidget {
+  final String message;
+  final IconData? icon;
+  const AnimatedCard({super.key, required this.message, this.icon});
+
+  @override
+  State<AnimatedCard> createState() => _AnimatedCardState();
+}
+
+class _AnimatedCardState extends State<AnimatedCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnim;
+  late Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    _offsetAnim = Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SlideTransition(
+      position: _offsetAnim,
+      child: FadeTransition(
+        opacity: _fadeAnim,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color.fromARGB(255, 17, 158, 144),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.icon != null)
+                  Icon(
+                    widget.icon,
+                    color: const Color.fromARGB(255, 17, 158, 144),
+                  ),
+                if (widget.icon != null) const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.message,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class PersonalDetailsScreen extends StatefulWidget {
   const PersonalDetailsScreen({super.key});
 
@@ -24,6 +110,22 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
   void initState() {
     super.initState();
     _fetchProfile();
+  }
+
+  // ✅ Function to show the animated card
+  void _showAnimatedCard(String message, {IconData? icon}) {
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: 50,
+        left: 20,
+        right: 20,
+        child: AnimatedCard(message: message, icon: icon),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 2), () => overlayEntry.remove());
   }
 
   Future<void> _fetchProfile() async {
@@ -73,9 +175,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
     });
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Profile updated successfully!")),
-      );
+      _showAnimatedCard("Profile updated successfully!", icon: Icons.check_circle_outline);
     }
   }
 
@@ -186,7 +286,6 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
   }
 
   Widget _field(String label, TextEditingController controller, IconData icon) {
-    // Dynamic colors based on edit state
     final Color contentColor = _isEditing ? Colors.black87 : Colors.grey.shade500;
     final Color iconColor = _isEditing ? const Color(0xFF009688) : Colors.grey.shade400;
     final Color labelColor = _isEditing ? const Color(0xFF00695C) : Colors.grey.shade400;
@@ -242,7 +341,6 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
         backgroundColor: Colors.grey.shade100,
         body: Column(
           children: [
-            // Header Section
             Container(
               width: double.infinity,
               height: 260,
@@ -323,8 +421,6 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                 ],
               ),
             ),
-
-            // Form Content
             Expanded(
               child: Stack(
                 children: [
@@ -343,8 +439,6 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                       ],
                     ),
                   ),
-
-                  // Bottom Buttons
                   Positioned(
                     bottom: 20,
                     left: 20,

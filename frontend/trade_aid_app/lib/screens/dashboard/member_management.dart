@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '/widgets/app_bar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../services/notification_service.dart';
 
 // 🌿 Shared Premium Industrial Palette
 const Color kDark = Color(0xFF0B2F2A);
@@ -23,8 +24,7 @@ const LinearGradient appGradient = LinearGradient(
 
 class MemberManagementScreen extends StatefulWidget {
   final String communityId;
-  final bool isAdmin; // ✅ ADD THIS
-
+  final bool isAdmin; 
   const MemberManagementScreen({
     super.key,
     required this.communityId,
@@ -635,43 +635,61 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
   }
 
   Future<void> _makeModerator(int index) async {
-    final supabase = Supabase.instance.client;
-    final member = members[index];
+  final supabase = Supabase.instance.client;
+  final member = members[index];
 
-    final userId = member['user_id'];
+  final userId = member['user_id'];
 
-    try {
-      final existingModerator = await supabase
-          .from('community_members')
-          .select('user_id')
-          .eq('community_id', widget.communityId)
-          .eq('role', 'moderator')
-          .maybeSingle();
+  try {
+    final existingModerator = await supabase
+        .from('community_members')
+        .select('user_id')
+        .eq('community_id', widget.communityId)
+        .eq('role', 'moderator')
+        .maybeSingle();
 
-      if (existingModerator != null) {
-        _showAnimatedSnack(
-          "A moderator already exists for this community",
-          color: Colors.orange,
-        );
-        return;
-      }
-
-      await supabase
-          .from('community_members')
-          .update({'role': 'moderator'})
-          .eq('community_id', widget.communityId)
-          .eq('user_id', userId);
-
-      setState(() {
-        members[index]['role'] = 'moderator';
-      });
-
-      _showAnimatedSnack("Member promoted to moderator", color: Colors.green);
-    } catch (e) {
-      debugPrint("Error making moderator: $e");
-      _showAnimatedSnack("Failed to promote member", color: Colors.redAccent);
+    if (existingModerator != null) {
+      _showAnimatedSnack(
+        "A moderator already exists for this community",
+        color: Colors.orange,
+      );
+      return;
     }
+
+    // ✅ Update role
+    await supabase
+        .from('community_members')
+        .update({'role': 'moderator'})
+        .eq('community_id', widget.communityId)
+        .eq('user_id', userId);
+
+    // ✅ SEND NOTIFICATION HERE
+    await NotificationService.createNotification(
+      userId: userId,
+      communityId: widget.communityId,
+      title: "You're now a Moderator 🎉",
+      message:
+          "You can now review and accept or reject community join requests.",
+      type: "moderator_assigned",
+    );
+
+    setState(() {
+      members[index]['role'] = 'moderator';
+    });
+
+    _showAnimatedSnack(
+      "Member promoted to moderator",
+      color: Colors.green,
+    );
+  } catch (e) {
+    debugPrint("Error making moderator: $e");
+    _showAnimatedSnack(
+      "Failed to promote member",
+      color: Colors.redAccent,
+    );
   }
+}
+
 
   Widget _buildActionTile(
     IconData icon,

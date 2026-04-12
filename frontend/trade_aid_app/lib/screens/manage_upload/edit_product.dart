@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 const LinearGradient appGradient = LinearGradient(
   colors: [
     Color.fromARGB(255, 15, 119, 124),
@@ -59,14 +60,29 @@ class _EditUploadProductScreenState extends State<EditUploadProductScreen> {
     _conditionValue = widget.product['condition'];
     _productCategoryValue = widget.product['category'];
 
-     if (widget.product['images'] != null) {
-  final List imagesFromDb = widget.product['images'];
+    if (widget.product['images'] != null) {
+      final List imagesFromDb = widget.product['images'];
 
-  for (int i = 0; i < imagesFromDb.length && i < 3; i++) {
-    _images[i] = XFile(imagesFromDb[i]); // Works for URL too
+      for (int i = 0; i < imagesFromDb.length && i < 3; i++) {
+        _images[i] = XFile(imagesFromDb[i]); // Works for URL too
+      }
+    }
   }
-}
 
+  // --- Animated Notification Card Implementation ---
+  void _showAnimatedNotification(String message, {bool isError = false}) {
+    final overlay = Overlay.of(context);
+    late OverlayEntry overlayEntry;
+
+    overlayEntry = OverlayEntry(
+      builder: (context) => _NotificationWidget(
+        message: message,
+        isError: isError,
+        onDismiss: () => overlayEntry.remove(),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
   }
 
   Future<void> _pickImage(int slot) async {
@@ -167,18 +183,18 @@ class _EditUploadProductScreenState extends State<EditUploadProductScreen> {
                 child: Stack(
                   children: [
                     img.path.startsWith('http')
-    ? Image.network(
-        img.path,
-        fit: BoxFit.cover,
-        height: 150,
-        width: double.infinity,
-      )
-    : Image.file(
-        File(img.path),
-        fit: BoxFit.cover,
-        height: 150,
-        width: double.infinity,
-      ),
+                        ? Image.network(
+                            img.path,
+                            fit: BoxFit.cover,
+                            height: 150,
+                            width: double.infinity,
+                          )
+                        : Image.file(
+                            File(img.path),
+                            fit: BoxFit.cover,
+                            height: 150,
+                            width: double.infinity,
+                          ),
                     Positioned.fill(
                       child: Material(
                         color: Colors.transparent,
@@ -338,49 +354,43 @@ class _EditUploadProductScreenState extends State<EditUploadProductScreen> {
       ],
     );
   }
-void _submit() async {
-  FocusScope.of(context).unfocus();
 
-  if (!_formKey.currentState!.validate()) return;
-  _formKey.currentState!.save();
+  void _submit() async {
+    FocusScope.of(context).unfocus();
 
-  setState(() => _isLoading = true);
+    if (!_formKey.currentState!.validate()) return;
+    _formKey.currentState!.save();
 
-  try {
-    final supabase = Supabase.instance.client;
+    setState(() => _isLoading = true);
 
-    await supabase.from('products').update({
-      'title': _productName,
-      'description': _description,
-      'price': double.tryParse(_price ?? "0"),
-      'used_time': _usedTimeValue,
-      'condition': _conditionValue,
-      'category': _productCategoryValue,
-      'images': _images
-          .whereType<XFile>()
-          .map((e) => e.path)
-          .toList(),
-    }).eq('id', widget.product['id']);
+    try {
+      final supabase = Supabase.instance.client;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        backgroundColor: darkPrimary,
-        content: Text('Product updated successfully'),
-      ),
-    );
+      await supabase.from('products').update({
+        'title': _productName,
+        'description': _description,
+        'price': double.tryParse(_price ?? "0"),
+        'used_time': _usedTimeValue,
+        'condition': _conditionValue,
+        'category': _productCategoryValue,
+        'images': _images
+            .whereType<XFile>()
+            .map((e) => e.path)
+            .toList(),
+      }).eq('id', widget.product['id']);
 
-    Navigator.pop(context, true); // just return success
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: Colors.red,
-        content: Text('Update failed: $e'),
-      ),
-    );
+      // Integrated Animated Card Notification
+      _showAnimatedNotification('Product updated successfully');
+
+      Future.delayed(const Duration(milliseconds: 2000), () {
+        if (mounted) Navigator.pop(context, true);
+      });
+    } catch (e) {
+      _showAnimatedNotification('Update failed: $e', isError: true);
+    }
+
+    setState(() => _isLoading = false);
   }
-
-  setState(() => _isLoading = false);
-}
 
   @override
   Widget build(BuildContext context) {
@@ -443,7 +453,6 @@ void _submit() async {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // --- Images ---
                   _sectionHeading('PRODUCT IMAGES'),
                   const SizedBox(height: 8),
                   Row(
@@ -458,8 +467,6 @@ void _submit() async {
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // --- Basic Info ---
                   _sectionHeading('BASIC INFORMATION'),
                   const SizedBox(height: 8),
                   Container(
@@ -495,24 +502,23 @@ void _submit() async {
                           initialValue: _description,
                           maxLines: 3,
                           maxLength: 200,
-                          buildCounter:
-                              (
-                                BuildContext context, {
-                                required int currentLength,
-                                required bool isFocused,
-                                required int? maxLength,
-                              }) {
-                                return Align(
-                                  alignment: Alignment.centerRight,
-                                  child: Text(
-                                    '$currentLength/$maxLength',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.blueGrey[400],
-                                    ),
-                                  ),
-                                );
-                              },
+                          buildCounter: (
+                            BuildContext context, {
+                            required int currentLength,
+                            required bool isFocused,
+                            required int? maxLength,
+                          }) {
+                            return Align(
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                '$currentLength/$maxLength',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.blueGrey[400],
+                                ),
+                              ),
+                            );
+                          },
                           textInputAction: TextInputAction.done,
                           onEditingComplete: () =>
                               FocusScope.of(context).unfocus(),
@@ -543,8 +549,6 @@ void _submit() async {
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // --- Details ---
                   _sectionHeading('DETAILS'),
                   const SizedBox(height: 8),
                   Container(
@@ -600,8 +604,6 @@ void _submit() async {
                     ),
                   ),
                   const SizedBox(height: 24),
-
-                  // --- Submit Button ---
                   SizedBox(
                     width: double.infinity,
                     height: 55,
@@ -643,6 +645,114 @@ void _submit() async {
                   ),
                   const SizedBox(height: 20),
                 ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// --- Internal Helper Widget for Animated Notification ---
+class _NotificationWidget extends StatefulWidget {
+  final String message;
+  final bool isError;
+  final VoidCallback onDismiss;
+
+  const _NotificationWidget({
+    required this.message,
+    required this.isError,
+    required this.onDismiss,
+  });
+
+  @override
+  State<_NotificationWidget> createState() => _NotificationWidgetState();
+}
+
+class _NotificationWidgetState extends State<_NotificationWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+
+    _offsetAnimation = Tween<Offset>(
+      begin: const Offset(0, -1.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.elasticOut,
+    ));
+
+    _controller.forward();
+
+    // Auto-dismiss after 3 seconds
+    Future.delayed(const Duration(seconds: 3), () async {
+      if (mounted) {
+        await _controller.reverse();
+        widget.onDismiss();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: SlideTransition(
+          position: _offsetAnimation,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  gradient: widget.isError
+                      ? const LinearGradient(colors: [Colors.redAccent, Colors.red])
+                      : appGradient,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 15,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      widget.isError ? Icons.error_outline : Icons.check_circle_outline,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        widget.message,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

@@ -20,9 +20,7 @@ const LinearGradient appGradient = LinearGradient(
 class ComplaintRepository {
   Future<List<ComplaintModel>> fetchComplaints() async {
     final supabase = Supabase.instance.client;
-
     final complaintsRes = await supabase.from('complaints').select();
-
     List<ComplaintModel> list = [];
 
     for (var e in complaintsRes) {
@@ -57,7 +55,6 @@ class ComplaintRepository {
         ),
       );
     }
-
     return list;
   }
 }
@@ -72,7 +69,6 @@ class AdminComplaintsScreen extends StatefulWidget {
 
 class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
   final ComplaintRepository _repository = ComplaintRepository();
-
   List<ComplaintModel> _allComplaints = [];
   bool _loading = true;
   int _tabIndex = 0;
@@ -99,76 +95,145 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
     }
   }
 
-  /// ================= ACTIONS =================
+  /// ================= SNACKBAR THEMED AS ANIMATED CARD =================
+  void _showSnackBar(String msg, Color themeColor) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        elevation: 0,
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.transparent, // Transparent to show container
+        content: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: themeColor, width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.info_outline, color: themeColor, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  msg,
+                  style: TextStyle(
+                    color: themeColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _resolveComplaint(ComplaintModel complaint) async {
     final result = await showDialog<bool>(
       context: context,
+      barrierDismissible: true,
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: const Text(
-            "Validate Complaint",
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          content: const Text(
-            "Is this complaint valid?\n\nValid → Count increases\nInvalid → Ignored",
-          ),
-          actionsPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 12,
-          ),
-          actions: [
-            InkWell(
-              onTap: () => Navigator.pop(context, false),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(width: 2, color: Colors.teal),
-                ),
-                child: ShaderMask(
-                  shaderCallback: (bounds) => appGradient.createShader(
-                    Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: surface,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: const Color.fromARGB(255, 15, 119, 124),
+                width: 2,
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.teal.withOpacity(0.1),
+                    shape: BoxShape.circle,
                   ),
-                  child: const Text(
-                    "Invalid",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                  child: const Icon(Icons.fact_check_outlined, color: Colors.teal, size: 32),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  "Validate Complaint",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.black87),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  "Is this complaint valid?\nValid entries increase the strike count, while invalid ones are ignored.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey, fontSize: 14, height: 1.4),
+                ),
+                const SizedBox(height: 30),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          side: const BorderSide(color: Colors.teal, width: 1.5),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        ),
+                        child: ShaderMask(
+                          shaderCallback: (bounds) => appGradient.createShader(
+                            Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+                          ),
+                          child: const Text(
+                            "Invalid",
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: appGradient,
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            padding: const EdgeInsets.symmetric(vertical: 15),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                          ),
+                          child: const Text(
+                            "Valid",
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
+              ],
             ),
-            InkWell(
-              onTap: () => Navigator.pop(context, true),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                decoration: BoxDecoration(
-                  gradient: appGradient,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  "Valid",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ],
+          ),
         );
       },
     );
 
     if (result == null) return;
 
-    _showSnackBar("Complaint reviewed", Colors.green);
+    _showSnackBar("Complaint reviewed successfully", const Color.fromARGB(255, 17, 158, 144));
 
     await Supabase.instance.client
         .from('complaints')
@@ -197,7 +262,7 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
       message: "Complaints have been filed against you.",
       type: "warning",
     );
-    _showSnackBar("User notified", Colors.orange);
+    _showSnackBar("User notified of warning", Colors.orange);
   }
 
   void _removeUser(ComplaintModel complaint) async {
@@ -210,17 +275,6 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
     _showSnackBar("User removed from community", Colors.red);
   }
 
-  void _showSnackBar(String msg, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-/// PREMIUM: Detailed View Popup
   void _showComplaintDetails(ComplaintModel complaint, int count) {
     showModalBottomSheet(
       context: context,
@@ -234,7 +288,6 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
         ),
         child: Column(
           children: [
-            // Handle Bar
             Container(
               margin: const EdgeInsets.only(top: 12, bottom: 8),
               width: 50,
@@ -242,15 +295,12 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
               decoration: BoxDecoration(
                   color: Colors.grey[300], borderRadius: BorderRadius.circular(10)),
             ),
-            
-            // Scrollable Content
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header Info
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -279,8 +329,6 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
                     Text("Reported by: ${complaint.complainantName ?? complaint.reporterName}",
                         style: TextStyle(color: Colors.teal.shade700, fontWeight: FontWeight.w500)),
                     const SizedBox(height: 20),
-
-                    // Accused Profile Card
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -317,7 +365,6 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
                         ],
                       ),
                     ),
-
                     const SizedBox(height: 25),
                     const Text("Case Description",
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
@@ -332,7 +379,6 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
                       child: Text(complaint.description,
                           style: const TextStyle(fontSize: 15, height: 1.5, color: Colors.black87)),
                     ),
-
                     if (complaint.imageUrl != null) ...[
                       const SizedBox(height: 25),
                       const Text("Evidence / Attachments",
@@ -352,8 +398,6 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
                 ),
               ),
             ),
-
-            // FIXED BOTTOM ACTION BAR (Moved from bottomSheet to here)
             Container(
               padding: const EdgeInsets.all(20),
               decoration: const BoxDecoration(
@@ -401,8 +445,6 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
       ),
     );
   }
-
-  /// ================= UI =================
 
   @override
   Widget build(BuildContext context) {
@@ -458,20 +500,13 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
   }
 
   Widget _buildTabContent() {
-    if (_tabIndex == 0) {
-      return _buildComplaintList(_pending);
-    } else if (_tabIndex == 1) {
-      return _buildCountsTab();
-    } else {
-      return _buildComplaintList(_resolved, isResolved: true);
-    }
+    if (_tabIndex == 0) return _buildComplaintList(_pending);
+    if (_tabIndex == 1) return _buildCountsTab();
+    return _buildComplaintList(_resolved, isResolved: true);
   }
 
   Widget _buildComplaintList(List<ComplaintModel> list, {bool isResolved = false}) {
-    if (list.isEmpty) {
-      return const Center(child: Text("No complaints found"));
-    }
-
+    if (list.isEmpty) return const Center(child: Text("No complaints found"));
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: list.length,
@@ -511,10 +546,7 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
     }
 
     final users = grouped.values.toList();
-
-    if (users.isEmpty) {
-      return const Center(child: Text("No valid complaints record"));
-    }
+    if (users.isEmpty) return const Center(child: Text("No valid complaints record"));
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),

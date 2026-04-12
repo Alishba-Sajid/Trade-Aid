@@ -10,6 +10,7 @@ import 'member_management.dart';
 import 'User_complaints.dart';
 import 'roundtable.dart';
 import 'manage_reservations.dart';
+import 'disputed_products.dart';
 
 // 🌿 Color Palette
 const LinearGradient appGradient = LinearGradient(
@@ -52,7 +53,7 @@ class DashboardDrawer extends StatelessWidget {
     );
   }
 
-  // 🔐 Logout Confirmation Dialog
+  // 🔐 Logout Confirmation Dialog Updated to Match Theme
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -61,26 +62,25 @@ class DashboardDrawer extends StatelessWidget {
       builder: (_) {
         return BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-          child: Center(
+          child: Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+            elevation: 0,
+            backgroundColor: Colors.transparent,
             child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 24),
-              padding: const EdgeInsets.all(22),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.95),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: const Color.fromARGB(255, 15, 119, 124),
+                  width: 2,
+                ),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(14),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: light,
                       shape: BoxShape.circle,
@@ -88,10 +88,10 @@ class DashboardDrawer extends StatelessWidget {
                     child: const Icon(
                       Icons.logout_rounded,
                       color: dark,
-                      size: 28,
+                      size: 32,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   const Text(
                     'Log out?',
                     style: TextStyle(
@@ -100,27 +100,28 @@ class DashboardDrawer extends StatelessWidget {
                       color: dark,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Text(
                     'Are you sure you want to log out from this community?',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.black.withOpacity(0.6),
                       fontSize: 14,
+                      height: 1.4,
                     ),
                   ),
-                  const SizedBox(height: 22),
+                  const SizedBox(height: 30),
                   Row(
                     children: [
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () => Navigator.pop(context),
                           style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
-                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 15),
                             side: BorderSide(color: dark.withOpacity(0.3)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15),
+                            ),
                           ),
                           child: const Text(
                             'Cancel',
@@ -136,7 +137,7 @@ class DashboardDrawer extends StatelessWidget {
                         child: Container(
                           decoration: BoxDecoration(
                             gradient: appGradient,
-                            borderRadius: BorderRadius.circular(30),
+                            borderRadius: BorderRadius.circular(15),
                           ),
                           child: ElevatedButton(
                             onPressed: () {
@@ -152,9 +153,9 @@ class DashboardDrawer extends StatelessWidget {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.transparent,
                               shadowColor: Colors.transparent,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              padding: const EdgeInsets.symmetric(vertical: 15),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
+                                borderRadius: BorderRadius.circular(15),
                               ),
                             ),
                             child: const Text(
@@ -277,7 +278,6 @@ class DashboardDrawer extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               children: [
-                // ✅ Pending Requests - Fixed
                 if (canManageRequests)
                   _DrawerTile(
                     icon: Icons.person_add_alt_1_rounded,
@@ -292,6 +292,7 @@ class DashboardDrawer extends StatelessWidget {
                       );
                     },
                   ),
+
                 _DrawerTile(
                   icon: Icons.upload_rounded,
                   title: 'Manage Uploads',
@@ -337,7 +338,6 @@ class DashboardDrawer extends StatelessWidget {
                   },
                 ),
 
-                // 🔹 Help & Support - Visible to Members only (Hidden for Admin)
                 if (!isAdmin)
                   _DrawerTile(
                     icon: Icons.help_rounded,
@@ -365,7 +365,6 @@ class DashboardDrawer extends StatelessWidget {
                   },
                 ),
 
-                // 🔹 Admin Only Options
                 _DrawerTile(
                   icon: Icons.people_alt_outlined,
                   title: 'Community Members',
@@ -393,6 +392,19 @@ class DashboardDrawer extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (_) => const AdminComplaintsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  _DrawerTile(
+                    icon: Icons.report_outlined,
+                    title: 'Disputed Products',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const DisputedProductsScreen(),
                         ),
                       );
                     },

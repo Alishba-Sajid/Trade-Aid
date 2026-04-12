@@ -64,15 +64,48 @@ class ProfileService {
     return publicUrl;
   }
 
-  Future<void> deleteAccount() async {
-    final user = supabase.auth.currentUser;
+Future<void> deleteAccount() async {
+  final user = supabase.auth.currentUser;
+  if (user == null) return;
 
-    // delete profile
-    await supabase.from('profiles').delete().eq('user_id', user!.id);
+  final userId = user.id;
 
-    // logout user
+  try {
+    // ✅ Notifications (only own)
+    await supabase.from('notifications').delete().eq('user_id', userId);
+
+    // ✅ Products
+    await supabase.from('products').delete().eq('user_id', userId);
+
+    // ✅ Resources
+    await supabase.from('resources').delete().eq('user_id', userId);
+
+    // ✅ Resource bookings (ONLY as user)
+    await supabase.from('resource_bookings').delete().eq('user_id', userId);
+
+    // ✅ Transactions (ONLY as buyer)
+    await supabase.from('transactions').delete().eq('buyer_id', userId);
+
+     // ✅ Messages (important)
+    await supabase.from('messages').delete().eq('sender_id', userId);
+
+    // ✅ Wish requests
+    await supabase.from('wish_requests').delete().eq('user_id', userId);
+
+    // Leave communities FIRST 
+  await supabase.from('community_members').delete().eq('user_id', userId);
+
+    // ✅ Profile
+    await supabase.from('profiles').delete().eq('user_id', userId);
+
+    // 🚪 Logout
     await supabase.auth.signOut();
+
+  } catch (e) {
+    print("Delete error: $e");
+    rethrow;
   }
+}
 
   Future<String?> changePassword({
     required String currentPassword,
