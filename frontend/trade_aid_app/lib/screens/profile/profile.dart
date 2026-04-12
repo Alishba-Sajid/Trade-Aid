@@ -121,7 +121,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   void initState() {
     super.initState();
-
+    
     _starController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),

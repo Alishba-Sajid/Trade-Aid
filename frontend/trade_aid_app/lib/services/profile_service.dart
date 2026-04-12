@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../models/profile_model.dart';
 
 class ProfileService {
   final supabase = Supabase.instance.client;
@@ -28,7 +29,16 @@ class ProfileService {
         .eq('user_id', user.id)
         .maybeSingle();
   }
+Future<List<ProfileModel>> getAllProfiles() async {
+  final response = await supabase
+      .from('profiles')
+      .select()
+      .order('created_at', ascending: false);
 
+  return (response as List)
+      .map((json) => ProfileModel.fromJson(json))
+      .toList();
+}
   Future<void> updateProfile({
     required String name,
     required String phone,

@@ -289,7 +289,9 @@ isBuyer = data['user_id'] == userId;
 
     name = isBuyer ? ownerName : userName;
        itemName = "$itemName\nUser: $userName | Owner: $ownerName";
+       
     }
+    
 
     int selectedRating = 0;
 

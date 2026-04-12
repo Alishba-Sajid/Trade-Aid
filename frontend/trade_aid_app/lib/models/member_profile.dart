@@ -18,4 +18,5 @@ class MemberProfile {
     required this.buyerRating,
     required this.sellerRating,
   });
+  
 }

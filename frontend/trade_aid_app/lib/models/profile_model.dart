@@ -5,10 +5,14 @@ class ProfileModel {
   final String? address;
   final String? phone;
   final DateTime? createdAt;
+  final double buyerRating;
+ final double sellerRating;
 
   ProfileModel({
     required this.userId,
     required this.fullName,
+    required this.buyerRating,
+    required this.sellerRating,
     this.imageUrl,
     this.address,
     this.phone,
@@ -22,9 +26,14 @@ class ProfileModel {
       imageUrl: json['profile_image_url'],
       address: json['address'],
       phone: json['phone'],
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
-          : null,
-    );
+      // ✅ FIXED FIELD NAMES
+    buyerRating: (json['buyer_rating_avg'] ?? 0).toDouble(),
+    sellerRating: (json['seller_rating_avg'] ?? 0).toDouble(),
+
+    createdAt: json['created_at'] != null
+        ? DateTime.parse(json['created_at'])
+        : null,
+  );
+
   }
 }
