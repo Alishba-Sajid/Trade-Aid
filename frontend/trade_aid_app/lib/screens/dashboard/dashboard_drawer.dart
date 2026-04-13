@@ -63,7 +63,9 @@ class DashboardDrawer extends StatelessWidget {
         return BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
           child: Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
+            ),
             elevation: 0,
             backgroundColor: Colors.transparent,
             child: Container(
@@ -360,7 +362,9 @@ class DashboardDrawer extends StatelessWidget {
                     Navigator.pop(context);
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const VotingScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => VotingScreen(communityId: communityId),
+                      ),
                     );
                   },
                 ),

@@ -1,19 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '/widgets/app_bar.dart';
-import '/models/admin_nomination.dart';
+import '/models/candidate.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class VotingScreen extends StatefulWidget {
-  const VotingScreen({super.key});
+  final String communityId;
+
+  const VotingScreen({super.key, required this.communityId});
 
   @override
   State<VotingScreen> createState() => _VotingScreenState();
 }
 
 class _VotingScreenState extends State<VotingScreen> {
+  final supabase = Supabase.instance.client;
   List<Candidate> candidates = [];
   bool isLoading = true;
   int? selectedIndex;
+  bool isNominated = false;
+  String phase = "loading";
+  bool debugMode = true;
 
   @override
   void initState() {
@@ -22,44 +29,147 @@ class _VotingScreenState extends State<VotingScreen> {
   }
 
   Future<void> _loadCandidates() async {
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      setState(() {
+        isLoading = true;
+        candidates = [];
+      });
 
-    setState(() {
-      candidates = [
-        Candidate(
-          name: 'Hania B.',
-          location: 'Gulberg Greens',
-          sellerRating: 4.7,
-          buyerRating: 4.5,
-        ),
-        Candidate(
-          name: 'Ahmed R.',
-          location: 'Bahria Town',
-          sellerRating: 4.2,
-          buyerRating: 4.4,
-        ),
-        Candidate(
-          name: 'Fatima K.',
-          location: 'DHA Phase 2',
-          sellerRating: 4.9,
-          buyerRating: 4.8,
-        ),
-      ];
-      isLoading = false;
-    });
+      final userId = supabase.auth.currentUser!.id;
+
+      // 1. Get active election for this community
+      final election = await supabase
+          .from('elections')
+          .select('id, nomination_end, voting_end')
+          .eq('community_id', widget.communityId)
+          .eq('is_active', true)
+          .maybeSingle();
+      print("ELECTION: $election");
+
+      if (election == null) {
+        setState(() => isLoading = false);
+        return;
+      }
+
+      final electionId = election['id'];
+
+      DateTime now;
+
+      if (debugMode) {
+        now = DateTime.parse("2026-04-14T00:00:00Z");
+      } else {
+        now = DateTime.now().toUtc();
+      }
+
+      final nominationEnd = DateTime.parse(election['nomination_end']);
+      final votingEnd = DateTime.parse(election['voting_end']);
+
+      setState(() {
+        if (now.isBefore(nominationEnd)) {
+          phase = "nomination";
+        } else if (now.isBefore(votingEnd)) {
+          phase = "voting";
+        } else {
+          phase = "closed";
+        }
+      });
+
+      print("CURRENT PHASE: $phase");
+
+      // 2. Check if current user already nominated
+      final existingNomination = await supabase
+          .from('nominations')
+          .select('id')
+          .eq('election_id', electionId)
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      setState(() {
+        isNominated = existingNomination != null;
+      });
+
+      // 3. Get all nominations for this election
+      final nominations = await supabase
+          .from('nominations')
+          .select('user_id')
+          .eq('election_id', electionId);
+
+      print("NOMINATIONS: $nominations");
+
+      if (nominations.isEmpty) {
+        setState(() => isLoading = false);
+        return;
+      }
+
+      // 4. Fetch profiles for those users
+      final userIds = (nominations as List)
+          .map((e) => e['user_id'].toString())
+          .toList();
+
+      final profiles = await supabase
+          .from('profiles')
+          .select('*')
+          .inFilter('user_id', userIds);
+
+      print("PROFILES: $profiles");
+
+      // 5. Convert to Candidate model
+      setState(() {
+        candidates = (profiles as List).map((profile) {
+          return Candidate(
+            userId: profile['user_id'],
+            name: profile['full_name'] ?? 'Unknown',
+            location: profile['address'] ?? 'Unknown',
+            sellerRating: (profile['seller_rating_avg'] ?? 0).toDouble(),
+            buyerRating: (profile['buyer_rating_avg'] ?? 0).toDouble(),
+          );
+        }).toList();
+
+        isLoading = false;
+      });
+    } catch (e) {
+      print("Error loading candidates: $e");
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   Future<void> _vote(int index) async {
-    setState(() => selectedIndex = index);
+    try {
+      final userId = supabase.auth.currentUser!.id;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        backgroundColor: dark,
-        content: Text('Vote cast for ${candidates[index].name}'),
-      ),
-    );
+      final election = await supabase
+          .from('elections')
+          .select('id')
+          .eq('community_id', widget.communityId)
+          .eq('is_active', true)
+          .maybeSingle();
+
+      if (election == null) return;
+
+      final electionId = election['id'];
+      final candidate = candidates[index];
+
+      // INSERT VOTE INTO DATABASE
+      await supabase.from('votes').insert({
+        'election_id': electionId,
+        'voter_id': userId,
+        'candidate_id': candidate.userId,
+      });
+
+      setState(() => selectedIndex = index);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Vote casted for ${candidate.name}')),
+      );
+    } catch (e) {
+      print("VOTE ERROR: $e");
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Vote failed: $e")));
+    }
   }
 
   Widget _buildHeader() {
@@ -93,25 +203,121 @@ class _VotingScreenState extends State<VotingScreen> {
     );
   }
 
+  Future<void> _nominateMe() async {
+    try {
+      final userId = supabase.auth.currentUser!.id;
+
+      // 1. Get active election for this community
+      final election = await supabase
+          .from('elections')
+          .select('id')
+          .eq('community_id', widget.communityId)
+          .eq('is_active', true)
+          .maybeSingle();
+
+      if (election == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("No active election found")),
+        );
+        return;
+      }
+
+      final electionId = election['id'];
+
+      // 2. Insert nomination
+      await supabase.from('nominations').insert({
+        'election_id': electionId,
+        'user_id': userId,
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("You are now nominated")));
+
+      // 3. Reload candidates
+      _loadCandidates();
+    } catch (e) {
+      print("Nomination error: $e");
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+    }
+  }
+
+  Widget _buildNominateButton() {
+    if (phase != "nomination") {
+      return const SizedBox(); // hide after nomination ends
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(25, 10, 25, 10),
+      child: ElevatedButton(
+        onPressed: isNominated ? null : _nominateMe,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isNominated
+              ? Colors.grey
+              : const Color.fromARGB(255, 30, 171, 148),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        child: Text(
+          isNominated ? "Already Nominated" : "Nominate Me",
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildBody() {
     if (isLoading) return _LoadingSkeleton();
-    if (candidates.isEmpty) return _EmptyState();
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(25, 14, 25, 14),
-      children: [
-        _buildHeader(),
-        const SizedBox(height: 14),
-        ...List.generate(candidates.length, (index) {
-          return _CandidateCard(
-            candidate: candidates[index],
-            isSelected: selectedIndex == index,
-            isVoted: selectedIndex != null,
-            onVote: () => _vote(index),
-          );
-        })
-      ],
-    );
+    // NOMINATION PHASE → only nominate button
+    if (phase == "nomination") {
+      return Column(
+        children: [
+          _buildNominateButton(),
+          const SizedBox(height: 20),
+          const Center(child: Text("Nominations are open")),
+        ],
+      );
+    }
+
+    // VOTING PHASE → show candidates
+    if (phase == "voting") {
+      return Column(
+        children: [
+          _buildNominateButton(),
+          Expanded(
+            child: candidates.isEmpty
+                ? _EmptyState()
+                : ListView(
+                    padding: const EdgeInsets.fromLTRB(25, 14, 25, 14),
+                    children: [
+                      _buildHeader(),
+                      const SizedBox(height: 14),
+                      ...List.generate(candidates.length, (index) {
+                        return _CandidateCard(
+                          candidate: candidates[index],
+                          isSelected: selectedIndex == index,
+                          isVoted: selectedIndex != null,
+                          onVote: () => _vote(index),
+                        );
+                      }),
+                    ],
+                  ),
+          ),
+        ],
+      );
+    }
+
+    // CLOSED PHASE
+    return const Center(child: Text("Election is closed"));
   }
 }
 
@@ -170,21 +376,30 @@ class _CandidateCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(candidate.name,
-                            style: GoogleFonts.poppins(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 17,
-                                color: dark)),
+                        Text(
+                          candidate.name,
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 17,
+                            color: dark,
+                          ),
+                        ),
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            const Icon(Icons.location_on_outlined,
-                                size: 14, color: Colors.grey),
+                            const Icon(
+                              Icons.location_on_outlined,
+                              size: 14,
+                              color: Colors.grey,
+                            ),
                             const SizedBox(width: 4),
-                            Text(candidate.location,
-                                style: GoogleFonts.poppins(
-                                    fontSize: 13,
-                                    color: Colors.black45)),
+                            Text(
+                              candidate.location,
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                color: Colors.black45,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 8),
@@ -194,7 +409,7 @@ class _CandidateCard extends StatelessWidget {
                             const SizedBox(width: 10),
                             _RatingMini("Buyer", candidate.buyerRating),
                           ],
-                        )
+                        ),
                       ],
                     ),
                   ),
@@ -233,20 +448,25 @@ class _RatingMini extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Text(label,
-              style: GoogleFonts.poppins(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: darkPrimary)),
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: darkPrimary,
+            ),
+          ),
           const SizedBox(width: 4),
-          const Icon(Icons.star_rounded,
-              size: 12, color: Color(0xFFFFA000)),
+          const Icon(Icons.star_rounded, size: 12, color: Color(0xFFFFA000)),
           const SizedBox(width: 2),
-          Text(rating.toString(),
-              style: GoogleFonts.poppins(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: dark)),
+          Text(
+            rating.toString(),
+            style: GoogleFonts.poppins(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: dark,
+            ),
+          ),
         ],
       ),
     );
@@ -267,8 +487,7 @@ class _Avatar extends StatelessWidget {
         gradient: appGradient,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: const Icon(Icons.person_outline,
-          color: Colors.white, size: 30),
+      child: const Icon(Icons.person_outline, color: Colors.white, size: 30),
     );
   }
 }
@@ -311,8 +530,8 @@ class _VoteButton extends StatelessWidget {
             isSelected
                 ? 'VOTE CAST'
                 : isVoted
-                    ? 'VOTING LOCKED'
-                    : 'CAST VOTE',
+                ? 'VOTING LOCKED'
+                : 'CAST VOTE',
             style: GoogleFonts.poppins(
               fontSize: 13,
               fontWeight: FontWeight.w700,
@@ -320,8 +539,8 @@ class _VoteButton extends StatelessWidget {
               color: isSelected
                   ? Colors.white
                   : isVoted
-                      ? Colors.black26
-                      : darkPrimary,
+                  ? Colors.black26
+                  : darkPrimary,
             ),
           ),
         ),
@@ -334,8 +553,8 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-        child: Text("No candidates available",
-            style: GoogleFonts.poppins()));
+      child: Text("No candidates available", style: GoogleFonts.poppins()),
+    );
   }
 }
 
