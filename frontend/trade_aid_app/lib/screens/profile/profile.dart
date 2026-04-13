@@ -113,8 +113,8 @@ class _ProfileScreenState extends State<ProfileScreen>
   late Animation<double> _starAnimation;
 
   // Dynamic ratings
-  double buyerRating = 4.5;
-  double sellerRating = 3.5;
+  double buyerRating = 0;
+double sellerRating = 0;
   String? userName;
   String? profileImageUrl;
 
@@ -158,15 +158,19 @@ class _ProfileScreenState extends State<ProfileScreen>
     Future.delayed(const Duration(seconds: 2), () => overlayEntry.remove());
   }
 
-  Future<void> _fetchUserName() async {
-    final data = await ProfileService().getProfile();
+Future<void> _fetchUserName() async {
+  final data = await ProfileService().getProfile();
 
-    setState(() {
-      userName = data?['full_name'];
-      profileImageUrl = data?['profile_image_url'];
-      _notificationsEnabled = data?['notifications_enabled'] ?? true;
-    });
-  }
+  setState(() {
+    userName = data?['full_name'];
+    profileImageUrl = data?['profile_image_url'];
+    _notificationsEnabled = data?['notifications_enabled'] ?? true;
+
+    // ✅ ADD THESE LINES
+    buyerRating = ((data?['buyer_rating_avg'] ?? 0) as num).toDouble();
+    sellerRating = ((data?['seller_rating_avg'] ?? 0) as num).toDouble();
+  });
+}
 
   Widget _menuTile(
     BuildContext context, {
@@ -224,8 +228,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
             ),
             const SizedBox(width: 6),
-            Text(
-              "$buyerRating",
+            Text(buyerRating.toStringAsFixed(2),
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -261,7 +264,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
             const SizedBox(width: 6),
             Text(
-              "$sellerRating",
+              sellerRating.toStringAsFixed(2),
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
