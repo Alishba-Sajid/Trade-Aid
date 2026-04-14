@@ -4,7 +4,7 @@ class Candidate {
   final String location;
   final double sellerRating;
   final double buyerRating;
-  int votes;
+  final int votes;
 
   Candidate({
     required this.userId,

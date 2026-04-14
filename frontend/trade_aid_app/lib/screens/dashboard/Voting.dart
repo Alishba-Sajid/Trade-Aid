@@ -37,14 +37,12 @@ class _VotingScreenState extends State<VotingScreen> {
 
       final userId = supabase.auth.currentUser!.id;
 
-      // 1. Get active election for this community
       final election = await supabase
           .from('elections')
           .select('id, nomination_end, voting_end')
           .eq('community_id', widget.communityId)
           .eq('is_active', true)
           .maybeSingle();
-      print("ELECTION: $election");
 
       if (election == null) {
         setState(() => isLoading = false);
@@ -53,30 +51,22 @@ class _VotingScreenState extends State<VotingScreen> {
 
       final electionId = election['id'];
 
-      DateTime now;
-
-      if (debugMode) {
-        now = DateTime.parse("2026-04-14T00:00:00Z");
-      } else {
-        now = DateTime.now().toUtc();
-      }
+      DateTime now = debugMode
+          ? DateTime.parse("2026-04-14T00:00:00Z")
+          : DateTime.now().toUtc();
 
       final nominationEnd = DateTime.parse(election['nomination_end']);
       final votingEnd = DateTime.parse(election['voting_end']);
 
-      setState(() {
-        if (now.isBefore(nominationEnd)) {
-          phase = "nomination";
-        } else if (now.isBefore(votingEnd)) {
-          phase = "voting";
-        } else {
-          phase = "closed";
-        }
-      });
+      if (now.isBefore(nominationEnd)) {
+        phase = "nomination";
+      } else if (now.isBefore(votingEnd)) {
+        phase = "voting";
+      } else {
+        phase = "closed";
+        await _assignAdmin(electionId);
+      }
 
-      print("CURRENT PHASE: $phase");
-
-      // 2. Check if current user already nominated
       final existingNomination = await supabase
           .from('nominations')
           .select('id')
@@ -84,24 +74,18 @@ class _VotingScreenState extends State<VotingScreen> {
           .eq('user_id', userId)
           .maybeSingle();
 
-      setState(() {
-        isNominated = existingNomination != null;
-      });
+      isNominated = existingNomination != null;
 
-      // 3. Get all nominations for this election
       final nominations = await supabase
           .from('nominations')
           .select('user_id')
           .eq('election_id', electionId);
-
-      print("NOMINATIONS: $nominations");
 
       if (nominations.isEmpty) {
         setState(() => isLoading = false);
         return;
       }
 
-      // 4. Fetch profiles for those users
       final userIds = (nominations as List)
           .map((e) => e['user_id'].toString())
           .toList();
@@ -111,27 +95,40 @@ class _VotingScreenState extends State<VotingScreen> {
           .select('*')
           .inFilter('user_id', userIds);
 
-      print("PROFILES: $profiles");
+      // 🔥 GET VOTES
+      final voteData = await supabase
+          .from('votes')
+          .select('candidate_id')
+          .eq('election_id', electionId);
 
-      // 5. Convert to Candidate model
+      Map<String, int> voteCountMap = {};
+      for (var v in voteData) {
+        final id = v['candidate_id'];
+        voteCountMap[id] = (voteCountMap[id] ?? 0) + 1;
+      }
+
+      candidates = (profiles as List).map((profile) {
+        final uid = profile['user_id'];
+
+        return Candidate(
+          userId: uid,
+          name: profile['full_name'] ?? 'Unknown',
+          location: profile['address'] ?? 'Unknown',
+          sellerRating: (profile['seller_rating_avg'] ?? 0).toDouble(),
+          buyerRating: (profile['buyer_rating_avg'] ?? 0).toDouble(),
+          votes: voteCountMap[uid] ?? 0,
+        );
+      }).toList();
+
+      // 🔥 SORT LEADERBOARD
+      candidates.sort((a, b) => b.votes.compareTo(a.votes));
+
       setState(() {
-        candidates = (profiles as List).map((profile) {
-          return Candidate(
-            userId: profile['user_id'],
-            name: profile['full_name'] ?? 'Unknown',
-            location: profile['address'] ?? 'Unknown',
-            sellerRating: (profile['seller_rating_avg'] ?? 0).toDouble(),
-            buyerRating: (profile['buyer_rating_avg'] ?? 0).toDouble(),
-          );
-        }).toList();
-
         isLoading = false;
       });
     } catch (e) {
       print("Error loading candidates: $e");
-      setState(() {
-        isLoading = false;
-      });
+      setState(() => isLoading = false);
     }
   }
 
@@ -151,6 +148,29 @@ class _VotingScreenState extends State<VotingScreen> {
       final electionId = election['id'];
       final candidate = candidates[index];
 
+      // ❌ Prevent self voting
+      if (candidate.userId == userId) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("You cannot vote for yourself")),
+        );
+        return;
+      }
+
+      // Check if user already voted
+      final existingVote = await supabase
+          .from('votes')
+          .select('id')
+          .eq('election_id', electionId)
+          .eq('voter_id', userId)
+          .maybeSingle();
+
+      if (existingVote != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("You already voted")));
+        return;
+      }
+
       // INSERT VOTE INTO DATABASE
       await supabase.from('votes').insert({
         'election_id': electionId,
@@ -159,6 +179,7 @@ class _VotingScreenState extends State<VotingScreen> {
       });
 
       setState(() => selectedIndex = index);
+      await _loadCandidates();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Vote casted for ${candidate.name}')),
@@ -169,6 +190,40 @@ class _VotingScreenState extends State<VotingScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Vote failed: $e")));
+    }
+  }
+
+  Future<void> _assignAdmin(String electionId) async {
+    try {
+      // 1. Get all votes
+      final votes = await supabase
+          .from('votes')
+          .select('candidate_id')
+          .eq('election_id', electionId);
+
+      if (votes.isEmpty) return;
+
+      // 2. Count votes
+      Map<String, int> count = {};
+      for (var v in votes) {
+        final id = v['candidate_id'];
+        count[id] = (count[id] ?? 0) + 1;
+      }
+
+      // 3. Find winner
+      String winnerId = count.entries
+          .reduce((a, b) => a.value > b.value ? a : b)
+          .key;
+
+      // 4. Update community admin
+      await supabase
+          .from('communities')
+          .update({'admin_id': winnerId})
+          .eq('id', widget.communityId);
+
+      print("NEW ADMIN: $winnerId");
+    } catch (e) {
+      print("ADMIN ASSIGN ERROR: $e");
     }
   }
 
@@ -290,6 +345,7 @@ class _VotingScreenState extends State<VotingScreen> {
 
     // VOTING PHASE → show candidates
     if (phase == "voting") {
+      final currentUserId = supabase.auth.currentUser!.id;
       return Column(
         children: [
           _buildNominateButton(),
@@ -306,6 +362,7 @@ class _VotingScreenState extends State<VotingScreen> {
                           candidate: candidates[index],
                           isSelected: selectedIndex == index,
                           isVoted: selectedIndex != null,
+                          isSelf: candidates[index].userId == currentUserId,
                           onVote: () => _vote(index),
                         );
                       }),
@@ -329,15 +386,16 @@ class _CandidateCard extends StatelessWidget {
   final Candidate candidate;
   final bool isSelected;
   final bool isVoted;
+  final bool isSelf;
   final VoidCallback onVote;
 
   const _CandidateCard({
     required this.candidate,
     required this.isSelected,
     required this.isVoted,
+    required this.isSelf,
     required this.onVote,
   });
-
   @override
   Widget build(BuildContext context) {
     return AnimatedScale(
@@ -364,6 +422,7 @@ class _CandidateCard extends StatelessWidget {
             ),
           ],
         ),
+
         child: Column(
           children: [
             Padding(
@@ -376,15 +435,42 @@ class _CandidateCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          candidate.name,
-                          style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 17,
-                            color: dark,
-                          ),
+                        // 🔥 NAME + VOTES IN SAME ROW
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                candidate.name,
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 17,
+                                  color: dark,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: light,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                "${candidate.votes} votes",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: darkPrimary,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 4),
+
+                        const SizedBox(height: 6),
+
                         Row(
                           children: [
                             const Icon(
@@ -393,16 +479,20 @@ class _CandidateCard extends StatelessWidget {
                               color: Colors.grey,
                             ),
                             const SizedBox(width: 4),
-                            Text(
-                              candidate.location,
-                              style: GoogleFonts.poppins(
-                                fontSize: 13,
-                                color: Colors.black45,
+                            Expanded(
+                              child: Text(
+                                candidate.location,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  color: Colors.black45,
+                                ),
                               ),
                             ),
                           ],
                         ),
+
                         const SizedBox(height: 8),
+
                         Row(
                           children: [
                             _RatingMini("Seller", candidate.sellerRating),
@@ -418,7 +508,8 @@ class _CandidateCard extends StatelessWidget {
             ),
             _VoteButton(
               isSelected: isSelected,
-              isVoted: isVoted,
+              isVoted: isVoted || isSelf,
+              isSelf: isSelf,
               onTap: onVote,
             ),
           ],
@@ -495,11 +586,13 @@ class _Avatar extends StatelessWidget {
 class _VoteButton extends StatelessWidget {
   final bool isSelected;
   final bool isVoted;
+  final bool isSelf;
   final VoidCallback onTap;
 
   const _VoteButton({
     required this.isSelected,
     required this.isVoted,
+    required this.isSelf,
     required this.onTap,
   });
 
@@ -530,7 +623,7 @@ class _VoteButton extends StatelessWidget {
             isSelected
                 ? 'VOTE CAST'
                 : isVoted
-                ? 'VOTING LOCKED'
+                ? (isSelf ? 'CANNOT VOTE YOURSELF' : 'VOTING LOCKED')
                 : 'CAST VOTE',
             style: GoogleFonts.poppins(
               fontSize: 13,
