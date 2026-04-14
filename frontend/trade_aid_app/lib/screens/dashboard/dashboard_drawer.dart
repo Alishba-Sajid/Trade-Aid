@@ -32,6 +32,7 @@ class DashboardDrawer extends StatelessWidget {
   final String adminName;
   final bool isAdmin;
   final bool isModerator;
+  final VoidCallback onRefreshCommunity;
 
   const DashboardDrawer({
     super.key,
@@ -41,6 +42,7 @@ class DashboardDrawer extends StatelessWidget {
     required this.adminName,
     required this.isAdmin,
     required this.isModerator,
+    required this.onRefreshCommunity,
   });
 
   void onCopy(BuildContext context) {
@@ -365,7 +367,9 @@ class DashboardDrawer extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (_) => VotingScreen(communityId: communityId),
                       ),
-                    );
+                    ).then((_) {
+                      onRefreshCommunity();
+                    });
                   },
                 ),
 

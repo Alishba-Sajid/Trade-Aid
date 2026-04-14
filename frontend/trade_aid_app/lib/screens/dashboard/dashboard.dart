@@ -44,11 +44,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _hasNotifications = false;
   bool _isAdmin = false;
   bool _isModerator = false;
+  bool _isDisposed = false;
 
   String? _communityId;
   String _communityName = 'Community';
   String _userName = 'User';
   String _inviteLink = '';
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -64,9 +71,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // Unified watcher loop
   void _startWatchers() async {
-    while (mounted) {
+    while (!_isDisposed) {
+      if (!mounted) return;
+
       await ProductTransactionService.checkPendingTransactions(context);
       await ResourceTransactionWatcher.start(context);
+
       await Future.delayed(const Duration(seconds: 10));
     }
   }
@@ -109,7 +119,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           .select('id')
           .eq('community_id', communityId)
           .gt('created_at', lastSeen ?? '1970-01-01');
+      if (!mounted) return;
 
+      if (!mounted || _isDisposed) return;
       setState(() => _hasNotifications = data.isNotEmpty);
     } catch (e) {
       debugPrint("Notification check error: $e");
@@ -144,6 +156,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           .eq('user_id', user.id)
           .maybeSingle();
 
+      if (!mounted || _isDisposed) return;
       setState(() {
         _communityId = communityId;
         _communityName = communityResponse?['name'] ?? 'Community';
@@ -286,6 +299,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         adminName: _userName,
         isAdmin: _isAdmin,
         isModerator: _isModerator,
+        onRefreshCommunity: _fetchUserCommunity,
       ),
       appBar: AppBar(
         backgroundColor: const Color(0xFFF5F5F5),

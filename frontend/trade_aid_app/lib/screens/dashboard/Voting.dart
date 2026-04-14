@@ -21,6 +21,7 @@ class _VotingScreenState extends State<VotingScreen> {
   bool isNominated = false;
   String phase = "loading";
   bool debugMode = true;
+  bool _adminAssigned = false;
 
   @override
   void initState() {
@@ -50,14 +51,9 @@ class _VotingScreenState extends State<VotingScreen> {
       }
 
       final electionId = election['id'];
-
-      DateTime now = debugMode
-          ? DateTime.parse("2026-04-14T00:00:00Z")
-          : DateTime.now().toUtc();
-
-      final nominationEnd = DateTime.parse(election['nomination_end']);
-      final votingEnd = DateTime.parse(election['voting_end']);
-
+      DateTime now = DateTime.now().toUtc();
+      final nominationEnd = DateTime.parse(election['nomination_end']).toUtc();
+      final votingEnd = DateTime.parse(election['voting_end']).toUtc();
       if (now.isBefore(nominationEnd)) {
         phase = "nomination";
       } else if (now.isBefore(votingEnd)) {
@@ -66,7 +62,13 @@ class _VotingScreenState extends State<VotingScreen> {
         phase = "closed";
         await _assignAdmin(electionId);
       }
-
+      print("NOW: $now");
+      print("VOTING END: $votingEnd");
+      print("PHASE: $phase");
+      if (phase == "closed" && !_adminAssigned) {
+        _adminAssigned = true;
+        await _assignAdmin(electionId);
+      }
       final existingNomination = await supabase
           .from('nominations')
           .select('id')
@@ -195,7 +197,6 @@ class _VotingScreenState extends State<VotingScreen> {
 
   Future<void> _assignAdmin(String electionId) async {
     try {
-      // 1. Get all votes
       final votes = await supabase
           .from('votes')
           .select('candidate_id')
@@ -203,28 +204,40 @@ class _VotingScreenState extends State<VotingScreen> {
 
       if (votes.isEmpty) return;
 
-      // 2. Count votes
       Map<String, int> count = {};
+
       for (var v in votes) {
         final id = v['candidate_id'];
         count[id] = (count[id] ?? 0) + 1;
       }
 
-      // 3. Find winner
-      String winnerId = count.entries
+      final winnerId = count.entries
           .reduce((a, b) => a.value > b.value ? a : b)
           .key;
 
-      // 4. Update community admin
+      // STEP 1: remove old admin
       await supabase
-          .from('communities')
-          .update({'admin_id': winnerId})
-          .eq('id', widget.communityId);
+          .from('community_members')
+          .update({'role': 'member'})
+          .eq('community_id', widget.communityId)
+          .eq('role', 'admin');
 
-      print("NEW ADMIN: $winnerId");
+      // STEP 2: assign new admin
+      await supabase
+          .from('community_members')
+          .update({'role': 'member'})
+          .eq('community_id', widget.communityId);
+
+      print("NEW ADMIN ASSIGNED: $winnerId");
     } catch (e) {
       print("ADMIN ASSIGN ERROR: $e");
     }
+
+    await supabase
+        .from('elections')
+        .update({'is_active': false})
+        .eq('id', electionId);
+    await Future.delayed(const Duration(seconds: 1));
   }
 
   Widget _buildHeader() {
