@@ -134,15 +134,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (user == null) return;
 
     try {
-      final members = await supabase
+      final member = await supabase
           .from('community_members')
           .select('community_id, role')
-          .eq('user_id', user.id);
+          .eq('user_id', user.id)
+          .maybeSingle();
 
-      if (members.isEmpty) return;
+      if (member == null) return;
 
-      final communityId = members[0]['community_id'];
-      final role = members[0]['role'];
+      final communityId = member['community_id'];
+
+      final freshMember = await supabase
+          .from('community_members')
+          .select('role')
+          .eq('user_id', user.id)
+          .eq('community_id', communityId)
+          .maybeSingle();
+
+      final role = freshMember?['role'];
 
       final communityResponse = await supabase
           .from('communities')

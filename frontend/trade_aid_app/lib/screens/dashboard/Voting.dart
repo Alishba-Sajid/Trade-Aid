@@ -60,7 +60,6 @@ class _VotingScreenState extends State<VotingScreen> {
         phase = "voting";
       } else {
         phase = "closed";
-        await _assignAdmin(electionId);
       }
       print("NOW: $now");
       print("VOTING END: $votingEnd");
@@ -215,19 +214,22 @@ class _VotingScreenState extends State<VotingScreen> {
           .reduce((a, b) => a.value > b.value ? a : b)
           .key;
 
-      // STEP 1: remove old admin
+      // ✅ Remove old admin
       await supabase
           .from('community_members')
           .update({'role': 'member'})
           .eq('community_id', widget.communityId)
           .eq('role', 'admin');
 
-      // STEP 2: assign new admin
-      await supabase
+      // ✅ Assign winner as admin
+      final res = await supabase
           .from('community_members')
-          .update({'role': 'member'})
-          .eq('community_id', widget.communityId);
+          .update({'role': 'admin'})
+          .eq('community_id', widget.communityId)
+          .eq('user_id', winnerId)
+          .select();
 
+      print("UPDATE RESULT: $res");
       print("NEW ADMIN ASSIGNED: $winnerId");
     } catch (e) {
       print("ADMIN ASSIGN ERROR: $e");
@@ -237,7 +239,8 @@ class _VotingScreenState extends State<VotingScreen> {
         .from('elections')
         .update({'is_active': false})
         .eq('id', electionId);
-    await Future.delayed(const Duration(seconds: 1));
+
+    Navigator.pop(context);
   }
 
   Widget _buildHeader() {
