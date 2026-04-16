@@ -829,14 +829,13 @@ insert into public.elections (
   admin_assigned
 )
 values (
-  'YOUR_COMMUNITY_ID_HERE',
+  '78dce92a-ab89-4c26-a59c-d210ad043084',
   'nomination',
   now() + interval '5 minutes',
   now() + interval '15 minutes',
   true,
   false
 );
-
 
 
 
@@ -858,6 +857,107 @@ class VotingScreen extends StatefulWidget {
 
   @override
   State<VotingScreen> createState() => _VotingScreenState();
+}
+
+class _AnimatedMessageCard extends StatefulWidget {
+  final String message;
+  final Color color;
+  final VoidCallback onDismiss;
+
+  const _AnimatedMessageCard({
+    required this.message,
+    required this.color,
+    required this.onDismiss,
+  });
+
+  @override
+  State<_AnimatedMessageCard> createState() => _AnimatedMessageCardState();
+}
+
+class _AnimatedMessageCardState extends State<_AnimatedMessageCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnim;
+  late Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    _offsetAnim = Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    _controller.forward();
+
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      _controller.reverse().then((_) => widget.onDismiss());
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    IconData icon;
+    if (widget.color == Colors.green) {
+      icon = Icons.check;
+    } else if (widget.color == Colors.redAccent) {
+      icon = Icons.error;
+    } else if (widget.color == Colors.orange) {
+      icon = Icons.warning;
+    } else {
+      icon = Icons.info;
+    }
+
+    return SlideTransition(
+      position: _offsetAnim,
+      child: FadeTransition(
+        opacity: _fadeAnim,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color.fromARGB(255, 17, 158, 144),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, color: const Color.fromARGB(255, 17, 158, 144)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.message,
+                    style: const TextStyle(color: Colors.black),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _VotingScreenState extends State<VotingScreen> {
@@ -983,6 +1083,26 @@ class _VotingScreenState extends State<VotingScreen> {
     }
   }
 
+  void _showMessage(String message, Color color) {
+    final overlay = Overlay.of(context);
+
+    late OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: 50,
+        left: 20,
+        right: 20,
+        child: _AnimatedMessageCard(
+          message: message,
+          color: color,
+          onDismiss: () => entry.remove(),
+        ),
+      ),
+    );
+
+    overlay.insert(entry);
+  }
+
   Future<void> _vote(int index) async {
     try {
       final userId = supabase.auth.currentUser!.id;
@@ -1001,9 +1121,7 @@ class _VotingScreenState extends State<VotingScreen> {
 
       // ❌ Prevent self voting
       if (candidate.userId == userId) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("You cannot vote for yourself")),
-        );
+        _showMessage("You cannot vote for yourself", Colors.redAccent);
         return;
       }
 
@@ -1016,9 +1134,7 @@ class _VotingScreenState extends State<VotingScreen> {
           .maybeSingle();
 
       if (existingVote != null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("You already voted")));
+        _showMessage("You already voted", Colors.orange);
         return;
       }
 
@@ -1032,15 +1148,11 @@ class _VotingScreenState extends State<VotingScreen> {
       setState(() => selectedIndex = index);
       await _loadCandidates();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Vote casted for ${candidate.name}')),
-      );
+      _showMessage("Vote casted for ${candidate.name}", Colors.green);
     } catch (e) {
       print("VOTE ERROR: $e");
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Vote failed: $e")));
+      _showMessage("Vote failed: $e", Colors.redAccent);
     }
   }
 
@@ -1135,9 +1247,7 @@ class _VotingScreenState extends State<VotingScreen> {
           .maybeSingle();
 
       if (election == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("No active election found")),
-        );
+        _showMessage("No active election found", Colors.redAccent);
         return;
       }
 
@@ -1149,18 +1259,14 @@ class _VotingScreenState extends State<VotingScreen> {
         'user_id': userId,
       });
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("You are now nominated")));
+      _showMessage("You are now nominated", Colors.green);
 
       // 3. Reload candidates
       _loadCandidates();
     } catch (e) {
       print("Nomination error: $e");
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      _showMessage("Error: $e", Colors.redAccent);
     }
   }
 

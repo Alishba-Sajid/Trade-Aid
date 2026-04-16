@@ -24,7 +24,7 @@ const LinearGradient appGradient = LinearGradient(
 
 class MemberManagementScreen extends StatefulWidget {
   final String communityId;
-  final bool isAdmin; 
+  final bool isAdmin;
   const MemberManagementScreen({
     super.key,
     required this.communityId,
@@ -55,7 +55,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
       user_id,
       role,
       status,
-      profiles(user_id, full_name, phone, address, profile_image_url)
+      profiles(user_id, full_name, phone, address, profile_image_url, buyer_rating_avg, seller_rating_avg)
     ''')
           .eq('community_id', widget.communityId)
           .eq('status', 'active');
@@ -338,9 +338,15 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                   const SizedBox(height: 20),
                   Row(
                     children: [
-                      _buildRatingTag("Seller", 4.0),
+                      _buildRatingTag(
+                        "Seller",
+                        (profile['seller_rating_avg'] ?? 0.0).toDouble(),
+                      ),
                       const SizedBox(width: 10),
-                      _buildRatingTag("Buyer", 4.5),
+                      _buildRatingTag(
+                        "Buyer",
+                        (profile['buyer_rating_avg'] ?? 0.0).toDouble(),
+                      ),
                     ],
                   ),
                 ],
@@ -635,61 +641,54 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
   }
 
   Future<void> _makeModerator(int index) async {
-  final supabase = Supabase.instance.client;
-  final member = members[index];
+    final supabase = Supabase.instance.client;
+    final member = members[index];
 
-  final userId = member['user_id'];
+    final userId = member['user_id'];
 
-  try {
-    final existingModerator = await supabase
-        .from('community_members')
-        .select('user_id')
-        .eq('community_id', widget.communityId)
-        .eq('role', 'moderator')
-        .maybeSingle();
+    try {
+      final existingModerator = await supabase
+          .from('community_members')
+          .select('user_id')
+          .eq('community_id', widget.communityId)
+          .eq('role', 'moderator')
+          .maybeSingle();
 
-    if (existingModerator != null) {
-      _showAnimatedSnack(
-        "A moderator already exists for this community",
-        color: Colors.orange,
+      if (existingModerator != null) {
+        _showAnimatedSnack(
+          "A moderator already exists for this community",
+          color: Colors.orange,
+        );
+        return;
+      }
+
+      // ✅ Update role
+      await supabase
+          .from('community_members')
+          .update({'role': 'moderator'})
+          .eq('community_id', widget.communityId)
+          .eq('user_id', userId);
+
+      // ✅ SEND NOTIFICATION HERE
+      await NotificationService.createNotification(
+        userId: userId,
+        communityId: widget.communityId,
+        title: "You're now a Moderator 🎉",
+        message:
+            "You can now review and accept or reject community join requests.",
+        type: "moderator_assigned",
       );
-      return;
+
+      setState(() {
+        members[index]['role'] = 'moderator';
+      });
+
+      _showAnimatedSnack("Member promoted to moderator", color: Colors.green);
+    } catch (e) {
+      debugPrint("Error making moderator: $e");
+      _showAnimatedSnack("Failed to promote member", color: Colors.redAccent);
     }
-
-    // ✅ Update role
-    await supabase
-        .from('community_members')
-        .update({'role': 'moderator'})
-        .eq('community_id', widget.communityId)
-        .eq('user_id', userId);
-
-    // ✅ SEND NOTIFICATION HERE
-    await NotificationService.createNotification(
-      userId: userId,
-      communityId: widget.communityId,
-      title: "You're now a Moderator 🎉",
-      message:
-          "You can now review and accept or reject community join requests.",
-      type: "moderator_assigned",
-    );
-
-    setState(() {
-      members[index]['role'] = 'moderator';
-    });
-
-    _showAnimatedSnack(
-      "Member promoted to moderator",
-      color: Colors.green,
-    );
-  } catch (e) {
-    debugPrint("Error making moderator: $e");
-    _showAnimatedSnack(
-      "Failed to promote member",
-      color: Colors.redAccent,
-    );
   }
-}
-
 
   Widget _buildActionTile(
     IconData icon,
