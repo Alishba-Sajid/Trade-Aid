@@ -10,20 +10,21 @@ import 'admin_rotation.dart';
 import 'community_election.dart';
 import 'settings.dart';
 
-/// INDUSTRIAL THEME COLORS
-const LinearGradient appGradient = LinearGradient(
-  colors: [
-    Color(0xFF0B2F2A),
-    Color(0xFF119E90),
-  ],
-  begin: Alignment.bottomLeft,
-  end: Alignment.topRight,
-);
+/// =====================
+/// YOUR THEME (KEEP IT)
+/// =====================
+const Color primaryTeal = Color(0xFF2E9499);
+const Color secondaryTeal = Color(0xFF119E90);
+const Color surfaceWhite = Color(0xFFFFFFFF);
+const Color textPrimary = Color(0xFF121212);
+const Color textSecondary = Color(0xFF5F6368);
+const Color dark = Color(0xFF004D40);
 
-const Color surface = Color(0xFFFFFFFF);
-const Color backgroundLight = Color(0xFFF4F7F7);
-const Color accentTeal = Color(0xFF119E90);
-const Color borderColor = Color(0xFFE4E8E8);
+const LinearGradient appGradient = LinearGradient(
+  colors: [primaryTeal, secondaryTeal],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+);
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -65,24 +66,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: backgroundLight,
+      backgroundColor: const Color(0xFFF4F7F7),
+
       body: Column(
         children: [
 
+          /// =====================
           /// HEADER
+          /// =====================
           Container(
             height: 70,
-            decoration: const BoxDecoration(gradient: appGradient),
+            decoration: const BoxDecoration(
+              gradient: appGradient,
+            ),
             padding: const EdgeInsets.symmetric(horizontal: 30),
-            child: Row(
+            child: const Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
+              children: [
                 Text(
                   "Trade & Aid",
                   style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold),
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 Row(
                   children: [
@@ -104,14 +111,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Row(
               children: [
 
+                /// =====================
                 /// SIDEBAR
+                /// =====================
                 Container(
                   width: 260,
                   decoration: const BoxDecoration(
                     gradient: appGradient,
-                    border: Border(
-                      right: BorderSide(color: Color(0x22000000)),
-                    ),
                   ),
                   padding: const EdgeInsets.fromLTRB(24, 30, 16, 20),
                   child: Column(
@@ -120,9 +126,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const Text(
                         "Admin Portal",
                         style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold),
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 30),
 
@@ -148,10 +155,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       vertical: 12, horizontal: 12),
                                   decoration: BoxDecoration(
                                     color: isSelected
-                                        ? Colors.white.withValues(alpha: 0.22)
+                                        ? Colors.white.withValues(alpha:0.22)
                                         : isHovered
-                                            ? Colors.white.withValues(
-                                                alpha: 0.12)
+                                            ? Colors.white.withValues(alpha:0.12)
                                             : Colors.transparent,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
@@ -183,7 +189,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
 
+                /// =====================
                 /// MAIN CONTENT
+                /// =====================
                 Expanded(
                   child: IndexedStack(
                     index: selectedIndex,
@@ -209,276 +217,260 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  /// =====================
   /// DASHBOARD CONTENT
+  /// =====================
   Widget _dashboardContent() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(40, 30, 40, 20),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+  return Padding(
+    padding: const EdgeInsets.fromLTRB(40, 30, 40, 20),
+    child: SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
 
-            const Text(
-              "Dashboard",
-              style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              "Welcome back, Admin 👋",
-              style: TextStyle(fontSize: 18, color: Colors.black54),
-            ),
+          const Text(
+            "Dashboard",
+            style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold),
+          ),
 
-            const SizedBox(height: 30),
+          const SizedBox(height: 6),
 
-            Wrap(
-              spacing: 20,
-              runSpacing: 20,
-              children: const [
-                _InfoCard("Total Users", "12,345"),
-                _InfoCard("Communities", "234"),
-                _InfoCard("Disputes", "5"),
-                _InfoCard("Sales", "50"),
-              ],
-            ),
+          const Text(
+            "Welcome back, Admin 👋",
+            style: TextStyle(fontSize: 18, color: Colors.black54),
+          ),
 
-            const SizedBox(height: 40),
+          const SizedBox(height: 30),
 
-            const Text(
-              "Community Growth",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
+          /// =====================
+          /// INFO CARDS (UNCHANGED)
+          /// =====================
+          Wrap(
+            spacing: 20,
+            runSpacing: 20,
+            children: const [
+              _InfoCard("Total Users", "12,345"),
+              _InfoCard("Communities", "234"),
+              _InfoCard("Disputes", "5"),
+              _InfoCard("Sales", "50"),
+            ],
+          ),
 
-            const SizedBox(height: 20),
+          const SizedBox(height: 40),
 
-            Container(
-              height: 320,
-              padding: const EdgeInsets.all(20),
-              decoration: _cardDecoration(),
-              child: LineChart(
-                LineChartData(
-                  minY: 0,
-                  maxY: 400,
-                  gridData: FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                    getDrawingHorizontalLine: (value) {
-                      return FlLine(
-                        color: Colors.grey.withValues(alpha: 0.2),
-                        strokeWidth: 1,
-                      );
-                    },
-                  ),
-                  borderData: FlBorderData(show: false),
-                  titlesData: FlTitlesData(
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        interval: 1,
-                        reservedSize: 30,
-                        getTitlesWidget: (value, meta) {
-                          const months = [
-                            "Jan","Feb","Mar","Apr","May","Jun",
-                            "Jul","Aug","Sep","Oct","Nov","Dec"
-                          ];
-                          if (value.toInt() >= 0 &&
-                              value.toInt() < months.length) {
-                            return Text(months[value.toInt()]);
-                          }
-                          return const Text("");
-                        },
-                      ),
-                    ),
-                    leftTitles: AxisTitles(
-                      sideTitles:
-                          SideTitles(showTitles: true, reservedSize: 40),
-                    ),
-                    rightTitles:
-                        AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    topTitles:
-                        AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  ),
-                  lineBarsData: [
-                    LineChartBarData(
-                      isCurved: true,
-                      color: accentTeal,
-                      barWidth: 3,
-                      dotData: FlDotData(show: false),
-                      belowBarData: BarAreaData(
-                        show: true,
-                        gradient: LinearGradient(
-                          colors: [
-                            accentTeal.withValues(alpha: 0.25),
-                            accentTeal.withValues(alpha: 0.02),
-                          ],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                        ),
-                      ),
-                      spots: const [
-                        FlSpot(0, 80),
-                        FlSpot(1, 120),
-                        FlSpot(2, 150),
-                        FlSpot(3, 170),
-                        FlSpot(4, 210),
-                        FlSpot(5, 250),
-                        FlSpot(6, 230),
-                        FlSpot(7, 260),
-                        FlSpot(8, 280),
-                        FlSpot(9, 300),
-                        FlSpot(10, 320),
-                        FlSpot(11, 350),
-                      ],
-                    ),
-                  ],
+          /// =====================
+          /// LINE CHART (YOUR ORIGINAL STYLE)
+          /// =====================
+          const Text(
+            "Community Growth",
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+
+          const SizedBox(height: 20),
+
+          Container(
+            height: 320,
+            padding: const EdgeInsets.all(20),
+            decoration: _cardDecoration(),
+            child: LineChart(
+              LineChartData(
+                minY: 0,
+                maxY: 400,
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  getDrawingHorizontalLine: (value) {
+                    return FlLine(
+                      color: Colors.grey.withValues(alpha:0.2),
+                      strokeWidth: 1,
+                    );
+                  },
                 ),
+                borderData: FlBorderData(show: false),
+                titlesData: FlTitlesData(
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      interval: 1,
+                      reservedSize: 30,
+                      getTitlesWidget: (value, meta) {
+                        const months = [
+                          "Jan","Feb","Mar","Apr","May","Jun",
+                          "Jul","Aug","Sep","Oct","Nov","Dec"
+                        ];
+                        if (value.toInt() >= 0 &&
+                            value.toInt() < months.length) {
+                          return Text(months[value.toInt()]);
+                        }
+                        return const Text("");
+                      },
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles:
+                        SideTitles(showTitles: true, reservedSize: 40),
+                  ),
+                  rightTitles:
+                      AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles:
+                      AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                ),
+                lineBarsData: [
+                  LineChartBarData(
+                    isCurved: true,
+                    color: const Color(0xFF119E90),
+                    barWidth: 3,
+                    dotData: FlDotData(show: false),
+                    spots: const [
+                      FlSpot(0, 80),
+                      FlSpot(1, 120),
+                      FlSpot(2, 150),
+                      FlSpot(3, 170),
+                      FlSpot(4, 210),
+                      FlSpot(5, 250),
+                      FlSpot(6, 230),
+                      FlSpot(7, 260),
+                      FlSpot(8, 280),
+                      FlSpot(9, 300),
+                      FlSpot(10, 320),
+                      FlSpot(11, 350),
+                    ],
+                  ),
+                ],
               ),
             ),
+          ),
 
-            const SizedBox(height: 40),
+          const SizedBox(height: 40),
 
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+          /// =====================
+          /// PIE + BAR (RESTORED SIDE BY SIDE LIKE YOUR ORIGINAL DESIGN)
+          /// =====================
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
 
-                /// PIE
-                Expanded(
-                  child: Container(
-                    height: 320,
-                    padding: const EdgeInsets.all(20),
-                    margin: const EdgeInsets.only(right: 10),
-                    decoration: _cardDecoration(),
-                    child: Column(
-                      children: [
-                        const Text(
-                          "Community Categories",
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 20),
-                        Expanded(
-                          child: PieChart(
-                            PieChartData(
-                              centerSpaceRadius: 40,
-                              sectionsSpace: 2,
-                              sections: [
-                                PieChartSectionData(
-                                    value: 40,
-                                    title: "40%",
-                                    color: Colors.green,
-                                    radius: 60),
-                                PieChartSectionData(
-                                    value: 30,
-                                    title: "30%",
-                                    color: Colors.orange,
-                                    radius: 60),
-                                PieChartSectionData(
-                                    value: 20,
-                                    title: "20%",
-                                    color: Colors.blue,
-                                    radius: 60),
-                                PieChartSectionData(
-                                    value: 10,
-                                    title: "10%",
-                                    color: Colors.red,
-                                    radius: 60),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        const Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            _LegendItem(color: Colors.green, text: "Farming"),
-                            _LegendItem(color: Colors.orange, text: "Crafts"),
-                            _LegendItem(color: Colors.blue, text: "Food"),
-                            _LegendItem(color: Colors.red, text: "Services"),
-                          ],
-                        ),
+              /// PIE CHART
+              Expanded(
+                child: Container(
+                  height: 320,
+                  padding: const EdgeInsets.all(20),
+                  margin: const EdgeInsets.only(right: 10),
+                  decoration: _cardDecoration(),
+                  child: PieChart(
+                    PieChartData(
+                      centerSpaceRadius: 40,
+                      sectionsSpace: 2,
+                      sections: [
+                        PieChartSectionData(
+                            value: 40,
+                            title: "40%",
+                            color: Colors.green,
+                            radius: 60),
+                        PieChartSectionData(
+                            value: 30,
+                            title: "30%",
+                            color: Colors.orange,
+                            radius: 60),
+                        PieChartSectionData(
+                            value: 20,
+                            title: "20%",
+                            color: Colors.blue,
+                            radius: 60),
+                        PieChartSectionData(
+                            value: 10,
+                            title: "10%",
+                            color: Colors.red,
+                            radius: 60),
                       ],
                     ),
                   ),
                 ),
+              ),
 
-                /// BAR
-                Expanded(
-                  child: Container(
-                    height: 320,
-                    padding: const EdgeInsets.all(20),
-                    margin: const EdgeInsets.only(left: 10),
-                    decoration: _cardDecoration(),
-                    child: BarChart(
-                      BarChartData(
-                        maxY: 300,
-                        borderData: FlBorderData(show: false),
-                        gridData: FlGridData(show: true),
-                        titlesData: FlTitlesData(
-                          bottomTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              interval: 1,
-                              reservedSize: 30,
-                              getTitlesWidget: (value, meta) {
-                                const months = [
-                                  "Jan","Feb","Mar","Apr","May","Jun"
-                                ];
-                                if (value.toInt() >= 0 &&
-                                    value.toInt() < months.length) {
-                                  return Text(months[value.toInt()]);
-                                }
-                                return const Text("");
-                              },
-                            ),
+              /// BAR CHART
+              Expanded(
+                child: Container(
+                  height: 320,
+                  padding: const EdgeInsets.all(20),
+                  margin: const EdgeInsets.only(left: 10),
+                  decoration: _cardDecoration(),
+                  child: BarChart(
+                    BarChartData(
+                      maxY: 300,
+                      borderData: FlBorderData(show: false),
+                      gridData: FlGridData(show: true),
+                      titlesData: FlTitlesData(
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            interval: 1,
+                            reservedSize: 30,
+                            getTitlesWidget: (value, meta) {
+                              const months = [
+                                "Jan","Feb","Mar","Apr","May","Jun"
+                              ];
+                              if (value.toInt() >= 0 &&
+                                  value.toInt() < months.length) {
+                                return Text(months[value.toInt()]);
+                              }
+                              return const Text("");
+                            },
                           ),
-                          leftTitles: AxisTitles(
-                              sideTitles:
-                                  SideTitles(showTitles: true, reservedSize: 40)),
-                          rightTitles: AxisTitles(
-                              sideTitles: SideTitles(showTitles: false)),
-                          topTitles: AxisTitles(
-                              sideTitles: SideTitles(showTitles: false)),
                         ),
-                        barGroups: [
-                          BarChartGroupData(x: 0, barRods: [
-                            BarChartRodData(toY: 120, color: accentTeal)
-                          ]),
-                          BarChartGroupData(x: 1, barRods: [
-                            BarChartRodData(toY: 150, color: accentTeal)
-                          ]),
-                          BarChartGroupData(x: 2, barRods: [
-                            BarChartRodData(toY: 180, color: accentTeal)
-                          ]),
-                          BarChartGroupData(x: 3, barRods: [
-                            BarChartRodData(toY: 210, color: accentTeal)
-                          ]),
-                          BarChartGroupData(x: 4, barRods: [
-                            BarChartRodData(toY: 170, color: accentTeal)
-                          ]),
-                          BarChartGroupData(x: 5, barRods: [
-                            BarChartRodData(toY: 240, color: accentTeal)
-                          ]),
-                        ],
+                        leftTitles: AxisTitles(
+                          sideTitles:
+                              SideTitles(showTitles: true, reservedSize: 40),
+                        ),
+                        rightTitles:
+                            AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        topTitles:
+                            AxisTitles(sideTitles: SideTitles(showTitles: false)),
                       ),
+                      barGroups: [
+                        BarChartGroupData(x: 0, barRods: [
+                          BarChartRodData(toY: 120, color: const Color(0xFF119E90))
+                        ]),
+                        BarChartGroupData(x: 1, barRods: [
+                          BarChartRodData(toY: 150, color: const Color(0xFF119E90))
+                        ]),
+                        BarChartGroupData(x: 2, barRods: [
+                          BarChartRodData(toY: 180, color: const Color(0xFF119E90))
+                        ]),
+                        BarChartGroupData(x: 3, barRods: [
+                          BarChartRodData(toY: 210, color: const Color(0xFF119E90))
+                        ]),
+                        BarChartGroupData(x: 4, barRods: [
+                          BarChartRodData(toY: 170, color: const Color(0xFF119E90))
+                        ]),
+                        BarChartGroupData(x: 5, barRods: [
+                          BarChartRodData(toY: 240, color: const Color(0xFF119E90))
+                        ]),
+                      ],
                     ),
                   ),
                 ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
+/// =====================
+/// CARD DECORATION
+/// =====================
 BoxDecoration _cardDecoration() {
   return BoxDecoration(
-    color: surface,
+    color: surfaceWhite,
     borderRadius: BorderRadius.circular(14),
-    border: Border.all(color: borderColor),
+    border: Border.all(color: const Color(0xFFE4E8E8)),
     boxShadow: [
       BoxShadow(
-        color: Colors.black.withValues(alpha: 0.05),
+        color: Colors.black.withValues(alpha:0.05),
         blurRadius: 10,
         offset: const Offset(0, 4),
       ),
@@ -486,6 +478,9 @@ BoxDecoration _cardDecoration() {
   );
 }
 
+/// =====================
+/// INFO CARD
+/// =====================
 class _InfoCard extends StatelessWidget {
   final String title;
   final String value;
@@ -502,35 +497,18 @@ class _InfoCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(color: Colors.black54)),
+          Text(title, style: const TextStyle(color: textSecondary)),
           const SizedBox(height: 10),
           Text(
             value,
             style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: accentTeal),
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: primaryTeal,
+            ),
           ),
         ],
       ),
-    );
-  }
-}
-
-class _LegendItem extends StatelessWidget {
-  final Color color;
-  final String text;
-
-  const _LegendItem({required this.color, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(width: 12, height: 12, color: color),
-        const SizedBox(width: 8),
-        Text(text),
-      ],
     );
   }
 }

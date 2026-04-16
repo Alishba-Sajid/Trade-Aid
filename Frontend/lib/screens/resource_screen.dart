@@ -196,102 +196,85 @@ class _ResourceSharingState extends State<ResourceSharing>
 
                       // 📊 DATA TABLE
                       Expanded(
-                        child: isLoading
-                            ? const Center(child: CircularProgressIndicator())
-                            : Scrollbar(
-                                thumbVisibility: true,
-                                controller: _scrollController,
-                                child: SingleChildScrollView(
-                                  controller: _scrollController,
-                                  scrollDirection: Axis.horizontal,
-                                  child: ConstrainedBox(
-                                    constraints: const BoxConstraints(minWidth: 1400),
-                                    child: DataTable(
-                                      columnSpacing: 60,
-                                      headingRowColor: WidgetStateProperty.resolveWith(
-    (_) => Colors.grey.shade100,
-  ),
-                                      columns: const [
-                                        DataColumn(
-                                            label: Text("Item Name",
-                                                style: TextStyle(
-                                                    fontWeight: FontWeight.bold))),
-                                        DataColumn(
-                                            label: Text("Community",
-                                                style: TextStyle(
-                                                    fontWeight: FontWeight.bold))),
-                                                    DataColumn(
-  label: Text("Admin",
-      style: TextStyle(fontWeight: FontWeight.bold)),
-),
-                                       
-                                        DataColumn(
-                                            label: Text("Posted By",
-                                                style: TextStyle(
-                                                    fontWeight: FontWeight.bold))),
-                                                     DataColumn(
-                                            label: Text("Rate",
-                                                style: TextStyle(
-                                                    fontWeight: FontWeight.bold))),
-                                                     
-                                        DataColumn(
-                                            label: Text("Status",
-                                                style: TextStyle(
-                                                    fontWeight: FontWeight.bold))),
-                                        DataColumn(
-                                            label: Text("Actions",
-                                                style: TextStyle(
-                                                    fontWeight: FontWeight.bold))),
-                                      ],
-                                      rows: filteredResources.map((res) {
-                                        final status = res['is_enabled'] == true
-                                            ? "Available"
-                                            : "Disabled";
-                                        final communityName = res['community_name'] ?? 'N/A';
-final posterName = res['poster_name'] ?? 'N/A';
-final adminName = res['admin_name'] ?? 'N/A';
-                                        return DataRow(cells: [
-  // 1. Item Name
-  DataCell(Text(res['name'] ?? '')),
+  child: isLoading
+      ? const Center(child: CircularProgressIndicator())
+      : Scrollbar(
+          controller: _scrollController,
+          thumbVisibility: true,
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            scrollDirection: Axis.vertical, // ✅ Vertical scroll added
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal, // ✅ Horizontal scroll
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 1400),
+                child: DataTable(
+                  columnSpacing: 60,
+                  headingRowColor: WidgetStateProperty.resolveWith(
+                    (_) => Colors.grey.shade100,
+                  ),
+                  columns: const [
+                    DataColumn(
+                        label: Text("Item Name",
+                            style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(
+                        label: Text("Community",
+                            style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(
+                        label: Text("Admin",
+                            style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(
+                        label: Text("Posted By",
+                            style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(
+                        label: Text("Rate",
+                            style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(
+                        label: Text("Status",
+                            style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(
+                        label: Text("Actions",
+                            style: TextStyle(fontWeight: FontWeight.bold))),
+                  ],
+                  rows: filteredResources.map((res) {
+                    final status = res['is_enabled'] == true
+                        ? "Available"
+                        : "Disabled";
 
-  // 2. Community
-  DataCell(Text(communityName)),
+                    final communityName = res['community_name'] ?? 'N/A';
+                    final posterName = res['poster_name'] ?? 'N/A';
+                    final adminName = res['admin_name'] ?? 'N/A';
 
-  // 3. Admin
-  DataCell(Text(adminName)),
-
-  // 4. Posted By
-  DataCell(Text(posterName)),
-
-  // 5. Rate ✅ (fixed position)
-  DataCell(Text(res['rate']?.toString() ?? '0')),
-
-  // 6. Status
-  DataCell(_statusBadge(status)),
-
-  // 7. Actions
- DataCell(
-  TextButton(
-    onPressed: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ResourceDetailScreen(
-            resourceId: res['id'], // ✅ FIXED
-          ),
-        ),
-      );
-    },
-    child: const Text("View"),
-  ),
-),
-]);
-                                      }).toList(),
-                                    ),
-                                  ),
+                    return DataRow(cells: [
+                      DataCell(Text(res['name'] ?? '')),
+                      DataCell(Text(communityName)),
+                      DataCell(Text(adminName)),
+                      DataCell(Text(posterName)),
+                      DataCell(Text(res['rate']?.toString() ?? '0')),
+                      DataCell(_statusBadge(status)),
+                      DataCell(
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ResourceDetailScreen(
+                                  resourceId: res['id'],
                                 ),
                               ),
+                            );
+                          },
+                          child: const Text("View"),
+                        ),
                       ),
+                    ]);
+                  }).toList(),
+                ),
+              ),
+            ),
+          ),
+        ),
+)
                     ],
                   ),
                 ),

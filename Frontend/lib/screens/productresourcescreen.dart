@@ -199,50 +199,57 @@ class _ProductResourceState extends State<ProductResource>
                    Expanded(
   child: isLoading
       ? const Center(child: CircularProgressIndicator())
-      : SingleChildScrollView(
+      : Scrollbar(
           controller: _scrollController,
-          scrollDirection: Axis.horizontal,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minWidth: 1400), // ✅ KEEP
-            child: DataTable(
-              columnSpacing: 70,
-              headingRowColor: WidgetStateProperty.resolveWith(
-                (_) => Colors.grey.shade100,
-              ),
-              columns: const [
-                DataColumn(label: Text("Item Name")),
-                DataColumn(label: Text("Community")),
-                DataColumn(label: Text("Posted By")),
-                DataColumn(label: Text("Price")),
-                DataColumn(label: Text("Status")),
-                DataColumn(label: Text("Actions")),
-              ],
-              rows: products.map((item) {
-                return DataRow(
-                  cells: [
-                    DataCell(Text(item['title'] ?? '')),
-                    DataCell(Text(item['community'] ?? '')),
-                    DataCell(Text(item['posted_by'] ?? '')),
-                    DataCell(Text(item['price']?.toString() ?? '0')),
-                    DataCell(_statusBadge(item['status'] ?? '')),
-                    DataCell(
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ProductDetailScreen(
-                                productId: item['id'],
-                              ),
-                            ),
-                          );
-                        },
-                        child: const Text("View"),
-                      ),
-                    ),
+          thumbVisibility: true,
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            scrollDirection: Axis.vertical, // ✅ Vertical scroll
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal, // ✅ Horizontal scroll
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 1400),
+                child: DataTable(
+                  columnSpacing: 70,
+                  headingRowColor: WidgetStateProperty.resolveWith(
+                    (_) => Colors.grey.shade100,
+                  ),
+                  columns: const [
+                    DataColumn(label: Text("Item Name")),
+                    DataColumn(label: Text("Community")),
+                    DataColumn(label: Text("Posted By")),
+                    DataColumn(label: Text("Price")),
+                    DataColumn(label: Text("Status")),
+                    DataColumn(label: Text("Actions")),
                   ],
-                );
-              }).toList(),
+                  rows: products.map((item) {
+                    return DataRow(
+                      cells: [
+                        DataCell(Text(item['title'] ?? '')),
+                        DataCell(Text(item['community'] ?? '')),
+                        DataCell(Text(item['posted_by'] ?? '')),
+                        DataCell(Text(item['price']?.toString() ?? '0')),
+                        DataCell(_statusBadge(item['status'] ?? '')),
+                        DataCell(
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ProductDetailScreen(
+                                    productId: item['id'],
+                                  ),
+                                ),
+                              );
+                            },
+                            child: const Text("View"),
+                          ),
+                        ),
+                      ],
+                    );
+                  }).toList(),
+                ),
+              ),
             ),
           ),
         ),

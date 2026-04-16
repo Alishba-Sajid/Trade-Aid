@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dispute_details.dart';
 
 class EscalatedCases extends StatefulWidget {
@@ -13,32 +14,12 @@ class _EscalatedCasesState extends State<EscalatedCases>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
-  final List<Map<String, String>> caseData = const [
-    {
-      "id": "#12345",
-      "participants": "Alice Johnson vs Bob Williams",
-      "status": "Open",
-      "date": "2024-07-26"
-    },
-    {
-      "id": "#12346",
-      "participants": "Charlie Davis vs Eve Green",
-      "status": "In Review",
-      "date": "2024-07-25"
-    },
-    {
-      "id": "#12347",
-      "participants": "Grace Miller vs Henry Clark",
-      "status": "Pending",
-      "date": "2024-07-24"
-    },
-    {
-      "id": "#12348",
-      "participants": "Ivy White vs Jack Brown",
-      "status": "Open",
-      "date": "2024-07-23"
-    },
-  ];
+  /// ✅ Supabase
+  final supabase = Supabase.instance.client;
+
+  /// ✅ Dynamic data
+  List<Map<String, dynamic>> caseData = [];
+  bool isLoading = true;
 
   @override
   void initState() {
@@ -46,6 +27,25 @@ class _EscalatedCasesState extends State<EscalatedCases>
     _controller =
         AnimationController(vsync: this, duration: const Duration(seconds: 12))
           ..repeat();
+
+    fetchCases(); // ✅ fetch from Supabase
+  }
+
+  /// ✅ FETCH FROM VIEW
+  Future<void> fetchCases() async {
+    try {
+      final response = await supabase
+          .from('escalated_cases_view')
+          .select();
+
+      setState(() {
+        caseData = List<Map<String, dynamic>>.from(response);
+        isLoading = false;
+      });
+    } catch (e) {
+      debugPrint("ERROR: $e");
+      setState(() => isLoading = false);
+    }
   }
 
   @override
@@ -134,7 +134,7 @@ class _EscalatedCasesState extends State<EscalatedCases>
                       ),
                       const SizedBox(height: 20),
 
-                      /// 🔍 SEARCH BAR (same style)
+                      /// 🔍 SEARCH BAR (UNCHANGED)
                       Container(
                         height: 45,
                         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -161,80 +161,107 @@ class _EscalatedCasesState extends State<EscalatedCases>
 
                       const SizedBox(height: 20),
 
-                      /// 📊 DATA TABLE (SAME AS PRODUCT RESOURCE)
+                      /// 📊 DATA TABLE
                       Expanded(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: ConstrainedBox(
-                            constraints:
-                                const BoxConstraints(minWidth: 1400),
-                            child: DataTable(
-                              columnSpacing: 70,
-                              headingRowColor:
-                                  WidgetStateColor.resolveWith(
-                                      (_) => Colors.grey.shade100),
-                              columns: const [
-                                DataColumn(
-                                    label: Text(
-                                  "Case ID",
-                                  style:
-                                      TextStyle(fontWeight: FontWeight.bold),
-                                )),
-                                DataColumn(
-                                    label: Text(
-                                  "Participants",
-                                  style:
-                                      TextStyle(fontWeight: FontWeight.bold),
-                                )),
-                                DataColumn(
-                                    label: Text(
-                                  "Status",
-                                  style:
-                                      TextStyle(fontWeight: FontWeight.bold),
-                                )),
-                                DataColumn(
-                                    label: Text(
-                                  "Date",
-                                  style:
-                                      TextStyle(fontWeight: FontWeight.bold),
-                                )),
-                                DataColumn(
-                                    label: Text(
-                                  "Actions",
-                                  style:
-                                      TextStyle(fontWeight: FontWeight.bold),
-                                )),
-                              ],
-                              rows: caseData.map((c) {
-                                return DataRow(
-                                  cells: [
-                                    DataCell(Text(c["id"]!)),
-                                    DataCell(Text(c["participants"]!)),
-                                    DataCell(_statusBadge(c["status"]!)),
-                                    DataCell(Text(c["date"]!)),
-                                    DataCell(
-                                      TextButton(
-                                        onPressed: () {
-                                          Navigator.push(
-  context,
-  MaterialPageRoute(
-    builder: (_) => const EscalatedDisputeScreen(),
-  ),
-);
-                                        },
-                                        child: const Text(
-                                          "View",
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              }).toList(),
-                            ),
-                          ),
-                        ),
+                        child: isLoading
+                            ? const Center(
+                                child: CircularProgressIndicator())
+                            : SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: ConstrainedBox(
+                                  constraints:
+                                      const BoxConstraints(minWidth: 1400),
+                                  child: DataTable(
+                                    columnSpacing: 70,
+                                    headingRowColor:
+                                        WidgetStateColor.resolveWith(
+                                            (_) => Colors.grey.shade100),
+                                    columns: const [
+                                      DataColumn(
+                                          label: Text(
+                                        "Case ID",
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold),
+                                      )),
+                                      DataColumn(
+                                          label: Text(
+                                        "Accuser name",
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold),
+                                      )),
+                                      DataColumn(
+                                          label: Text(
+                                        "Status",
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold),
+                                      )),
+                                      DataColumn(
+                                          label: Text(
+                                        "Date",
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold),
+                                      )),
+                                      DataColumn(
+                                          label: Text(
+                                        "Actions",
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold),
+                                      )),
+                                    ],
+                                    rows: caseData.map((c) {
+                                      return DataRow(
+                                        cells: [
+                                          /// Case ID
+                                          DataCell(Text(
+                                            c['id'] != null
+                                                ? "#${c['id'].toString().substring(0, 6)}"
+                                                : '',
+                                          )),
+
+                                          /// Accuser Name
+                                          DataCell(Text(
+                                              c['accuser_name'] ??
+                                                  'Unknown')),
+
+                                          /// Status
+                                          DataCell(_statusBadge(
+                                              c['status'] ?? '')),
+
+                                          /// Date
+                                          DataCell(Text(
+                                            c['created_at'] != null
+                                                ? c['created_at']
+                                                    .toString()
+                                                    .substring(0, 10)
+                                                : '',
+                                          )),
+
+                                          /// Action
+                                          DataCell(
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (_) =>
+                                                        const EscalatedDisputeScreen(),
+                                                  ),
+                                                );
+                                              },
+                                              child: const Text(
+                                                "View",
+                                                style: TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.bold),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
+                              ),
                       ),
                     ],
                   ),
@@ -247,11 +274,13 @@ class _EscalatedCasesState extends State<EscalatedCases>
     );
   }
 
-  /// 🟡 STATUS BADGE (same concept)
+  /// 🟡 STATUS BADGE (UNCHANGED)
   Widget _statusBadge(String status) {
-    final Color bg = status == "Open"
+    final s = status.toLowerCase();
+
+    final Color bg = s == "open"
         ? Colors.green.shade100
-        : status == "In Review"
+        : s == "in review"
             ? Colors.orange.shade100
             : Colors.red.shade100;
 

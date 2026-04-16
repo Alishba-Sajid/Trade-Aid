@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 const Color dark = Color(0xFF0B2F2A);
 const Color surface = Color(0xFFFFFFFF);
@@ -19,45 +20,60 @@ class _CommunityElectionHistoryScreenState
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
-  final List<Map<String, String>> electionHistoryData = const [
-    {
-      "date": "2023-04-15",
-      "candidates": "Alice Johnson, Robert Smith",
-      "results": "Alice Johnson (Winner)",
-      "turnout": "65%",
-    },
-    {
-      "date": "2022-11-20",
-      "candidates": "Emily Davis, Michael Brown",
-      "results": "Emily Davis (Winner)",
-      "turnout": "72%",
-    },
-    {
-      "date": "2022-05-10",
-      "candidates": "Sarah Clark, David Wilson",
-      "results": "Sarah Clark (Winner)",
-      "turnout": "58%",
-    },
-    {
-      "date": "2021-12-05",
-      "candidates": "Jessica Lee, Christopher Taylor",
-      "results": "Jessica Lee (Winner)",
-      "turnout": "69%",
-    },
-    {
-      "date": "2021-06-20",
-      "candidates": "Olivia Martinez, Daniel Anderson",
-      "results": "Olivia Martinez (Winner)",
-      "turnout": "62%",
-    },
-  ];
+  final supabase = Supabase.instance.client;
+
+  List<Map<String, String>> electionHistoryData = [];
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
+
     _controller =
         AnimationController(vsync: this, duration: const Duration(seconds: 12))
           ..repeat();
+
+    fetchElectionHistory();
+  }
+
+  Future<void> fetchElectionHistory() async {
+    try {
+      final response =
+          await supabase.from('election_nominations_view').select();
+
+      final List<Map<String, String>> temp = [];
+
+      for (var row in response) {
+        // ✅ FIX DATE
+        final rawDate = row['election_date'];
+        String formattedDate = '';
+
+        if (rawDate != null) {
+          final dateTime = DateTime.parse(rawDate).toLocal();
+          formattedDate =
+              "${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')}";
+        }
+
+        temp.add({
+          "date": formattedDate,
+          "nomination": row['nomination'] ?? "No nomination", // ✅ FIXED
+          "community_name": row['community_name'] ?? '',
+          "before": row['before']?.toString() ?? '',
+          "votes": row['total_votes']?.toString() ?? '0', // ✅ NEW
+          "After": row['after']?.toString() ?? '',
+        });
+      }
+
+      setState(() {
+        electionHistoryData = temp;
+        isLoading = false;
+      });
+    } catch (e) {
+      debugPrint("Error fetching elections: $e");
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   @override
@@ -87,7 +103,6 @@ class _CommunityElectionHistoryScreenState
               ),
             ),
 
-            /// ✅ FULL-WIDTH CARD (SAME AS ADMIN ROTATION)
             child: SizedBox(
               width: double.infinity,
               child: Container(
@@ -99,7 +114,6 @@ class _CommunityElectionHistoryScreenState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    /// 🔹 TITLE
                     const Text(
                       "Community Election History",
                       style: TextStyle(
@@ -115,85 +129,74 @@ class _CommunityElectionHistoryScreenState
                     ),
                     const SizedBox(height: 25),
 
-                    /// 📊 TABLE
                     Expanded(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(
-                            minWidth: 1400, // ⭐ SAME WIDTH CONTROL
-                          ),
-                          child: DataTable(
-                            headingRowColor:
-                                WidgetStateProperty.all(subtleGrey),
-                            columnSpacing: 140,
-                            dataRowMinHeight: 70,
-                            dataRowMaxHeight: 70,
+                      child: isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: ConstrainedBox(
+                                constraints:
+                                    const BoxConstraints(minWidth: 1400),
+                                child: DataTable(
+                                  headingRowColor:
+                                      WidgetStateProperty.all(subtleGrey),
+                                  columnSpacing: 140,
+                                  dataRowMinHeight: 70,
+                                  dataRowMaxHeight: 70,
 
-                            columns: const [
-                              DataColumn(
-                                label: Text(
-                                  "Election Date",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: dark,
-                                  ),
-                                ),
-                              ),
-                              DataColumn(
-                                label: Text(
-                                  "Candidates",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: dark,
-                                  ),
-                                ),
-                              ),
-                              DataColumn(
-                                label: Text(
-                                  "Results",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: dark,
-                                  ),
-                                ),
-                              ),
-                              DataColumn(
-                                label: Text(
-                                  "Voter Turnout",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: dark,
-                                  ),
-                                ),
-                              ),
-                            ],
+                                  columns: const [
+                                    DataColumn(label: Text("Election Date",style: TextStyle(
+                                              fontWeight: FontWeight.bold))),
+                                    DataColumn(label: Text("Nomination",style: TextStyle(
+                                              fontWeight: FontWeight.bold))), // ✅
+                                    DataColumn(label: Text("Community Name",style: TextStyle(
+                                              fontWeight: FontWeight.bold))),
+                                    DataColumn(label: Text("Before",style: TextStyle(
+                                              fontWeight: FontWeight.bold))),
+                                    DataColumn(label: Text("Votes",style: TextStyle(
+                                              fontWeight: FontWeight.bold))), // ✅ NEW
+                                    DataColumn(label: Text("After",style: TextStyle(
+                                              fontWeight: FontWeight.bold))),
+                                  ],
 
-                            rows: electionHistoryData.map((item) {
-                              return DataRow(
-                                cells: [
-                                  DataCell(Text(item["date"]!)),
-                                  DataCell(Text(item["candidates"]!)),
-                                  DataCell(Text(
-                                    item["results"]!,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.w600),
-                                  )),
-                                  DataCell(
-                                    Text(
-                                      item["turnout"]!,
-                                      style: const TextStyle(
-                                        color: accent,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                      ),
+                                  rows: electionHistoryData.map((item) {
+                                    return DataRow(
+                                      cells: [
+                                        DataCell(Text(item["date"] ?? "")),
+                                        DataCell(
+                                            Text(item["nomination"] ?? "")), // ✅
+                                        DataCell(Text(
+                                          item["community_name"] ?? "",
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w600),
+                                        )),
+                                        DataCell(Text(
+                                          item["before"] ?? "",
+                                          style: const TextStyle(
+                                            color: accent,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        )),
+                                        DataCell(Text(
+                                          item["votes"] ?? "0", // ✅
+                                          style: const TextStyle(
+                                            color: accent,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        )),
+                                        DataCell(Text(
+                                          item["After"] ?? "",
+                                          style: const TextStyle(
+                                            color: accent,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        )),
+                                      ],
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ),
                     ),
                   ],
                 ),
