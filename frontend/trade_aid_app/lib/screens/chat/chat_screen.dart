@@ -492,8 +492,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     child: Text('View Profile'),
                   ),
 
-                  PopupMenuItem(value: 'block', child: Text('Block User')),
-                ],
+                              ],
               ),
             ],
           ),
