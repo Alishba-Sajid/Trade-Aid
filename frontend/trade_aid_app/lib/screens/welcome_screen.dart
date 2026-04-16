@@ -21,9 +21,9 @@ class WelcomeScreen extends StatelessWidget {
         ),
         child: SafeArea(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.start, // ⬅️ start from top
+            mainAxisAlignment: MainAxisAlignment.start, // start from top
             children: [
-              const SizedBox(height: 170), // ⬅️ moves logo upward
+              const SizedBox(height: 170), // moves logo upward
               // Logo
               Image.asset('assets/whitelogo.png', height: 180, width: 180),
 
@@ -35,9 +35,23 @@ class WelcomeScreen extends StatelessWidget {
                 style: TextStyle(
                   color: Colors.white,
                   fontFamily: 'Poppins',
-                  fontSize: 25,
+                  fontSize: 26, // resolved conflict here
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 8),
+
+              const Text(
+                'Trade what you have, Aid when you can',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontFamily: 'Poppins',
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: 0.3,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -74,7 +88,7 @@ class WelcomeScreen extends StatelessWidget {
                 width: 220,
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.pushNamed(context, '/register');
+                    Navigator.pushNamed(context, '/welcome_terms');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,

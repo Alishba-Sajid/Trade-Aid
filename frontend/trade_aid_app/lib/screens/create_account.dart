@@ -1,5 +1,85 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+// ✅ Animated card widget
+class AnimatedCard extends StatefulWidget {
+  final String message;
+  final IconData? icon;
+  const AnimatedCard({super.key, required this.message, this.icon});
+
+  @override
+  State<AnimatedCard> createState() => _AnimatedCardState();
+}
+
+class _AnimatedCardState extends State<AnimatedCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnim;
+  late Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    _offsetAnim = Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SlideTransition(
+      position: _offsetAnim,
+      child: FadeTransition(
+        opacity: _fadeAnim,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color.fromARGB(255, 17, 158, 144),
+              ),
+            ),
+            child: Row(
+              children: [
+                if (widget.icon != null)
+                  Icon(
+                    widget.icon,
+                    color: const Color.fromARGB(255, 17, 158, 144),
+                  ),
+                if (widget.icon != null) const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.message,
+                    style: const TextStyle(color: Colors.black),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ✅ CreateAccountScreen
 class CreateAccountScreen extends StatefulWidget {
   const CreateAccountScreen({super.key});
 
@@ -10,7 +90,6 @@ class CreateAccountScreen extends StatefulWidget {
 class _CreateAccountScreenState extends State<CreateAccountScreen>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -21,10 +100,13 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isLoading = false;
 
   late AnimationController _animController;
-  late Animation<double> _fadeAnim;
-  late Animation<Offset> _slideAnim;
+  Animation<double>? _fadeAnim;
+  Animation<Offset>? _slideAnim;
+
+  final supabase = Supabase.instance.client;
 
   @override
   void initState() {
@@ -50,24 +132,46 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+
     _emailFocus.dispose();
     _passwordFocus.dispose();
     _confirmPasswordFocus.dispose();
+
     _animController.dispose();
     super.dispose();
   }
 
+  // ✅ Animated message
+  void _showAnimatedCard(String message, {IconData? icon}) {
+    final overlay = Overlay.of(context);
+
+    final overlayEntry = OverlayEntry(
+      builder: (_) => Positioned(
+        bottom: 50,
+        left: 20,
+        right: 20,
+        child: AnimatedCard(message: message, icon: icon),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+
+    Future.delayed(const Duration(seconds: 2), () {
+      overlayEntry.remove();
+    });
+  }
+
+  // ✅ Validation
   String? _validateEmail(String? v) {
     if (v == null || v.trim().isEmpty) return 'Email is required';
-    final email = v.trim();
     final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
-    if (!emailRegex.hasMatch(email)) return 'Enter a valid email';
+    if (!emailRegex.hasMatch(v.trim())) return 'Enter a valid email';
     return null;
   }
 
   String? _validatePassword(String? v) {
     if (v == null || v.trim().isEmpty) return 'Password is required';
-    if (v.trim().length < 6) return 'Password must be at least 6 characters';
+    if (v.length < 6) return 'Password must be at least 6 characters';
     return null;
   }
 
@@ -76,26 +180,55 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
     return null;
   }
 
-  void _onNextPressed() {
+  // ✅ Email signup
+  Future<void> _onNextPressed() async {
     if (!_formKey.currentState!.validate()) return;
-    Navigator.pushNamed(context, '/create_profile');
+
+    setState(() => _isLoading = true);
+
+    try {
+      final response = await supabase.auth.signUp(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      if (response.user != null) {
+        _showAnimatedCard("Account created successfully 🎉", icon: Icons.check);
+        Navigator.pushNamed(context, '/create_profile');
+      } else if (response.session == null) {
+        _showAnimatedCard("Check email for verification", icon: Icons.info);
+      }
+    } on AuthException catch (e) {
+      _showAnimatedCard(e.message, icon: Icons.error);
+    } catch (_) {
+      _showAnimatedCard("Unexpected error occurred", icon: Icons.error);
+    }
+
+    setState(() => _isLoading = false);
+  }
+
+  // ✅ Google login
+  Future<void> _signInWithGoogle() async {
+    try {
+      await supabase.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: 'io.supabase.flutter://login-callback',
+      );
+    } catch (e) {
+      _showAnimatedCard("Google login failed", icon: Icons.error);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
-          // 🌈 Gradient header
           Container(
             height: 280,
-            width: double.infinity,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
                 colors: [
                   Color.fromARGB(255, 15, 119, 124),
                   Color.fromARGB(255, 17, 158, 144),
@@ -103,7 +236,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
               ),
             ),
           ),
-
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
@@ -112,21 +244,13 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
                 child: Column(
                   children: [
                     const SizedBox(height: 15),
-
-                    // 🏷 Logo
-                    Image.asset(
-                      'assets/whitenamelogo.png',
-                      height: 130,
-                      width: 130,
-                    ),
-
+                    Image.asset('assets/whitenamelogo.png', height: 130),
                     const SizedBox(height: 30),
 
-                    // 🎬 Animated Card
                     FadeTransition(
-                      opacity: _fadeAnim,
+                      opacity: _fadeAnim!,
                       child: SlideTransition(
-                        position: _slideAnim,
+                        position: _slideAnim!,
                         child: Container(
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
@@ -157,7 +281,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
                               ),
                               const SizedBox(height: 30),
 
-                              // Email
                               _buildField(
                                 controller: _emailController,
                                 focusNode: _emailFocus,
@@ -173,7 +296,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
 
                               const SizedBox(height: 20),
 
-                              // Password
                               _buildField(
                                 controller: _passwordController,
                                 focusNode: _passwordFocus,
@@ -201,7 +323,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
 
                               const SizedBox(height: 20),
 
-                              // Confirm Password
                               _buildField(
                                 controller: _confirmPasswordController,
                                 focusNode: _confirmPasswordFocus,
@@ -226,12 +347,11 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
 
                               const SizedBox(height: 30),
 
-                              // Next Button
                               SizedBox(
                                 width: double.infinity,
                                 height: 50,
                                 child: ElevatedButton(
-                                  onPressed: _onNextPressed,
+                                  onPressed: _isLoading ? null : _onNextPressed,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color.fromARGB(
                                       255,
@@ -239,16 +359,56 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
                                       158,
                                       144,
                                     ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
                                   ),
-                                  child: const Text(
-                                    "Next",
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
+                                  child: _isLoading
+                                      ? const CircularProgressIndicator(
+                                          color: Colors.white,
+                                        )
+                                      : const Text(
+                                          "Next",
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                ),
+                              ),
+
+                              const SizedBox(height: 20),
+
+                              // ✅ Google (same UI style as before)
+                              Center(
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  height: 50,
+                                  child: ElevatedButton.icon(
+                                    icon: Image.asset(
+                                      'assets/google.png',
+                                      height: 24,
+                                      width: 24,
+                                    ),
+                                    label: const Text(
+                                      "Continue with Google",
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    onPressed: _signInWithGoogle,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      foregroundColor: Colors.black87,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      side: const BorderSide(
+                                        color: Color.fromARGB(
+                                          255,
+                                          17,
+                                          158,
+                                          144,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -268,7 +428,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
     );
   }
 
-  // 🧱 Input Field Builder (same as login)
   Widget _buildField({
     required TextEditingController controller,
     required FocusNode focusNode,
