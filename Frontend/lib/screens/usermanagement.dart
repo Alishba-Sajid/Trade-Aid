@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'user_profile.dart';
 
-const Color dark = Color(0xFF0B2F2A);
+const Color dark = Color.fromARGB(255, 5, 1, 10);
 const Color surface = Color(0xFFFFFFFF);
 const Color subtleGrey = Color(0xFFF2F2F2);
 const Color accentTeal = Color(0xFF119E90);

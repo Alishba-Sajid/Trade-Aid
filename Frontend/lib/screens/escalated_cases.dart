@@ -239,15 +239,16 @@ class _EscalatedCasesState extends State<EscalatedCases>
                                           /// Action
                                           DataCell(
                                             TextButton(
-                                              onPressed: () {
-                                                Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (_) =>
-                                                        const EscalatedDisputeScreen(),
-                                                  ),
-                                                );
-                                              },
+                                             onPressed: () {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => EscalatedDisputeScreen(
+        disputeId: c['id'],
+      ),
+    ),
+  );
+},
                                               child: const Text(
                                                 "View",
                                                 style: TextStyle(

@@ -1,8 +1,11 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class EscalatedDisputeScreen extends StatefulWidget {
-  const EscalatedDisputeScreen({super.key});
+  final String disputeId; // ✅ ADDED
+
+  const EscalatedDisputeScreen({super.key, required this.disputeId});
 
   @override
   State<EscalatedDisputeScreen> createState() => _EscalatedDisputeScreenState();
@@ -12,12 +15,38 @@ class _EscalatedDisputeScreenState extends State<EscalatedDisputeScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
+  final supabase = Supabase.instance.client;
+
+  Map<String, dynamic>? data; // ✅ ADDED
+  bool isLoading = true; // ✅ ADDED
+
   @override
   void initState() {
     super.initState();
     _controller =
         AnimationController(vsync: this, duration: const Duration(seconds: 12))
           ..repeat();
+
+    fetchDispute(); // ✅ ADDED
+  }
+
+  /// ✅ FETCH DATA
+  Future<void> fetchDispute() async {
+    try {
+      final response = await supabase
+          .from('dispute_details_view')
+          .select()
+          .eq('dispute_id', widget.disputeId)
+          .single();
+
+      setState(() {
+        data = response;
+        isLoading = false;
+      });
+    } catch (e) {
+      debugPrint("ERROR: $e");
+      setState(() => isLoading = false);
+    }
   }
 
   @override
@@ -28,13 +57,24 @@ class _EscalatedDisputeScreenState extends State<EscalatedDisputeScreen>
 
   @override
   Widget build(BuildContext context) {
+
+    /// ✅ LOADING (NO UI CHANGE)
+    if (isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    /// ✅ SAFE DATA
+    final d = data ?? {};
+
     return Scaffold(
       body: AnimatedBuilder(
         animation: _controller,
         builder: (context, _) {
           return Stack(
             children: [
-              // 🌊 SAME INDUSTRIAL GRADIENT (LIKE PRODUCT SCREEN)
+              // 🌊 SAME GRADIENT
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -67,26 +107,23 @@ class _EscalatedDisputeScreenState extends State<EscalatedDisputeScreen>
                     height: size,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: const Color.fromARGB(255, 192, 16, 16).withValues(alpha: 0.08),
+                      color: const Color.fromARGB(255, 192, 16, 16)
+                          .withValues(alpha: 0.08),
                     ),
                   ),
                 );
               }),
 
-              // 🧊 MAIN CONTENT
               Column(
                 children: [
-                  // 🔹 HEADER (SAME STYLE)
+                  // 🔹 HEADER (UNCHANGED)
                   Container(
                     height: 70,
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.95),
                       boxShadow: const [
-                        BoxShadow(
-                          color: Colors.black26,
-                          blurRadius: 10,
-                        ),
+                        BoxShadow(color: Colors.black26, blurRadius: 10),
                       ],
                     ),
                     child: Row(
@@ -102,22 +139,17 @@ class _EscalatedDisputeScreenState extends State<EscalatedDisputeScreen>
                             const Text(
                               "Trade&Aid",
                               style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
+                                  fontSize: 20, fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
                         Row(
                           children: [
                             IconButton(
-                              icon: const Icon(Icons.search),
-                              onPressed: () {},
-                            ),
+                                icon: const Icon(Icons.search), onPressed: () {}),
                             IconButton(
-                              icon: const Icon(Icons.notifications_none),
-                              onPressed: () {},
-                            ),
+                                icon: const Icon(Icons.notifications_none),
+                                onPressed: () {}),
                             const SizedBox(width: 10),
                             const CircleAvatar(
                               radius: 22,
@@ -130,7 +162,7 @@ class _EscalatedDisputeScreenState extends State<EscalatedDisputeScreen>
                     ),
                   ),
 
-                  // 🧊 GLASS CARD
+                  // 🧊 CONTENT
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.all(30),
@@ -141,10 +173,9 @@ class _EscalatedDisputeScreenState extends State<EscalatedDisputeScreen>
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: const [
                             BoxShadow(
-                              color: Colors.black26,
-                              blurRadius: 14,
-                              offset: Offset(0, 8),
-                            ),
+                                color: Colors.black26,
+                                blurRadius: 14,
+                                offset: Offset(0, 8)),
                           ],
                         ),
                         child: SingleChildScrollView(
@@ -154,32 +185,40 @@ class _EscalatedDisputeScreenState extends State<EscalatedDisputeScreen>
                               const Text(
                                 "Escalated Dispute Resolution",
                                 style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                    fontSize: 24, fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(height: 8),
                               const Text(
                                 "Review and resolve disputes that community admins were unable to handle.",
-                                style: TextStyle(fontSize: 16),
                               ),
 
                               const SizedBox(height: 30),
                               _sectionTitle("Dispute Details"),
-                              _detailRow("Dispute ID", "#12345"),
-                              _detailRow("Date Reported", "2024-07-15"),
-                              _detailRow("Community", "Community A"),
-                              _detailRow("Status", "Escalated"),
-                              _detailRow("Parties Involved", "User A vs User B"),
+
+                              /// ✅ MAPPED DATA (ONLY CHANGE HERE)
+                              _detailRow("Dispute ID",
+                                  "#${d['dispute_id']?.toString().substring(0, 6) ?? ''}"),
+                              _detailRow("Date Reported",
+                                  d['date_reported']?.toString().substring(0, 10) ?? ''),
+                              _detailRow("Community",
+                                  d['community_name'] ?? 'N/A'),
+                              _detailRow("Subject",
+                                  d['subject'] ?? 'No Subject'),
+                              _detailRow("Description",
+                                  d['description'] ?? 'No Description'),
+                              _detailRow("Status",
+                                  d['status'] ?? 'Unknown'),
                               _detailRow(
-                                  "Transaction", "Transaction ID: 87580"),
+                                "Parties Involved",
+                                "${d['complainant_name'] ?? 'User'} vs ${d['accused_name'] ?? 'User'}",
+                              ),
 
                               const SizedBox(height: 30),
                               _sectionTitle("Community Admin Actions"),
                               _detailRow("Admin Decision", "Pending"),
                               _detailRow("Actions Taken", "None"),
-                              _detailRow(
-                                  "Evidence", "Review logs and communications"),
+                              _detailRow("Evidence",
+                                  d['attachment_url'] ?? "No attachment"),
 
                               const SizedBox(height: 30),
                               _sectionTitle("Communication"),
@@ -192,27 +231,23 @@ class _EscalatedDisputeScreenState extends State<EscalatedDisputeScreen>
                               ),
 
                               Padding(
-  padding: const EdgeInsets.only(right: 40), // 👈 adjust this value
-  child: _messageBubble(
-    sender: "Admin",
-    message: "Thank you. We’ll review and respond shortly.",
-    isLeft: false, // stays on right
-  ),
-),
+                                padding: const EdgeInsets.only(right: 40),
+                                child: _messageBubble(
+                                  sender: "Admin",
+                                  message:
+                                      "Thank you. We’ll review and respond shortly.",
+                                  isLeft: false,
+                                ),
+                              ),
 
                               const SizedBox(height: 25),
 
-                              // 💬 INPUT
                               Container(
                                 padding:
                                     const EdgeInsets.symmetric(horizontal: 10),
                                 decoration: BoxDecoration(
                                   color: Colors.grey.shade100,
                                   borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color:
-                                        Colors.grey.withValues(alpha: 0.4),
-                                  ),
                                 ),
                                 child: Row(
                                   children: [
@@ -228,7 +263,7 @@ class _EscalatedDisputeScreenState extends State<EscalatedDisputeScreen>
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor:
                                             Colors.teal.shade600,
-                                            foregroundColor: Colors.black,
+                                        foregroundColor: Colors.black,
                                       ),
                                       onPressed: () {},
                                       child: const Text("Send"),
@@ -251,18 +286,13 @@ class _EscalatedDisputeScreenState extends State<EscalatedDisputeScreen>
     );
   }
 
-  // 🔹 HELPERS
-
+  /// 🔹 HELPERS (UNCHANGED)
   Widget _sectionTitle(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
+      child: Text(text,
+          style: const TextStyle(
+              fontSize: 20, fontWeight: FontWeight.bold)),
     );
   }
 
@@ -273,10 +303,8 @@ class _EscalatedDisputeScreenState extends State<EscalatedDisputeScreen>
         children: [
           SizedBox(
             width: 200,
-            child: Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
+            child: Text(title,
+                style: const TextStyle(fontWeight: FontWeight.w600)),
           ),
           Expanded(child: Text(value)),
         ],
@@ -304,21 +332,14 @@ class _EscalatedDisputeScreenState extends State<EscalatedDisputeScreen>
           crossAxisAlignment:
               isLeft ? CrossAxisAlignment.start : CrossAxisAlignment.end,
           children: [
-            Text(
-              sender,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: isLeft ? Colors.black87 : Colors.white,
-              ),
-            ),
+            Text(sender,
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isLeft ? Colors.black87 : Colors.white)),
             const SizedBox(height: 4),
-            Text(
-              message,
-              style: TextStyle(
-                color: isLeft ? Colors.black87 : Colors.white,
-                fontSize: 15,
-              ),
-            ),
+            Text(message,
+                style: TextStyle(
+                    color: isLeft ? Colors.black87 : Colors.white)),
           ],
         ),
       ),

@@ -7,13 +7,13 @@ import 'package:admin_module/screens/login_screen.dart';
 import 'package:admin_module/screens/forgotpassword.dart';
 import 'package:admin_module/screens/dashboard.dart';
 import 'package:admin_module/screens/usermanagement.dart';
-import 'package:admin_module/screens/report_details.dart';
+
 import 'package:admin_module/screens/managecommunity.dart';
 //import 'package:admin_module/screens/viewcommunitydetails.dart';
 import 'package:admin_module/screens/escalated_cases.dart';
 import 'package:admin_module/screens/productresourcescreen.dart';
 import 'package:admin_module/screens/resource_screen.dart';
-import 'package:admin_module/screens/admin_rotation.dart';
+
 import 'package:admin_module/screens/community_election.dart';
 import 'package:admin_module/screens/settings.dart';
 
@@ -53,9 +53,7 @@ class MyApp extends StatelessWidget {
         '/productresource': (context) => const ProductResource(),
         '/resource': (context) => const ResourceSharing(),
         '/notification': (context) => const NotificationsScreen(),
-        '/adminrotation': (context) => const AdminRotationScreen(),
         '/communityelection': (context) => const CommunityElectionHistoryScreen(),
-        '/reportdetail': (context) => const ReportDetailsPage(),
         '/settings': (context) => const SettingsScreen(),
       },
     );

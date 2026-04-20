@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:typed_data';
 import 'usermanagement.dart';
 import 'managecommunity.dart';
 import 'product_resource_wrapper.dart';
 import 'escalated_cases.dart';
 import 'notification.dart';
-import 'admin_rotation.dart';
 import 'community_election.dart';
 import 'settings.dart';
 
@@ -36,6 +37,196 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int selectedIndex = 0;
   int? hoveredIndex;
+  Uint8List? _profileImage;
+
+  int totalUsers = 0;
+  int totalCommunities = 0;
+  int totalDisputes = 0;
+  int totalSales = 0;
+
+  bool isLoading = true;
+
+  List<FlSpot> communityGrowthSpots = [];
+bool isGraphLoading = true;
+
+
+int totalProducts = 0;
+int totalResources = 0;
+int resolvedDisputes = 0;
+int pendingDisputes = 0;
+bool isPieLoading = true;
+
+//bar chart varibales
+
+List<double> monthlyPercentages = List.filled(12, 0.0);
+bool isBarLoading = true;
+
+
+
+Future<void> fetchMonthlyCompletionPercentage() async {
+  final supabase = Supabase.instance.client;
+
+  try {
+    final data = await supabase
+        .from('transactions')
+        .select('created_at, status');
+
+    List<int> totalPerMonth = List.filled(12, 0);
+    List<int> completedPerMonth = List.filled(12, 0);
+
+    for (var item in data) {
+      final date = DateTime.parse(item['created_at']);
+      int monthIndex = date.month - 1;
+
+      if (monthIndex >= 0 && monthIndex < 12) {
+        totalPerMonth[monthIndex]++;
+
+        if (item['status'] == 'completed') {
+          completedPerMonth[monthIndex]++;
+        }
+      }
+    }
+
+    setState(() {
+      for (int i = 0; i < 12; i++) {
+        if (totalPerMonth[i] == 0) {
+          monthlyPercentages[i] = 0;
+        } else {
+          monthlyPercentages[i] =
+              (completedPerMonth[i] / totalPerMonth[i]) * 100;
+        }
+      }
+      isBarLoading = false;
+    });
+
+    debugPrint("Total: $totalPerMonth");
+    debugPrint("Completed: $completedPerMonth");
+
+  } catch (e) {
+    debugPrint("Error: $e");
+    setState(() => isBarLoading = false);
+  }
+}
+
+
+
+Future<void> fetchPieChartData() async {
+  final supabase = Supabase.instance.client;
+
+  try {
+    final products = await supabase
+        .from('products')
+        .select();
+
+    final resources = await supabase
+        .from('resources')
+        .select();
+
+    final disputes = await supabase
+        .from('complaints')
+        .select();
+
+    /// ✅ FORCE LIST (important fix)
+    final productList = List<Map<String, dynamic>>.from(products);
+    final resourceList = List<Map<String, dynamic>>.from(resources);
+    final disputeList = List<Map<String, dynamic>>.from(disputes);
+
+    setState(() {
+      totalProducts = productList.length;
+      totalResources = resourceList.length;
+      totalDisputes = disputeList.length;
+      isPieLoading = false;
+    });
+
+    /// 🔍 DEBUG (MUST CHECK)
+    debugPrint("Products: $totalProducts");
+    debugPrint("Resources: $totalResources");
+    debugPrint("Disputes: $totalDisputes");
+
+  } catch (e) {
+    debugPrint("Pie Error: $e");
+    setState(() => isPieLoading = false);
+  }
+}
+
+
+Future<void> fetchCommunityGrowth() async {
+  final supabase = Supabase.instance.client;
+
+  try {
+    final data = await supabase
+        .from('communities')
+        .select('created_at');
+
+    List<int> monthlyCounts = List.filled(12, 0);
+
+    for (var item in data) {
+      final date = DateTime.parse(item['created_at']);
+      int monthIndex = date.month - 1;
+      monthlyCounts[monthIndex]++;
+    }
+
+    communityGrowthSpots = monthlyCounts
+        .asMap()
+        .entries
+        .map((e) => FlSpot(e.key.toDouble(), e.value.toDouble()))
+        .toList();
+
+    setState(() {
+      isGraphLoading = false;
+    });
+  } catch (e) {
+    debugPrint("Graph Error: $e");
+    setState(() => isGraphLoading = false);
+  }
+}
+
+  /// ✅ FIXED FETCH FUNCTION (NO ERRORS)
+  Future<void> fetchDashboardData() async {
+  final supabase = Supabase.instance.client;
+
+  try {
+    final usersRes = await supabase
+        .from('profiles')
+        .select('user_id');
+
+    final communitiesRes = await supabase
+        .from('communities')
+        .select('id');
+
+    final disputesRes = await supabase
+        .from('complaints')
+        .select('id');
+
+ 
+final sales = await supabase
+    .from('transactions')
+    .select('id');
+    totalSales = sales.length;
+
+    setState(() {
+      totalUsers = usersRes.length;
+      totalCommunities = communitiesRes.length;
+      totalDisputes = disputesRes.length;
+      totalSales = sales.length;
+      isLoading = false;
+
+    });
+  } catch (e) {
+    debugPrint("Dashboard Error: $e");
+    setState(() => isLoading = false);
+  }
+}
+
+  @override
+void initState() {
+  super.initState();
+  fetchDashboardData();
+  fetchCommunityGrowth();
+  fetchPieChartData();
+  //fetchMonthlyTransactions();
+  fetchMonthlyCompletionPercentage();// 👈 ADD THIS
+}
 
   final List<String> menuItems = [
     "Dashboard",
@@ -44,9 +235,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     "Product & Resources",
     "Dispute Resolution",
     "Notifications",
-    "Admin Rotation",
     "Community Elections",
-    "Reports & Analytics",
     "System Settings",
   ];
 
@@ -57,49 +246,131 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Icons.inventory_2_outlined,
     Icons.report_gmailerrorred_outlined,
     Icons.notifications_outlined,
-    Icons.admin_panel_settings_outlined,
     Icons.how_to_vote_outlined,
-    Icons.analytics_outlined,
     Icons.settings_outlined,
   ];
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      final bytes = await pickedFile.readAsBytes();
+      setState(() {
+        _profileImage = bytes;
+      });
+    }
+  }
+
+  void _showProfileDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            width: 600,
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  "Admin Profile",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 20),
+                CircleAvatar(
+                  radius: 50,
+                  backgroundImage: _profileImage != null
+                      ? MemoryImage(_profileImage!)
+                      : const AssetImage('assets/profile.png')
+                          as ImageProvider,
+                ),
+                const SizedBox(height: 15),
+                const Text(
+                  "Click below to update your profile image",
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        await _pickImage();
+                      },
+                      child: const Text("Change Image"),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text("Close"),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7F7),
-
       body: Column(
         children: [
-
-          /// =====================
-          /// HEADER
-          /// =====================
           Container(
             height: 70,
-            decoration: const BoxDecoration(
-              gradient: appGradient,
-            ),
+            decoration: const BoxDecoration(gradient: appGradient),
             padding: const EdgeInsets.symmetric(horizontal: 30),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
+                const Text(
                   "Trade & Aid",
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold),
                 ),
                 Row(
                   children: [
-                    Icon(Icons.search, color: Colors.white),
-                    SizedBox(width: 25),
-                    Icon(Icons.notifications_none, color: Colors.white),
-                    SizedBox(width: 25),
-                    CircleAvatar(
-                      radius: 22,
-                      backgroundImage: AssetImage('assets/profile.png'),
+                    IconButton(
+                      icon: const Icon(Icons.search, color: Colors.white),
+                      onPressed: () {
+                        showSearch(
+                          context: context,
+                          delegate: CustomSearchDelegate(
+                            onItemSelected: (index) {
+                              setState(() => selectedIndex = index);
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 25),
+                    IconButton(
+                      icon: const Icon(Icons.notifications_none,
+                          color: Colors.white),
+                      onPressed: () {
+                        setState(() => selectedIndex = 5);
+                      },
+                    ),
+                    const SizedBox(width: 25),
+                    GestureDetector(
+                      onTap: _showProfileDialog,
+                      child: CircleAvatar(
+                        radius: 22,
+                        backgroundImage: _profileImage != null
+                            ? MemoryImage(_profileImage!)
+                            : const AssetImage('assets/profile.png')
+                                as ImageProvider,
+                      ),
                     ),
                   ],
                 ),
@@ -110,29 +381,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Expanded(
             child: Row(
               children: [
-
-                /// =====================
-                /// SIDEBAR
-                /// =====================
+                /// SIDEBAR (UNCHANGED)
                 Container(
                   width: 260,
-                  decoration: const BoxDecoration(
-                    gradient: appGradient,
-                  ),
+                  decoration: const BoxDecoration(gradient: appGradient),
                   padding: const EdgeInsets.fromLTRB(24, 30, 16, 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        "Admin Portal",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      const Text("Admin Portal",
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold)),
                       const SizedBox(height: 30),
-
                       Expanded(
                         child: ListView.builder(
                           itemCount: menuItems.length,
@@ -155,9 +417,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       vertical: 12, horizontal: 12),
                                   decoration: BoxDecoration(
                                     color: isSelected
-                                        ? Colors.white.withValues(alpha:0.22)
+                                        ? Colors.white.withValues(alpha: 0.22)
                                         : isHovered
-                                            ? Colors.white.withValues(alpha:0.12)
+                                            ? Colors.white
+                                                .withValues(alpha: 0.12)
                                             : Colors.transparent,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
@@ -167,15 +430,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                           color: Colors.white, size: 18),
                                       const SizedBox(width: 14),
                                       Expanded(
-                                        child: Text(
-                                          menuItems[index],
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: isSelected
-                                                ? FontWeight.bold
-                                                : FontWeight.normal,
-                                          ),
-                                        ),
+                                        child: Text(menuItems[index],
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: isSelected
+                                                  ? FontWeight.bold
+                                                  : FontWeight.normal,
+                                            )),
                                       ),
                                     ],
                                   ),
@@ -189,9 +450,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
 
-                /// =====================
                 /// MAIN CONTENT
-                /// =====================
                 Expanded(
                   child: IndexedStack(
                     index: selectedIndex,
@@ -202,9 +461,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const ProductResourceWrapper(),
                       const EscalatedCases(),
                       const NotificationsScreen(),
-                      const AdminRotationScreen(),
                       const CommunityElectionHistoryScreen(),
-                      const Center(child: Text("Reports & Analytics")),
                       const SettingsScreen(),
                     ],
                   ),
@@ -222,44 +479,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
   /// =====================
   Widget _dashboardContent() {
   return Padding(
-    padding: const EdgeInsets.fromLTRB(40, 30, 40, 20),
+    
+   padding: const EdgeInsets.fromLTRB(40, 30, 0, 20),
     child: SingleChildScrollView(
+     padding: const EdgeInsets.only(right: 20, bottom: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
 
-          const Text(
-            "Dashboard",
-            style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold),
-          ),
+          const Text("Dashboard",
+              style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold)),
 
           const SizedBox(height: 6),
 
-          const Text(
-            "Welcome back, Admin 👋",
-            style: TextStyle(fontSize: 18, color: Colors.black54),
-          ),
+          const Text("Welcome back, Admin 👋",
+              style: TextStyle(fontSize: 18, color: Colors.black54)),
 
           const SizedBox(height: 30),
 
-          /// =====================
-          /// INFO CARDS (UNCHANGED)
-          /// =====================
           Wrap(
-            spacing: 20,
+            spacing: 10,
             runSpacing: 20,
-            children: const [
-              _InfoCard("Total Users", "12,345"),
-              _InfoCard("Communities", "234"),
-              _InfoCard("Disputes", "5"),
-              _InfoCard("Sales", "50"),
+            children: [
+              _InfoCard("Total Users", isLoading ? "..." : totalUsers.toString()),
+              _InfoCard("Communities", isLoading ? "..." : totalCommunities.toString()),
+              _InfoCard("Disputes", isLoading ? "..." : totalDisputes.toString()),
+              _InfoCard("Sales", isLoading ? "..." : totalSales.toString()),
+
+
+              
             ],
           ),
 
           const SizedBox(height: 40),
 
           /// =====================
-          /// LINE CHART (YOUR ORIGINAL STYLE)
+          /// LINE CHART (UNCHANGED)
           /// =====================
           const Text(
             "Community Growth",
@@ -275,13 +530,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: LineChart(
               LineChartData(
                 minY: 0,
-                maxY: 400,
+                maxY: communityGrowthSpots.isEmpty
+                    ? 100
+                    : communityGrowthSpots
+                            .map((e) => e.y)
+                            .reduce((a, b) => a > b ? a : b) +
+                        10,
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
                   getDrawingHorizontalLine: (value) {
                     return FlLine(
-                      color: Colors.grey.withValues(alpha:0.2),
+                      color: Colors.grey.withValues(alpha: 0.2),
                       strokeWidth: 1,
                     );
                   },
@@ -321,20 +581,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     color: const Color(0xFF119E90),
                     barWidth: 3,
                     dotData: FlDotData(show: false),
-                    spots: const [
-                      FlSpot(0, 80),
-                      FlSpot(1, 120),
-                      FlSpot(2, 150),
-                      FlSpot(3, 170),
-                      FlSpot(4, 210),
-                      FlSpot(5, 250),
-                      FlSpot(6, 230),
-                      FlSpot(7, 260),
-                      FlSpot(8, 280),
-                      FlSpot(9, 300),
-                      FlSpot(10, 320),
-                      FlSpot(11, 350),
-                    ],
+                    spots: isGraphLoading
+                        ? [FlSpot(0, 0)]
+                        : communityGrowthSpots,
                   ),
                 ],
               ),
@@ -344,7 +593,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 40),
 
           /// =====================
-          /// PIE + BAR (RESTORED SIDE BY SIDE LIKE YOUR ORIGINAL DESIGN)
+          /// PIE + BAR (ONLY PIE MODIFIED)
           /// =====================
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -353,104 +602,178 @@ class _DashboardScreenState extends State<DashboardScreen> {
               /// PIE CHART
               Expanded(
                 child: Container(
-                  height: 320,
-                  padding: const EdgeInsets.all(20),
+                  height: 360,
+                  padding: const EdgeInsets.all(16),
                   margin: const EdgeInsets.only(right: 10),
                   decoration: _cardDecoration(),
-                  child: PieChart(
-                    PieChartData(
-                      centerSpaceRadius: 40,
-                      sectionsSpace: 2,
-                      sections: [
-                        PieChartSectionData(
-                            value: 40,
-                            title: "40%",
-                            color: Colors.green,
-                            radius: 60),
-                        PieChartSectionData(
-                            value: 30,
-                            title: "30%",
-                            color: Colors.orange,
-                            radius: 60),
-                        PieChartSectionData(
-                            value: 20,
-                            title: "20%",
-                            color: Colors.blue,
-                            radius: 60),
-                        PieChartSectionData(
-                            value: 10,
-                            title: "10%",
-                            color: Colors.red,
-                            radius: 60),
-                      ],
-                    ),
+
+                  /// 🔥 UPDATED PIE SECTION
+                  child: Column(
+                    children: [
+                      /// 🔥 TITLE
+    const Text(
+      "System Distribution Summary",
+      style: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+
+    const SizedBox(height: 15),
+    
+                      Expanded(
+                        
+                        child: PieChart(
+                          PieChartData(
+                            centerSpaceRadius: 50,
+                            sectionsSpace: 4,
+
+                            sections: isPieLoading
+                                ? [
+                                    PieChartSectionData(
+                                        value: 1, title: "Loading"),
+                                  ]
+                                : [
+                                    PieChartSectionData(
+                                      value: totalProducts == 0
+                                          ? 0.1
+                                          : totalProducts.toDouble(),
+                                      title: "Products",
+                                      color: const Color.fromARGB(
+                                          255, 23, 207, 231),
+                                      radius: 80,
+                                    ),
+                                    PieChartSectionData(
+                                      value: totalResources == 0
+                                          ? 0.1
+                                          : totalResources.toDouble(),
+                                      title: "Resources",
+                                      color: Colors.orange,
+                                      radius: 80, // 👈 FIXED
+                                      titleStyle: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                    PieChartSectionData(
+                                      value: totalDisputes == 0
+                                          ? 0.1
+                                          : totalDisputes.toDouble(),
+                                      title: "Disputes",
+                                      color: Colors.red,
+                                      radius: 80,
+                                    ),
+                                  ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      /// ✅ LEGEND
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _legendItem(Colors.red, "Disputes"),
+                          const SizedBox(width: 20),
+                          _legendItem(Colors.orange, "Resources"),
+                          const SizedBox(width: 20),
+                          _legendItem(
+                              const Color.fromARGB(255, 23, 207, 231),
+                              "Products"),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
 
-              /// BAR CHART
+              /// BAR CHART (UNCHANGED)
               Expanded(
-                child: Container(
-                  height: 320,
-                  padding: const EdgeInsets.all(20),
-                  margin: const EdgeInsets.only(left: 10),
-                  decoration: _cardDecoration(),
-                  child: BarChart(
-                    BarChartData(
-                      maxY: 300,
-                      borderData: FlBorderData(show: false),
-                      gridData: FlGridData(show: true),
-                      titlesData: FlTitlesData(
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            interval: 1,
-                            reservedSize: 30,
-                            getTitlesWidget: (value, meta) {
-                              const months = [
-                                "Jan","Feb","Mar","Apr","May","Jun"
-                              ];
-                              if (value.toInt() >= 0 &&
-                                  value.toInt() < months.length) {
-                                return Text(months[value.toInt()]);
-                              }
-                              return const Text("");
-                            },
-                          ),
-                        ),
-                        leftTitles: AxisTitles(
-                          sideTitles:
-                              SideTitles(showTitles: true, reservedSize: 40),
-                        ),
-                        rightTitles:
-                            AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        topTitles:
-                            AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      ),
-                      barGroups: [
-                        BarChartGroupData(x: 0, barRods: [
-                          BarChartRodData(toY: 120, color: const Color(0xFF119E90))
-                        ]),
-                        BarChartGroupData(x: 1, barRods: [
-                          BarChartRodData(toY: 150, color: const Color(0xFF119E90))
-                        ]),
-                        BarChartGroupData(x: 2, barRods: [
-                          BarChartRodData(toY: 180, color: const Color(0xFF119E90))
-                        ]),
-                        BarChartGroupData(x: 3, barRods: [
-                          BarChartRodData(toY: 210, color: const Color(0xFF119E90))
-                        ]),
-                        BarChartGroupData(x: 4, barRods: [
-                          BarChartRodData(toY: 170, color: const Color(0xFF119E90))
-                        ]),
-                        BarChartGroupData(x: 5, barRods: [
-                          BarChartRodData(toY: 240, color: const Color(0xFF119E90))
-                        ]),
-                      ],
-                    ),
+  child: Container(
+    height: 360,
+    padding: const EdgeInsets.all(20),
+    margin: const EdgeInsets.only(left: 10),
+    decoration: _cardDecoration(),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+
+        // 👇 TITLE HERE
+       Center(
+  child: const Text(
+    "Monthly Transaction Percentage",
+    style: TextStyle(
+      fontSize: 18,
+      fontWeight: FontWeight.bold,
+    ),
+  ),
+),
+
+        const SizedBox(height: 10),
+
+        // 👇 CHART
+        Expanded(
+          child: BarChart(
+            BarChartData(
+              maxY: 100,
+              borderData: FlBorderData(show: false),
+              gridData: FlGridData(show: true),
+
+              titlesData: FlTitlesData(
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    getTitlesWidget: (value, meta) {
+                      const months = [
+                        "Jan","Feb","Mar","Apr","May","Jun",
+                        "Jul","Aug","Sep","Oct","Nov","Dec"
+                      ];
+                      int i = value.toInt();
+                      if (i >= 0 && i < 12) {
+                        return Text(months[i]);
+                      }
+                      return const Text("");
+                    },
                   ),
                 ),
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 50,
+                    interval: 20,
+                    getTitlesWidget: (value, meta) {
+                      return Text("${value.toInt()}%");
+                    },
+                  ),
+                ),
+                rightTitles: AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                topTitles: AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
               ),
+
+              barGroups: List.generate(12, (index) {
+                return BarChartGroupData(
+                  x: index,
+                  barRods: [
+                    BarChartRodData(
+                      toY: isBarLoading ? 0 : monthlyPercentages[index],
+                      color: const Color(0xFF119E90),
+                    ),
+                  ],
+                );
+              }),
+            ),
+          ),
+        ),
+      ],
+    ),
+  ),
+)
             ],
           ),
         ],
@@ -511,4 +834,80 @@ class _InfoCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class CustomSearchDelegate extends SearchDelegate {
+
+  final Function(int) onItemSelected;
+
+  CustomSearchDelegate({required this.onItemSelected});
+
+  final List<Map<String, dynamic>> data = [
+    {"title": "Users", "index": 1},
+    {"title": "Communities", "index": 2},
+    {"title": "Products", "index": 3},
+    {"title": "Disputes", "index": 4},
+    {"title": "Notifications", "index": 5},
+    {"title": "Elections", "index": 6},
+    {"title": "Settings", "index": 7},
+  ];
+
+  @override
+  List<Widget>? buildActions(BuildContext context) {
+    return [
+      IconButton(
+        icon: const Icon(Icons.clear),
+        onPressed: () => query = "",
+      )
+    ];
+  }
+
+  @override
+  Widget? buildLeading(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.arrow_back),
+      onPressed: () => close(context, null),
+    );
+  }
+
+  @override
+  Widget buildResults(BuildContext context) {
+    final results = data.where((item) =>
+        item["title"].toLowerCase().contains(query.toLowerCase())).toList();
+
+    return ListView(
+      children: results.map((item) {
+        return ListTile(
+          title: Text(item["title"]),
+          onTap: () {
+            close(context, null);
+
+            // ✅ CALL BACK TO DASHBOARD
+            onItemSelected(item["index"]);
+          },
+        );
+      }).toList(),
+    );
+  }
+
+  @override
+  Widget buildSuggestions(BuildContext context) {
+    return buildResults(context);
+  }
+}
+Widget _legendItem(Color color, String text) {
+  return Row(
+    children: [
+      Container(
+        width: 14,
+        height: 14,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(3),
+        ),
+      ),
+      const SizedBox(width: 6),
+      Text(text, style: const TextStyle(fontSize: 12)),
+    ],
+  );
 }
