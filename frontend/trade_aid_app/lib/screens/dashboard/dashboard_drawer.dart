@@ -11,6 +11,7 @@ import 'User_complaints.dart';
 import 'roundtable.dart';
 import 'manage_reservations.dart';
 import 'disputed_products.dart';
+import 'manage_owner_booking.dart';
 
 // 🌿 Color Palette
 const LinearGradient appGradient = LinearGradient(
@@ -320,6 +321,19 @@ class DashboardDrawer extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (_) => ManageReservationsScreen(),
+                      ),
+                    );
+                  },
+                ),
+                 _DrawerTile(
+                  icon: Icons.book_online_rounded,
+                  title: 'Manage Owner Bookings',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ManageOwnerBookingsScreen(),
                       ),
                     );
                   },

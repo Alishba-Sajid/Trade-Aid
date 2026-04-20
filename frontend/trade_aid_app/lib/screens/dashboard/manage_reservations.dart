@@ -64,25 +64,18 @@ Future<void> _fetchResourceBookings() async {
   final user = supabase.auth.currentUser;
   if (user == null) return;
 
-  final now = DateTime.now();
-
-  final todayDate =
-      "${now.year.toString().padLeft(4, '0')}-"
-      "${now.month.toString().padLeft(2, '0')}-"
-      "${now.day.toString().padLeft(2, '0')}";
-
   final response = await supabase
       .from('resource_bookings')
       .select('*, resources(name, rate, user_id, images)')
-      .eq('user_id', user.id)
-      .gte('booking_date', todayDate);
+      .eq('user_id', user.id);
+
+  final now = DateTime.now();
 
   final allBookings = List<Map<String, dynamic>>.from(response);
 
   final validBookings = allBookings.where((booking) {
     try {
       final date = DateTime.parse(booking['booking_date']);
-
       final startParts = booking['start_time'].toString().split(':');
 
       final bookingStart = DateTime(
@@ -93,12 +86,14 @@ Future<void> _fetchResourceBookings() async {
         int.parse(startParts[1]),
       );
 
-      // ✅ Allow ALL future + TODAY future times
-      return bookingStart.isAfter(now);
+      // 🔥 FIX: allow same-day + timezone-safe comparison
+      return bookingStart.isAfter(now.subtract(const Duration(minutes: 1)));
     } catch (_) {
       return false;
     }
   }).toList();
+
+  if (!mounted) return;
 
   setState(() {
     resourceBookings = validBookings;

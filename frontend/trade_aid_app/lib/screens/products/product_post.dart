@@ -18,7 +18,7 @@ const Color backgroundLight = Color(0xFFF8FAFA);
 const Color accentTeal = Color(0xFF119E90);
 const Color subtleGrey = Color(0xFFF2F2F2);
 
-// ✅ Animated card widget (same style as login/create account)
+// ✅ Animated card widget
 class AnimatedCard extends StatefulWidget {
   final String message;
   final IconData? icon;
@@ -115,6 +115,7 @@ class ProductPostScreen extends StatefulWidget {
     this.makePublicAfter48Hours,
     this.requesterId,
   });
+
   @override
   State<ProductPostScreen> createState() => _ProductPostScreenState();
 }
@@ -393,19 +394,30 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
 
     if (_isLoading) return;
 
+    // 1. Check Images
     if (!_images.any((e) => e != null)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.redAccent,
-          content: Text('Please upload at least one image'),
-        ),
-      );
+      _showAnimatedCard("Please upload at least one image",
+          icon: Icons.image_not_supported);
       return;
     }
 
-    if (!_formKey.currentState!.validate()) return;
-    _formKey.currentState!.save();
+    // 2. Check Text Fields via Form Validator
+    if (!_formKey.currentState!.validate()) {
+      _showAnimatedCard("Please fill all text fields",
+          icon: Icons.edit_note_rounded);
+      return;
+    }
 
+    // 3. ✅ CHECK DROPDOWNS SPECIFICALLY
+    if (_usedTimeValue == null ||
+        _conditionValue == null ||
+        _productCategoryValue == null) {
+      _showAnimatedCard("Please select all dropdown options",
+          icon: Icons.arrow_drop_down_circle_outlined);
+      return;
+    }
+
+    _formKey.currentState!.save();
     setState(() => _isLoading = true);
 
     try {
@@ -426,9 +438,8 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
 
         await supabase.storage.from('product-images').upload(filePath, file);
 
-        final imageUrl = supabase.storage
-            .from('product-images')
-            .getPublicUrl(filePath);
+        final imageUrl =
+            supabase.storage.from('product-images').getPublicUrl(filePath);
 
         imageUrls.add(imageUrl);
       }
@@ -451,7 +462,7 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
         final expiresAt = DateTime.now().add(const Duration(hours: 48));
 
         data.addAll({
-          'wish_request_id': widget.wishId, // ✅ FIXED COLUMN NAME
+          'wish_request_id': widget.wishId,
           'reserved_for': widget.requesterId,
           'make_public_after_48h': widget.makePublicAfter48Hours ?? false,
           'expires_at': expiresAt.toIso8601String(),
@@ -471,7 +482,7 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
             requesterNotification['full_name'] as String? ?? 'Someone';
 
         await NotificationService.createNotification(
-          userId: widget.requesterId,
+          userId: widget.requesterId!,
           title: 'Product posted for your wish',
           message: '$uploaderName has posted the product you requested.',
           type: 'wish_fulfilled',
@@ -489,6 +500,7 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
 
     if (mounted) setState(() => _isLoading = false);
   }
+
   // ---------------- UI ----------------
 
   @override
@@ -596,24 +608,23 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
                         TextFormField(
                           maxLines: 3,
                           maxLength: 200,
-                          buildCounter:
-                              (
-                                BuildContext context, {
-                                required int currentLength,
-                                required bool isFocused,
-                                required int? maxLength,
-                              }) {
-                                return Align(
-                                  alignment: Alignment.centerRight,
-                                  child: Text(
-                                    '$currentLength/$maxLength',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.blueGrey[400],
-                                    ),
-                                  ),
-                                );
-                              },
+                          buildCounter: (
+                            BuildContext context, {
+                            required int currentLength,
+                            required bool isFocused,
+                            required int? maxLength,
+                          }) {
+                            return Align(
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                '$currentLength/$maxLength',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.blueGrey[400],
+                                ),
+                              ),
+                            );
+                          },
                           decoration: _modernInput(
                             'Description',
                             icon: Icons.description_outlined,
@@ -637,7 +648,6 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  // --- Details Section with identical UI ---
                   _sectionHeading('DETAILS'),
                   const SizedBox(height: 8),
                   Container(
