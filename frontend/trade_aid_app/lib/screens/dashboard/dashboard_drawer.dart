@@ -326,7 +326,7 @@ class DashboardDrawer extends StatelessWidget {
                   },
                 ),
                  _DrawerTile(
-                  icon: Icons.book_online_rounded,
+                  icon: Icons.assignment_ind_outlined,
                   title: 'Manage Owner Bookings',
                   onTap: () {
                     Navigator.pop(context);
