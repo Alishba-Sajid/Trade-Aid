@@ -76,22 +76,18 @@ class _EscalatedDisputeScreenState extends State<EscalatedDisputeScreen>
             children: [
               // 🌊 SAME GRADIENT
               Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.teal.shade700,
-                      Colors.teal.shade400,
-                      Colors.cyan.shade300,
+               decoration: BoxDecoration(
+  gradient: LinearGradient(
+    colors: [
+ const Color.fromARGB(255, 41, 207, 191),
+                    const Color.fromARGB(255, 46, 148, 153),    
                     ],
-                    stops: [
-                      0.2,
-                      0.6 + 0.2 * sin(_controller.value * pi * 2),
-                      1.0,
-                    ],
-                  ),
-                ),
+    stops: [
+      0.3,
+      0.7 + 0.2 * sin(_controller.value * pi * 2),
+    ],
+  ),
+),
               ),
 
               // ✨ FLOATING CIRCLES
@@ -121,7 +117,7 @@ class _EscalatedDisputeScreenState extends State<EscalatedDisputeScreen>
                     height: 70,
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.95),
+                      color: const Color.fromARGB(255, 55, 128, 124).withValues(alpha: 0.95),
                       boxShadow: const [
                         BoxShadow(color: Colors.black26, blurRadius: 10),
                       ],

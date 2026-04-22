@@ -96,21 +96,17 @@ class _ResourceSharingState extends State<ResourceSharing>
               // 🌊 BACKGROUND
               Container(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.teal.shade600,
-                      Colors.teal.shade300,
-                      Colors.cyan.shade200,
-                    ],
-                    stops: [
-                      0.2,
-                      0.6 + 0.2 * sin(_controller.value * pi * 2),
-                      1.0,
-                    ],
-                  ),
-                ),
+  gradient: LinearGradient(
+    colors: [
+      const Color.fromARGB(255, 41, 207, 191),
+                    const Color.fromARGB(255, 46, 148, 153),
+    ],
+    stops: [
+      0.3,
+      0.7 + 0.2 * sin(_controller.value * pi * 2),
+    ],
+  ),
+),
               ),
 
               // ✨ FLOATING CIRCLES
@@ -150,7 +146,7 @@ class _ResourceSharingState extends State<ResourceSharing>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        "Resource Sharing",
+                        "Resources",
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -210,9 +206,9 @@ class _ResourceSharingState extends State<ResourceSharing>
                 constraints: const BoxConstraints(minWidth: 1400),
                 child: DataTable(
                   columnSpacing: 60,
-                  headingRowColor: WidgetStateProperty.resolveWith(
-                    (_) => Colors.grey.shade100,
-                  ),
+                  headingRowColor: WidgetStateColor.resolveWith(
+                                              (_) =>
+                                                  const Color.fromARGB(255, 242, 242, 242)),
                   columns: const [
                     DataColumn(
                         label: Text("Item Name",

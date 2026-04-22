@@ -87,19 +87,20 @@ class _ManageCommunityScreenState extends State<ManageCommunityScreen>
               /// 🌊 Background
               Container(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.teal.shade600,
-                      Colors.teal.shade300,
-                      Colors.cyan.shade200,
-                    ],
-                    stops: [
-                      0.2,
-                      0.6 + 0.2 * sin(_controller.value * pi * 2),
-                      1.0,
-                    ],
-                  ),
-                ),
+  gradient: LinearGradient(
+    colors: [
+      
+                    const Color.fromARGB(255, 41, 207, 191),
+                    const Color.fromARGB(255, 46, 148, 153),
+
+
+    ],
+    stops: [
+      0.3,
+      0.7 + 0.2 * sin(_controller.value * pi * 2),
+    ],
+  ),
+),
               ),
 
               /// 📦 MAIN CARD
@@ -108,8 +109,8 @@ class _ManageCommunityScreenState extends State<ManageCommunityScreen>
                 child: Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.95),
-                    borderRadius: BorderRadius.circular(18),
+                   color: Colors.white.withValues(alpha: 0.95),
+                    borderRadius: BorderRadius.circular(16),
                     boxShadow: const [
                       BoxShadow(
                         color: Colors.black26,
@@ -172,7 +173,7 @@ class _ManageCommunityScreenState extends State<ManageCommunityScreen>
                                       headingRowColor:
                                           WidgetStateColor.resolveWith(
                                               (_) =>
-                                                  Colors.grey.shade100),
+                                                  const Color.fromARGB(255, 242, 242, 242)),
                                       columns: const [
                                         DataColumn(label: Text("Name",style: TextStyle(
                                               fontWeight: FontWeight.bold))),

@@ -82,8 +82,8 @@ class _UserManagementScreenState extends State<UserManagementScreen>
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Colors.teal.shade700,
-                  Colors.teal.shade300,
+                  const Color.fromARGB(255, 41, 207, 191),
+                    const Color.fromARGB(255, 46, 148, 153),
                 ],
                 stops: [
                   0.3,

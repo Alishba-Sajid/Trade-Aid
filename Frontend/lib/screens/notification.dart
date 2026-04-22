@@ -162,20 +162,18 @@ class _NotificationsScreenState extends State<NotificationsScreen>
             children: [
               // BACKGROUND
               Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.teal.shade700,
-                      Colors.teal.shade400,
-                      Colors.cyan.shade300,
+               decoration: BoxDecoration(
+  gradient: LinearGradient(
+    colors: [
+ const Color.fromARGB(255, 41, 207, 191),
+                    const Color.fromARGB(255, 46, 148, 153),    
                     ],
-                    stops: [
-                      0.2,
-                      0.6 + 0.2 * sin(_controller.value * pi * 2),
-                      1.0,
-                    ],
-                  ),
-                ),
+    stops: [
+      0.3,
+      0.7 + 0.2 * sin(_controller.value * pi * 2),
+    ],
+  ),
+),
               ),
 
               // MAIN CARD

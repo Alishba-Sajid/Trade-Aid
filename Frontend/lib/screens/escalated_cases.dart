@@ -65,21 +65,17 @@ class _EscalatedCasesState extends State<EscalatedCases>
               /// 🌊 SAME ANIMATED GRADIENT
               Container(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.teal.shade600,
-                      Colors.teal.shade300,
-                      Colors.cyan.shade200,
+  gradient: LinearGradient(
+    colors: [
+ const Color.fromARGB(255, 41, 207, 191),
+                    const Color.fromARGB(255, 46, 148, 153),    
                     ],
-                    stops: [
-                      0.2,
-                      0.6 + 0.2 * sin(_controller.value * pi * 2),
-                      1.0,
-                    ],
-                  ),
-                ),
+    stops: [
+      0.3,
+      0.7 + 0.2 * sin(_controller.value * pi * 2),
+    ],
+  ),
+),
               ),
 
               /// ✨ FLOATING CIRCLES
@@ -130,7 +126,7 @@ class _EscalatedCasesState extends State<EscalatedCases>
                       const SizedBox(height: 6),
                       const Text(
                         "Manage and resolve escalated disputes",
-                        style: TextStyle(color: Colors.black54),
+                        style: TextStyle(color: Color.fromARGB(137, 19, 4, 4)),
                       ),
                       const SizedBox(height: 20),
 
@@ -139,7 +135,8 @@ class _EscalatedCasesState extends State<EscalatedCases>
                         height: 45,
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
+                 color:const Color.fromARGB(255, 238, 235, 235),
+
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Row(
@@ -175,7 +172,8 @@ class _EscalatedCasesState extends State<EscalatedCases>
                                     columnSpacing: 70,
                                     headingRowColor:
                                         WidgetStateColor.resolveWith(
-                                            (_) => Colors.grey.shade100),
+                                              (_) =>
+                                                  const Color.fromARGB(255, 242, 242, 242)),
                                     columns: const [
                                       DataColumn(
                                           label: Text(

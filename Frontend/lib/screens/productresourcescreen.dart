@@ -117,19 +117,17 @@ class _ProductResourceState extends State<ProductResource>
               /// BACKGROUND
               Container(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.teal.shade600,
-                      Colors.teal.shade300,
-                      Colors.cyan.shade200,
+  gradient: LinearGradient(
+    colors: [
+ const Color.fromARGB(255, 41, 207, 191),
+                    const Color.fromARGB(255, 46, 148, 153),    
                     ],
-                    stops: [
-                      0.2,
-                      0.6 + 0.2 * sin(_controller.value * pi * 2),
-                      1.0,
-                    ],
-                  ),
-                ),
+    stops: [
+      0.3,
+      0.7 + 0.2 * sin(_controller.value * pi * 2),
+    ],
+  ),
+),
               ),
 
               /// MAIN CARD
@@ -211,16 +209,22 @@ class _ProductResourceState extends State<ProductResource>
                 constraints: const BoxConstraints(minWidth: 1400),
                 child: DataTable(
                   columnSpacing: 70,
-                  headingRowColor: WidgetStateProperty.resolveWith(
-                    (_) => Colors.grey.shade100,
-                  ),
+                  headingRowColor: WidgetStateColor.resolveWith(
+                                              (_) =>
+                                                  const Color.fromARGB(255, 242, 242, 242)),
                   columns: const [
-                    DataColumn(label: Text("Item Name")),
-                    DataColumn(label: Text("Community")),
-                    DataColumn(label: Text("Posted By")),
-                    DataColumn(label: Text("Price")),
-                    DataColumn(label: Text("Status")),
-                    DataColumn(label: Text("Actions")),
+                    DataColumn(label: Text("Item Name",style: TextStyle(
+                                              fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text("Community",style: TextStyle(
+                                              fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text("Posted By",style: TextStyle(
+                                              fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text("Price",style: TextStyle(
+                                              fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text("Status",style: TextStyle(
+                                              fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text("Actions",style: TextStyle(
+                                              fontWeight: FontWeight.bold))),
                   ],
                   rows: products.map((item) {
                     return DataRow(

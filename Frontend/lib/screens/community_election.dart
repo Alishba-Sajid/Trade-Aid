@@ -91,17 +91,17 @@ class _CommunityElectionHistoryScreenState
           return Container(
             padding: const EdgeInsets.all(30),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.teal.shade700,
-                  Colors.teal.shade300,
-                ],
-                stops: [
-                  0.3,
-                  0.7 + 0.2 * sin(_controller.value * pi * 2),
-                ],
-              ),
-            ),
+  gradient: LinearGradient(
+    colors: [
+ const Color.fromARGB(255, 41, 207, 191),
+                    const Color.fromARGB(255, 46, 148, 153),    
+                    ],
+    stops: [
+      0.3,
+      0.7 + 0.2 * sin(_controller.value * pi * 2),
+    ],
+  ),
+),
 
             child: SizedBox(
               width: double.infinity,
