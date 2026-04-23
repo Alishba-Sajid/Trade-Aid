@@ -40,10 +40,22 @@ import 'screens/forgotpass/newpass_screen.dart';
 import 'models/product.dart';
 import 'models/resource.dart';
 
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_core/firebase_core.dart';
+
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+Future<void> _firebaseBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  print("Background message: ${message.messageId}");
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp();
+
+  FirebaseMessaging.onBackgroundMessage(_firebaseBackgroundHandler);
 
   await Supabase.initialize(
     url: 'https://gidxrziissmkkavoaolj.supabase.co',
@@ -118,9 +130,30 @@ class _TradeAidAppState extends State<TradeAidApp> {
     }
   }
 
+  Future<void> saveTokenToSupabase(String token) async {
+    final user = Supabase.instance.client.auth.currentUser;
+
+    if (user == null) return;
+
+    final supabase = Supabase.instance.client;
+
+    try {
+      await supabase.from('user_tokens').upsert({
+        'user_id': user.id,
+        'fcm_token': token,
+        'updated_at': DateTime.now().toIso8601String(),
+      }, onConflict: 'user_id');
+
+      print("✅ Token saved to Supabase");
+    } catch (e) {
+      print("❌ Error saving token: $e");
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    getFCMToken();
 
     final session = Supabase.instance.client.auth.currentSession;
 
@@ -131,6 +164,20 @@ class _TradeAidAppState extends State<TradeAidApp> {
         Future.microtask(() => _handleUserRouting());
       }
     }
+
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print("📩 Notification received: ${message.notification?.title}");
+
+      if (message.notification != null) {
+        ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
+          SnackBar(
+            content: Text(
+              "${message.notification!.title}\n${message.notification!.body}",
+            ),
+          ),
+        );
+      }
+    });
 
     // ✅ UPDATED AUTH LISTENER (FIXED)
     Supabase.instance.client.auth.onAuthStateChange.listen((data) {
@@ -159,6 +206,10 @@ class _TradeAidAppState extends State<TradeAidApp> {
             });
           }
         }
+
+        Future.delayed(const Duration(seconds: 1), () {
+          getFCMToken();
+        });
       }
 
       if (event == AuthChangeEvent.signedOut) {
@@ -168,6 +219,24 @@ class _TradeAidAppState extends State<TradeAidApp> {
         }
       }
     });
+  }
+
+  Future<void> getFCMToken() async {
+    try {
+      FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+      await messaging.requestPermission();
+
+      String? token = await messaging.getToken();
+
+      print("🔥 FCM TOKEN: $token");
+
+      if (token != null) {
+        await saveTokenToSupabase(token);
+      }
+    } catch (e) {
+      print("FCM ERROR: $e");
+    }
   }
 
   @override

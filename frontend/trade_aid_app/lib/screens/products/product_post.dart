@@ -396,15 +396,19 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
 
     // 1. Check Images
     if (!_images.any((e) => e != null)) {
-      _showAnimatedCard("Please upload at least one image",
-          icon: Icons.image_not_supported);
+      _showAnimatedCard(
+        "Please upload at least one image",
+        icon: Icons.image_not_supported,
+      );
       return;
     }
 
     // 2. Check Text Fields via Form Validator
     if (!_formKey.currentState!.validate()) {
-      _showAnimatedCard("Please fill all text fields",
-          icon: Icons.edit_note_rounded);
+      _showAnimatedCard(
+        "Please fill all text fields",
+        icon: Icons.edit_note_rounded,
+      );
       return;
     }
 
@@ -412,8 +416,10 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
     if (_usedTimeValue == null ||
         _conditionValue == null ||
         _productCategoryValue == null) {
-      _showAnimatedCard("Please select all dropdown options",
-          icon: Icons.arrow_drop_down_circle_outlined);
+      _showAnimatedCard(
+        "Please select all dropdown options",
+        icon: Icons.arrow_drop_down_circle_outlined,
+      );
       return;
     }
 
@@ -438,8 +444,9 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
 
         await supabase.storage.from('product-images').upload(filePath, file);
 
-        final imageUrl =
-            supabase.storage.from('product-images').getPublicUrl(filePath);
+        final imageUrl = supabase.storage
+            .from('product-images')
+            .getPublicUrl(filePath);
 
         imageUrls.add(imageUrl);
       }
@@ -470,6 +477,16 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
       }
 
       await supabase.from('products').insert(data);
+
+      await Supabase.instance.client.functions.invoke(
+        'send-community-notification',
+        body: {
+          "community_id": widget.communityId,
+          "title": "New Product 🛍️",
+          "body": "A new product has been posted in your community",
+          "sender_id": user.id,
+        },
+      );
 
       if (widget.wishId != null && widget.requesterId != null) {
         final requesterNotification = await supabase
@@ -608,23 +625,24 @@ class _ProductPostScreenState extends State<ProductPostScreen> {
                         TextFormField(
                           maxLines: 3,
                           maxLength: 200,
-                          buildCounter: (
-                            BuildContext context, {
-                            required int currentLength,
-                            required bool isFocused,
-                            required int? maxLength,
-                          }) {
-                            return Align(
-                              alignment: Alignment.centerRight,
-                              child: Text(
-                                '$currentLength/$maxLength',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.blueGrey[400],
-                                ),
-                              ),
-                            );
-                          },
+                          buildCounter:
+                              (
+                                BuildContext context, {
+                                required int currentLength,
+                                required bool isFocused,
+                                required int? maxLength,
+                              }) {
+                                return Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Text(
+                                    '$currentLength/$maxLength',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.blueGrey[400],
+                                    ),
+                                  ),
+                                );
+                              },
                           decoration: _modernInput(
                             'Description',
                             icon: Icons.description_outlined,
