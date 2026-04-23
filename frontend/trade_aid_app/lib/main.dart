@@ -173,7 +173,15 @@ class _TradeAidAppState extends State<TradeAidApp> {
           SnackBar(
             content: Text(
               "${message.notification!.title}\n${message.notification!.body}",
+              style: const TextStyle(color: Colors.white),
             ),
+            backgroundColor: Colors.teal.shade700,
+            duration: const Duration(seconds: 5),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
           ),
         );
       }

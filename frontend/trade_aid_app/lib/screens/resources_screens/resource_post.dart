@@ -460,6 +460,16 @@ class _ResourcePostScreenState extends State<ResourcePostScreen> {
         'is_enabled': true, // default enabled
       });
 
+      await supabase.functions.invoke(
+        'send-community-notification',
+        body: {
+          "community_id": widget.communityId,
+          "title": "New Resource Posted 📦",
+          "body": "${_name} is now available",
+          "sender_id": user.id,
+        },
+      );
+
       if (!mounted) return;
 
       _showAnimatedCard("Resource Posted Successfully", icon: Icons.check);
