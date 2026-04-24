@@ -174,32 +174,37 @@ Expanded(
                       bottom: BorderSide(color: Colors.grey),
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      Expanded(child: Text(user["full_name"] ?? "")),
-                      Expanded(child: Text(user["gender"] ?? "")),
-                      Expanded(child: Text(user["phone"] ?? "")),
-                      Expanded(child: Text(user["address"] ?? "")),
-                      Expanded(
-                        child: TextButton(
-                          onPressed: () {
-                            final userId = user['user_id'];
-                            if (userId == null) return;
+                 child: Row(
+  children: [
+    Expanded(child: Text(user["full_name"] ?? "")),
+    Expanded(child: Text(user["gender"] ?? "")),
+    Expanded(child: Text(user["phone"] ?? "")),
+    Expanded(child: Text(user["address"] ?? "")),
 
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => UserProfile(
-                                  userId: userId.toString(),
-                                ),
-                              ),
-                            );
-                          },
-                          child: const Text("View"),
-                        ),
-                      ),
-                    ],
-                  ),
+    /// ✅ FIXED ACTION COLUMN
+   Expanded(
+  child: Align(
+    alignment: Alignment.centerLeft,
+    child: TextButton(
+      onPressed: () {
+        final userId = user['user_id'];
+        if (userId == null) return;
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => UserProfile(
+              userId: userId.toString(),
+            ),
+          ),
+        );
+      },
+      child: const Text("View"),
+    ),
+  ),
+),
+  ],
+),
                 );
               }),
             ],

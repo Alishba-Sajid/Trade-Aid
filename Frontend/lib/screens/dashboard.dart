@@ -166,10 +166,20 @@ Future<void> fetchCommunityGrowth() async {
       monthlyCounts[monthIndex]++;
     }
 
+    /// ✅ STEP 1: get max value
+    int maxValue = monthlyCounts.reduce((a, b) => a > b ? a : b);
+
+    /// ⚠️ prevent divide by 0
+    if (maxValue == 0) maxValue = 1;
+
+    /// ✅ STEP 2: convert to %
     communityGrowthSpots = monthlyCounts
         .asMap()
         .entries
-        .map((e) => FlSpot(e.key.toDouble(), e.value.toDouble()))
+        .map((e) {
+          double percent = (e.value / maxValue) * 100;
+          return FlSpot(e.key.toDouble(), percent);
+        })
         .toList();
 
     setState(() {
@@ -529,13 +539,8 @@ void initState() {
             decoration: _cardDecoration(),
             child: LineChart(
               LineChartData(
-                minY: 0,
-                maxY: communityGrowthSpots.isEmpty
-                    ? 100
-                    : communityGrowthSpots
-                            .map((e) => e.y)
-                            .reduce((a, b) => a > b ? a : b) +
-                        10,
+               minY: 0,
+maxY: 100,
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
@@ -566,10 +571,16 @@ void initState() {
                       },
                     ),
                   ),
-                  leftTitles: AxisTitles(
-                    sideTitles:
-                        SideTitles(showTitles: true, reservedSize: 40),
-                  ),
+                 leftTitles: AxisTitles(
+  sideTitles: SideTitles(
+    showTitles: true,
+    reservedSize: 40,
+    interval: 20,
+    getTitlesWidget: (value, meta) {
+      return Text('${value.toInt()}%');
+    },
+  ),
+),
                   rightTitles:
                       AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   topTitles:
