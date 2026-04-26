@@ -501,7 +501,7 @@ class _VotingScreenState extends State<VotingScreen> {
 
     return Center(
       child: Text(
-        "Election has ended.\nNew admin has been selected.",
+        "No Active Elections\nAdmin has been selected.",
         textAlign: TextAlign.center,
         style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
       ),
