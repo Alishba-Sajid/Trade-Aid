@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:image_picker/image_picker.dart';
@@ -37,7 +38,9 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int selectedIndex = 0;
   int? hoveredIndex;
+
   Uint8List? _profileImage;
+  
 
   int totalUsers = 0;
   int totalCommunities = 0;
@@ -60,6 +63,12 @@ bool isPieLoading = true;
 
 List<double> monthlyPercentages = List.filled(12, 0.0);
 bool isBarLoading = true;
+
+
+String? imageUrl;
+final supabase = Supabase.instance.client;
+
+User? user;
 
 
 
@@ -174,13 +183,13 @@ Future<void> fetchCommunityGrowth() async {
 
     /// ✅ STEP 2: convert to %
     communityGrowthSpots = monthlyCounts
-        .asMap()
-        .entries
-        .map((e) {
-          double percent = (e.value / maxValue) * 100;
-          return FlSpot(e.key.toDouble(), percent);
-        })
-        .toList();
+    .asMap()
+    .entries
+    .map((e) {
+      double percent = (e.value * 5.0).clamp(0, 100); // 👈 HERE
+      return FlSpot(e.key.toDouble(), percent);
+    })
+    .toList();
 
     setState(() {
       isGraphLoading = false;
@@ -228,15 +237,31 @@ final sales = await supabase
   }
 }
 
+
+
+
+
   @override
 void initState() {
   super.initState();
+
+   user = supabase.auth.currentUser;
+
+  supabase.auth.onAuthStateChange.listen((data) {
+    setState(() {
+      user = data.session?.user;
+    });
+  });
   fetchDashboardData();
   fetchCommunityGrowth();
   fetchPieChartData();
   //fetchMonthlyTransactions();
-  fetchMonthlyCompletionPercentage();// 👈 ADD THIS
+  fetchMonthlyCompletionPercentage();
+  //loadProfileImage();// 👈 ADD THIS
 }
+
+
+
 
   final List<String> menuItems = [
     "Dashboard",
@@ -259,6 +284,8 @@ void initState() {
     Icons.how_to_vote_outlined,
     Icons.settings_outlined,
   ];
+
+  
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
@@ -328,6 +355,7 @@ void initState() {
     );
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -375,11 +403,10 @@ void initState() {
                     GestureDetector(
                       onTap: _showProfileDialog,
                       child: CircleAvatar(
-                        radius: 22,
-                        backgroundImage: _profileImage != null
-                            ? MemoryImage(_profileImage!)
-                            : const AssetImage('assets/profile.png')
-                                as ImageProvider,
+                        radius: 25,
+                        backgroundImage: imageUrl != null
+    ? NetworkImage(imageUrl!)
+    : const AssetImage('assets/profile.png') as ImageProvider,
                       ),
                     ),
                   ],
@@ -571,7 +598,7 @@ maxY: 100,
                       },
                     ),
                   ),
-                 leftTitles: AxisTitles(
+                leftTitles: AxisTitles(
   sideTitles: SideTitles(
     showTitles: true,
     reservedSize: 40,
@@ -588,7 +615,7 @@ maxY: 100,
                 ),
                 lineBarsData: [
                   LineChartBarData(
-                    isCurved: true,
+                    isCurved: false,
                     color: const Color(0xFF119E90),
                     barWidth: 3,
                     dotData: FlDotData(show: false),
@@ -653,6 +680,11 @@ maxY: 100,
                                       color: const Color.fromARGB(
                                           255, 23, 207, 231),
                                       radius: 80,
+                                      titleStyle: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black,
+                                      ),
                                     ),
                                     PieChartSectionData(
                                       value: totalResources == 0
@@ -662,7 +694,7 @@ maxY: 100,
                                       color: Colors.orange,
                                       radius: 80, // 👈 FIXED
                                       titleStyle: const TextStyle(
-                                        fontSize: 10,
+                                        fontSize: 12,
                                         fontWeight: FontWeight.bold,
                                         color: Colors.black,
                                       ),
@@ -674,6 +706,11 @@ maxY: 100,
                                       title: "Disputes",
                                       color: Colors.red,
                                       radius: 80,
+                                      titleStyle: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black,
+                                      ),
                                     ),
                                   ],
                           ),

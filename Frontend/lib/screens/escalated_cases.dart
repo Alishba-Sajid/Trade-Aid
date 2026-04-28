@@ -167,7 +167,7 @@ class _EscalatedCasesState extends State<EscalatedCases>
                                 scrollDirection: Axis.horizontal,
                                 child: ConstrainedBox(
                                   constraints:
-                                      const BoxConstraints(minWidth: 1400),
+                                      const BoxConstraints(minWidth: 1500),
                                   child: DataTable(
                                     columnSpacing: 70,
                                     headingRowColor:

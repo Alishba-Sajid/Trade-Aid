@@ -24,6 +24,9 @@ Future<void> main() async {
   await Supabase.initialize(
     url: 'https://gidxrziissmkkavoaolj.supabase.co',
     anonKey: 'sb_publishable_bQXqf2cS0ylSFz5wO4jfuA_bKxnoObW',
+     authOptions: const FlutterAuthClientOptions(
+    authFlowType: AuthFlowType.pkce,
+  ),
   );
 
   runApp(const MyApp());
@@ -37,6 +40,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Trade&Aid Admin',
+
 
       /// 👇 First screen
       initialRoute: '/dashboard',

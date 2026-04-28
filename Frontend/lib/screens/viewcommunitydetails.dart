@@ -70,34 +70,7 @@ class _CommunityDetailsState extends State<CommunityDetails> {
   }
 
   /// 🔹 DELETE COMMUNITY LOGIC
-  Future<void> _deleteCommunity() async {
-    final confirm = await _showConfirmDialog("Delete Community", "This action is permanent.");
-    if (confirm != true) return;
-
-    try {
-      await supabase.from('community_management').delete().eq('id', widget.communityId);
-      if (!mounted) return;
-      Navigator.pop(context); // Go back after delete
-      _showSnackBar("Community deleted successfully");
-    } catch (e) {
-      _showSnackBar("Failed to delete", isError: true);
-    }
-  }
-
-  /// 🔹 BAN MEMBER LOGIC (Example: Banning the first member in the list)
-  Future<void> _banMember(String memberId) async {
-    try {
-      await supabase
-          .from('community_member_details')
-          .update({'status': 'Banned'})
-          .eq('id', memberId);
-      
-      fetchCommunityData(); // Refresh data
-      _showSnackBar("Member has been banned");
-    } catch (e) {
-      _showSnackBar("Action failed", isError: true);
-    }
-  }
+  
 
   void _showSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -105,19 +78,7 @@ class _CommunityDetailsState extends State<CommunityDetails> {
     );
   }
 
-  Future<bool?> _showConfirmDialog(String title, String content) {
-    return showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: Text(content),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("Confirm", style: TextStyle(color: Colors.red))),
-        ],
-      ),
-    );
-  }
+  
 
   @override
   Widget build(BuildContext context) {
@@ -195,25 +156,7 @@ class _CommunityDetailsState extends State<CommunityDetails> {
 
                   const SizedBox(height: 30),
                   // ACTIONS
-                  Row(
-                    children: [
-                      ElevatedButton.icon(
-                        onPressed: _deleteCommunity,
-                        icon: const Icon(Icons.delete),
-                        label: const Text("Delete Community"),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 18)),
-                      ),
-                      const SizedBox(width: 20),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          if (memberStats.isNotEmpty) _banMember(memberStats[0]['id'].toString());
-                        },
-                        icon: const Icon(Icons.block),
-                        label: const Text("Ban Recent Member"),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 18)),
-                      ),
-                    ],
-                  ),
+                 
                 ],
               ),
             ),
