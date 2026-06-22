@@ -117,7 +117,7 @@ class _VotingScreenState extends State<VotingScreen> {
   int? selectedIndex;
   bool isNominated = false;
   String phase = "loading";
-  bool debugMode = true;
+  bool debugMode = false;
   bool noElection = false;
 
   @override
@@ -137,7 +137,7 @@ class _VotingScreenState extends State<VotingScreen> {
 
       final election = await supabase
           .from('elections')
-          .select('id, nomination_end, voting_end')
+          .select('id, nomination_end, voting_end, is_active')
           .eq('community_id', widget.communityId)
           .eq('is_active', true)
           .maybeSingle();
@@ -149,10 +149,12 @@ class _VotingScreenState extends State<VotingScreen> {
         });
         return;
       }
+
       final electionId = election['id'];
-      DateTime now = DateTime.now().toUtc();
+      final now = DateTime.now().toUtc();
       final nominationEnd = DateTime.parse(election['nomination_end']).toUtc();
       final votingEnd = DateTime.parse(election['voting_end']).toUtc();
+
       if (debugMode) {
         phase = "closed";
       } else {
@@ -164,13 +166,9 @@ class _VotingScreenState extends State<VotingScreen> {
           phase = "closed";
         }
       }
-      print("NOW: $now");
-      print("VOTING END: $votingEnd");
-      print("PHASE: $phase");
 
       if (phase == "closed") {
         final alreadyClosed = election['is_active'] == false;
-
         if (!alreadyClosed) {
           await _assignAdmin(electionId);
         }
@@ -204,13 +202,12 @@ class _VotingScreenState extends State<VotingScreen> {
           .select('*')
           .inFilter('user_id', userIds);
 
-      // 🔥 GET VOTES
       final voteData = await supabase
           .from('votes')
           .select('candidate_id')
           .eq('election_id', electionId);
 
-      Map<String, int> voteCountMap = {};
+      final voteCountMap = <String, int>{};
       for (var v in voteData) {
         final id = v['candidate_id'];
         voteCountMap[id] = (voteCountMap[id] ?? 0) + 1;
@@ -218,7 +215,6 @@ class _VotingScreenState extends State<VotingScreen> {
 
       candidates = (profiles as List).map((profile) {
         final uid = profile['user_id'];
-
         return Candidate(
           userId: uid,
           name: profile['full_name'] ?? 'Unknown',
@@ -229,12 +225,9 @@ class _VotingScreenState extends State<VotingScreen> {
         );
       }).toList();
 
-      // 🔥 SORT LEADERBOARD
       candidates.sort((a, b) => b.votes.compareTo(a.votes));
 
-      setState(() {
-        isLoading = false;
-      });
+      setState(() => isLoading = false);
     } catch (e) {
       print("Error loading candidates: $e");
       setState(() => isLoading = false);
@@ -461,13 +454,12 @@ class _VotingScreenState extends State<VotingScreen> {
     if (noElection) {
       return Center(
         child: Text(
-          "No active elections",
+          "No elections in this community yet.",
           style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       );
     }
 
-    // NOMINATION PHASE → only nominate button
     if (phase == "nomination") {
       return Column(
         children: [
@@ -478,7 +470,6 @@ class _VotingScreenState extends State<VotingScreen> {
       );
     }
 
-    // VOTING PHASE → show candidates
     if (phase == "voting") {
       final currentUserId = supabase.auth.currentUser!.id;
       return Column(
@@ -508,10 +499,9 @@ class _VotingScreenState extends State<VotingScreen> {
       );
     }
 
-    // CLOSED PHASE
     return Center(
       child: Text(
-        "Election has ended.\nNew admin has been selected.",
+        "No Active Elections\nAdmin has been selected.",
         textAlign: TextAlign.center,
         style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
       ),

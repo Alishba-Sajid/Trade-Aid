@@ -17,3 +17,5 @@ pubspec.lock
 
 # Logs
 *.log
+
+supabase/service-account.json
